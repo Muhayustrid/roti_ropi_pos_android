@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -44,8 +45,11 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
+    implementation(libs.okhttp)
+    implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit)
+    testImplementation(libs.mockwebserver)
 
     debugImplementation(libs.androidx.fragment.testing)
     androidTestImplementation(libs.androidx.fragment.testing)

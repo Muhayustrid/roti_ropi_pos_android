@@ -1,0 +1,131 @@
+{
+  "api_version": "v1",
+  "endpoints": [
+    {
+      "module": "bootstrap",
+      "method_name": "get",
+      "path": "/api/method/roti_ropi_pos.api.v1.bootstrap.get",
+      "http_method": "GET",
+      "requires_bearer": true,
+      "requires_idempotency": false,
+      "retry_class": "one_read_retry"
+    },
+    {
+      "module": "sessions",
+      "method_name": "current",
+      "path": "/api/method/roti_ropi_pos.api.v1.sessions.current",
+      "http_method": "GET",
+      "requires_bearer": true,
+      "requires_idempotency": false,
+      "retry_class": "one_read_retry"
+    },
+    {
+      "module": "sessions",
+      "method_name": "open",
+      "path": "/api/method/roti_ropi_pos.api.v1.sessions.open",
+      "http_method": "POST",
+      "requires_bearer": true,
+      "requires_idempotency": true,
+      "retry_class": "recovery_only"
+    },
+    {
+      "module": "customers",
+      "method_name": "search",
+      "path": "/api/method/roti_ropi_pos.api.v1.customers.search",
+      "http_method": "GET",
+      "requires_bearer": true,
+      "requires_idempotency": false,
+      "retry_class": "one_read_retry"
+    },
+    {
+      "module": "catalog",
+      "method_name": "search",
+      "path": "/api/method/roti_ropi_pos.api.v1.catalog.search",
+      "http_method": "GET",
+      "requires_bearer": true,
+      "requires_idempotency": false,
+      "retry_class": "one_read_retry"
+    },
+    {
+      "module": "catalog",
+      "method_name": "scan",
+      "path": "/api/method/roti_ropi_pos.api.v1.catalog.scan",
+      "http_method": "POST",
+      "requires_bearer": true,
+      "requires_idempotency": false,
+      "retry_class": "one_read_retry"
+    },
+    {
+      "module": "catalog",
+      "method_name": "quote_item",
+      "path": "/api/method/roti_ropi_pos.api.v1.catalog.quote_item",
+      "http_method": "POST",
+      "requires_bearer": true,
+      "requires_idempotency": false,
+      "retry_class": "one_read_retry"
+    },
+    {
+      "module": "sales",
+      "method_name": "submit",
+      "path": "/api/method/roti_ropi_pos.api.v1.sales.submit",
+      "http_method": "POST",
+      "requires_bearer": true,
+      "requires_idempotency": true,
+      "retry_class": "recovery_only"
+    },
+    {
+      "module": "sales",
+      "method_name": "get",
+      "path": "/api/method/roti_ropi_pos.api.v1.sales.get",
+      "http_method": "GET",
+      "requires_bearer": true,
+      "requires_idempotency": false,
+      "retry_class": "one_read_retry"
+    },
+    {
+      "module": "sales",
+      "method_name": "list",
+      "path": "/api/method/roti_ropi_pos.api.v1.sales.list",
+      "http_method": "GET",
+      "requires_bearer": true,
+      "requires_idempotency": false,
+      "retry_class": "one_read_retry"
+    },
+    {
+      "module": "sales",
+      "method_name": "create_return",
+      "path": "/api/method/roti_ropi_pos.api.v1.sales.create_return",
+      "http_method": "POST",
+      "requires_bearer": true,
+      "requires_idempotency": true,
+      "retry_class": "recovery_only"
+    },
+    {
+      "module": "closing",
+      "method_name": "preview",
+      "path": "/api/method/roti_ropi_pos.api.v1.closing.preview",
+      "http_method": "GET",
+      "requires_bearer": true,
+      "requires_idempotency": false,
+      "retry_class": "one_read_retry"
+    },
+    {
+      "module": "closing",
+      "method_name": "submit",
+      "path": "/api/method/roti_ropi_pos.api.v1.closing.submit",
+      "http_method": "POST",
+      "requires_bearer": true,
+      "requires_idempotency": true,
+      "retry_class": "recovery_only"
+    },
+    {
+      "module": "closing",
+      "method_name": "status",
+      "path": "/api/method/roti_ropi_pos.api.v1.closing.status",
+      "http_method": "GET",
+      "requires_bearer": true,
+      "requires_idempotency": false,
+      "retry_class": "one_read_retry"
+    }
+  ]
+}
