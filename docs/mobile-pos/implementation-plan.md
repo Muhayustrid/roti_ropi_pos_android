@@ -1,0 +1,1660 @@
+# Android Mobile POS Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use
+> `superpowers:subagent-driven-development` (recommended) or
+> `superpowers:executing-plans` to implement this plan task-by-task. Steps use
+> checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Build the approved Android cashier client for the versioned Mobile
+POS API without duplicating ERPNext business logic.
+
+**Architecture:** One Kotlin Android application module uses XML Fragments,
+ViewBinding, ViewModels, a small repository/API boundary, AppAuth, and encrypted
+OAuth-attempt, token, and durable mutation storage. ERPNext remains
+authoritative, every mutation is prepared before transmission, and known-offline
+startup never exposes an offline transaction workflow.
+
+**Tech Stack:** Kotlin 2.2.10, AGP 9.2.1, XML Views, ViewBinding, AndroidX,
+coroutines, OkHttp, Kotlin serialization, AppAuth, WorkManager, JUnit 4,
+MockWebServer, Espresso, test-only UI Automator, minSdk 23, and targetSdk 36.
+
+## Global Constraints
+
+- Do not implement any task until this documentation set is explicitly approved.
+- Do not begin a later task or phase without explicit approval.
+- Do not commit, push, publish, deploy, or provision production credentials
+  without separate explicit approval.
+- Use Kotlin, XML Views, and ViewBinding.
+- Keep `minSdk 23`.
+- Do not use Jetpack Compose.
+- Call only the approved versioned Mobile POS API.
+- Treat the fixed canonical-origin OAuth authorize and token routes as the only
+  authentication control-plane exception; do not use discovery or another
+  generic Frappe method.
+- Do not calculate or persist authoritative accounting totals locally.
+- Do not implement offline sale submission.
+- Generate and persist one lowercase UUID and exact request body before each
+  logical mutation.
+- Reuse that UUID and body after an unknown result.
+- Serialize each mutation DTO once as UTF-8 JSON and persist the exact bytes,
+  content type, serializer identity, and local format version. Never reconstruct
+  replay bytes; unknown formats enter manual recovery.
+- A known-offline new mutation creates no UUID, row, worker, or transport call.
+- Accept exact settlement only. Overpayment and local change calculation remain
+  unsupported until separately contracted.
+- Capability refresh is event-triggered and coalesced.
+- Bind each pending mutation to its HTTPS origin and OAuth client identity.
+- Keep DTOs separate from domain and UI models.
+- Use TDD for authentication, parsing, mutation, and recovery behavior.
+- Preserve API 23, accessibility, security, and low-end performance.
+- Ponytail is a complementary full-intensity simplicity constraint.
+- Add no DI framework, ORM, Retrofit, image framework, or speculative module.
+- Every task ends with fresh verification, intended diff review, and a stop for
+  approval.
+- Tasks execute serially in this exact order: 1A, 1B, 2, 3, 4, 5, 6, 7, 8, 9,
+  10, 11, 12. Approval of one task never authorizes the next.
+
+## Verified Baseline Blocker
+
+The Phase 0 baseline command currently fails at `:app:checkDebugAarMetadata`.
+`androidx.core:core-ktx:1.19.0` and
+`androidx.lifecycle:lifecycle-runtime-compose:2.11.0` require compile SDK 37,
+while the project compiles against Android 36.1. Task 1A must choose the smallest
+compatible dependency/compile SDK correction, preserve `minSdk 23`, and obtain
+explicit review before Task 1B removes Compose.
+
+## External Hard Stops
+
+- Task 3 requires approved debug or staging App Link, origin, client,
+  application ID, redirect, signing association, scope, non-production test
+  cashier, configuration provisioning method, and OAuth-attempt lifetime for
+  the exercised variant.
+- Production App Link remains blocked until production signing ownership and
+  fingerprints are approved.
+- Task 6 requires backend payment-mode metadata for opening balances.
+- Tasks accepting decimal input require approved locale syntax, precision,
+  scale, bounds, and no-rounding behavior.
+- Task 8 requires an approved decision for serial-change quote behavior.
+- Task 9 requires backend payment-mode metadata and an authoritative cart
+  payable workflow.
+- Task 9 supports exact settlement only. Overpayment/change remains blocked
+  until explicit contract approval.
+- Task 10 requires an authoritative return-refund workflow.
+- Lost-response staging evidence requires an externally owned approved fault
+  gate for all four mutations. Android does not own staging ingress
+  configuration. Each operation must prove one UUID and exactly one business
+  document after a post-upstream-completion response drop.
+- Task 11 requires an externally owned deterministic staging queued-closing
+  procedure with no Android endpoint or production test hook.
+- Task 12 cannot complete until launch-p95, request-p95, UI-flow-p95, and
+  PSS-growth thresholds are explicitly approved.
+- Task 12 requires an approved representative low-end physical device and an
+  external non-empty release denylist.
+- Camera scanning, printer integration, R8 changes, distribution, and production
+  signing are outside this plan.
+
+## Separate Backend Documentation Follow-Up
+
+Do not begin backend documentation work from Android Phase 0 approval. A
+separate user request is required, and its diff must not be mixed with this
+Android diff.
+
+The factual follow-up may remove stale statements that the Android plan does not
+exist from backend `architecture.md`, `integration-boundaries.md`,
+`testing-strategy.md`, and `implementation-plan.md`. Product or contract
+decisions such as overpayment, payable/refund workflows, serial quote behavior,
+performance, distribution, and staging operations require their own approval
+before any backend PRD or contract update.
+
+The backend follow-up requires its own diff review and explicit approval. It
+does not modify backend application code, contracts, staging, or deployment.
+
+## Backend Phase Gates
+
+| Android phase | Backend requirement |
+| --- | --- |
+| Phase 1 | Backend Phase 1 stable envelope and fixtures |
+| Phase 2 | Backend Phase 3 OAuth, route gate, and bootstrap |
+| Phase 3 | Backend Phase 2 idempotency and Phase 4 sessions |
+| Phase 4 | Backend Phase 4 customers and Phase 5 catalog |
+| Phase 5 | Backend Phase 6 sale plus resolved payable contract |
+| Phase 6 | Backend Phase 6 history/return plus resolved refund contract |
+| Phase 7 | Backend Phase 7 closing |
+| Final | Backend Final staging evidence |
+
+## Planned File Map
+
+| Path | Responsibility |
+| --- | --- |
+| `app/src/main/java/com/rotiropi/pos_erpnext/MobilePosApplication.kt` | Manual application container |
+| `app/src/main/java/com/rotiropi/pos_erpnext/MainActivity.kt` | Navigation host only |
+| `app/src/main/java/com/rotiropi/pos_erpnext/auth/*` | OAuth, encrypted active attempt, and encrypted tokens |
+| `app/src/main/java/com/rotiropi/pos_erpnext/data/api/CanonicalBackendOrigin.kt` | Canonical origin parser |
+| `app/src/main/java/com/rotiropi/pos_erpnext/data/api/*` | HTTPS transport, envelopes, and DTOs |
+| `app/src/main/java/com/rotiropi/pos_erpnext/data/MobilePosRepository.kt` | Endpoint and model boundary |
+| `app/src/main/java/com/rotiropi/pos_erpnext/data/ConnectivityStatus.kt` | Conservative platform connectivity snapshot |
+| `app/src/main/java/com/rotiropi/pos_erpnext/recovery/*` | Pending store, executor, and worker |
+| `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt` | Unresolved-state guard and complete local cleanup |
+| `app/src/main/java/com/rotiropi/pos_erpnext/ui/*` | XML Fragment and ViewModel features |
+| `app/src/main/res/layout/*` | XML layouts |
+| `app/src/main/res/navigation/mobile_pos_nav_graph.xml` | Navigation graph |
+| `app/src/test/resources/api/v1/endpoint-contracts.json` | Parameter table for all 14 approved endpoints |
+| `app/src/test/resources/api/v1/*` | Reviewed contract fixtures |
+| `app/src/test/*` | Unit and HTTP integration tests |
+| `app/src/androidTest/*` | Espresso, Keystore, redirect, and lifecycle tests |
+| `tools/create-test-avds.sh` | Deterministic API 23/API 36 AVD creation |
+| `tools/run-device-tests.sh` | Serial-pinned deterministic device matrix runner |
+| `tools/oauth-process-death.sh` | Two-process OAuth-attempt harness |
+| `tools/recovery-process-death.sh` | Two-process ADB recovery harness |
+| `tools/performance-harness.sh` | Repeatable fake-response performance and PSS runner |
+| `tools/accessibility-harness.sh` | Deterministic accessibility matrix and evidence runner |
+| `tools/verify-release-artifacts.sh` | Reproducible release APK and denylist inspection |
+
+## Required Verification and Review Stop
+
+Unless a task explicitly has no Android UI/device output, its green gate repeats
+the six Gradle and two serial-pinned device commands below after targeted tests.
+Every review stop then runs the two repository inspection commands shown last:
+
+```bash
+./gradlew testDebugUnitTest
+./gradlew testReleaseUnitTest
+./gradlew lintDebug
+./gradlew lintRelease
+./gradlew assembleDebug
+./gradlew assembleRelease
+./tools/run-device-tests.sh api23
+./tools/run-device-tests.sh api36
+git diff --check
+git status --short
+```
+
+An unavailable required device, image, backend fixture, staging procedure, or
+external evidence is a blocker, not a skipped check. Every task then inspects
+only its listed files, reports its proposed commit message, performs no commit,
+and waits for separate approval.
+
+---
+
+## Android Phase 1: Platform and API Foundation
+
+### Task 1A: Correct the Gradle and Build Baseline
+
+**Depends on:** Explicit Android Phase 0 documentation approval.
+
+**Backend gate:** None beyond approved Phase 0 documentation.
+
+**Files:**
+
+- Modify: `gradle/libs.versions.toml`
+- Modify: `app/build.gradle.kts`
+
+**Produces:**
+
+- Reviewed dependency and compile SDK baseline.
+- Passing unit, lint, debug, and release builds.
+- One recorded compile-platform source of truth consumed by Task 1B tooling.
+- No Compose removal or UI change.
+
+- [ ] **Step 1: Inspect and correct the dependency baseline**
+
+```bash
+./gradlew :app:dependencies
+./gradlew clean
+```
+
+Choose the minimum API 23-compatible dependency correction for Android 36.1 or
+propose `compileSdk 37` for explicit review. Do not change `minSdk 23` or
+`targetSdk 36` merely to satisfy metadata, and do not remove Compose in Task 1A.
+
+- [ ] **Step 2: Verify Task 1A**
+
+```bash
+./gradlew testDebugUnitTest
+./gradlew testReleaseUnitTest
+./gradlew lintDebug
+./gradlew lintRelease
+./gradlew assembleDebug
+./gradlew assembleRelease
+```
+
+Expected: every command exits 0 and AAR metadata checks pass.
+
+**Acceptance criteria:** The selected dependencies and compile platform are
+compatible, `minSdk 23` and `targetSdk 36` remain unchanged, clean debug/release
+unit, lint, and assemble gates pass, and no Compose or UI change is present.
+
+- [ ] **Step 3: Mandatory review and stop**
+
+```bash
+git status --short
+git diff -- gradle/libs.versions.toml app/build.gradle.kts
+```
+
+Expected: only the minimum dependency or compile SDK correction is present.
+Report the proposed commit message `build: restore Android dependency
+compatibility`. Do not commit and do not begin Task 1B without explicit
+approval.
+
+### Task 1B: Replace Compose with XML Views and ViewBinding
+
+**Depends on:** Approved and passing Task 1A.
+
+**Backend gate:** Approved and passing Task 1A baseline.
+
+**Files:**
+
+- Modify: `build.gradle.kts`
+- Modify: `gradle/libs.versions.toml`
+- Modify: `app/build.gradle.kts`
+- Modify: `app/src/main/AndroidManifest.xml`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/MainActivity.kt`
+- Modify: `app/src/main/res/values/themes.xml`
+- Modify: `app/src/main/res/xml/backup_rules.xml`
+- Modify: `app/src/main/res/xml/data_extraction_rules.xml`
+- Delete: `app/src/main/java/com/rotiropi/pos_erpnext/ui/theme/Color.kt`
+- Delete: `app/src/main/java/com/rotiropi/pos_erpnext/ui/theme/Theme.kt`
+- Delete: `app/src/main/java/com/rotiropi/pos_erpnext/ui/theme/Type.kt`
+- Create: `app/src/main/res/layout/activity_main.xml`
+- Create: `app/src/main/res/layout/fragment_sign_in.xml`
+- Create: `app/src/main/res/navigation/mobile_pos_nav_graph.xml`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/auth/SignInFragment.kt`
+- Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/ViewBindingLifecycleTest.kt`
+- Create: `tools/create-test-avds.sh`
+- Create: `tools/run-device-tests.sh`
+- Replace: `app/src/androidTest/java/com/rotiropi/pos_erpnext/ExampleInstrumentedTest.kt`
+
+**Produces:**
+
+- XML/ViewBinding application shell.
+- One activity and navigation host.
+- Accessible sign-in destination.
+- Backup disabled and cleartext rejected.
+- No Compose plugin, source, test, or dependency.
+- Deterministic API 23 and API 36 device runners.
+
+- [ ] **Step 1: Create deterministic device scripts**
+
+Require the documented API 23 and API 36 images. Detect the host ABI, create the
+fixed AVD names, and fail rather than selecting another API, ABI, or ambient
+device. Apply the exact CPU, memory, display, density, locale, timezone,
+animation, wipe, snapshot, boot-timeout, and readiness settings from
+`testing-strategy.md`. Read and verify the actual Task 1A compile platform rather
+than duplicating it. Record the system-image revision and emulator version.
+
+- [ ] **Step 2: Write the failing XML launch test**
+
+Create an Espresso test named `launch_displays_xml_sign_in_destination` that
+starts `MainActivity` and checks that a visible view contains the text
+`Sign in`. This compiles against the existing resources and fails behaviorally
+against the generated `Hello Android!` screen.
+
+Create a focused lifecycle test proving Fragment ViewBinding is inaccessible
+after `onDestroyView` and that recreation does not retain the destroyed view.
+
+- [ ] **Step 3: Run the red check**
+
+```bash
+./tools/create-test-avds.sh
+./tools/run-device-tests.sh api23
+./tools/run-device-tests.sh api36
+```
+
+Expected: FAIL because no visible view displays `Sign in`, not because of AAR
+metadata, a missing symbol, or an unspecified device. Stop if either required
+system image is unavailable.
+
+- [ ] **Step 4: Replace the starter minimally**
+
+Remove Compose configuration and source, enable `viewBinding = true`, add only
+the XML/navigation dependencies, host `NavHostFragment`, declare
+`android.permission.INTERNET`, set `usesCleartextTraffic="false"`, set
+`allowBackup="false"`, and exclude all app data from backup and device transfer.
+
+- [ ] **Step 5: Verify the XML/ViewBinding baseline**
+
+```bash
+./gradlew testDebugUnitTest
+./gradlew testReleaseUnitTest
+./gradlew lintDebug
+./gradlew lintRelease
+./gradlew assembleDebug
+./gradlew assembleRelease
+./gradlew :app:dependencies
+./tools/run-device-tests.sh api23
+./tools/run-device-tests.sh api36
+```
+
+Expected: every command passes and dependency output contains no Compose
+artifact.
+
+**Acceptance criteria:** The application launches an accessible XML sign-in
+destination on API 23 and API 36, ViewBinding follows the view lifecycle, backup
+and cleartext paths are disabled, the exact compile platform is available, and
+the source and dependency graph contain no Compose application/test artifact.
+
+- [ ] **Step 6: Review and stop**
+
+Inspect `git status --short`, `git diff`, and `./gradlew :app:dependencies`.
+Report the proposed commit message `refactor: replace Compose starter with XML
+views`. Do not commit or begin Task 2 without explicit approval.
+
+### Task 2: Implement the API Envelope and Transport Boundary
+
+**Depends on:** Approved and passing Task 1B.
+
+**Backend gate:** Backend Phase 1 stable envelope plus approved Phase 0 contract
+examples for the exact 14-endpoint table. These examples do not claim runtime
+integration for a later backend phase.
+
+**Files:**
+
+- Modify: `gradle/libs.versions.toml`
+- Modify: `app/build.gradle.kts`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/ApiEnvelope.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/ApiFailure.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/CanonicalBackendOrigin.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/EndpointContract.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/MobilePosApiClient.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/BootstrapDtos.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/SessionDtos.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/CustomerDtos.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/CatalogDtos.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/SalesDtos.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/ClosingDtos.kt`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/data/api/ApiEnvelopeTest.kt`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/data/api/CanonicalBackendOriginTest.kt`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/data/api/MobilePosApiContractTest.kt`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/data/api/MobilePosApiClientTest.kt`
+- Create: `app/src/test/resources/api/v1/endpoint-contracts.json`
+- Create: `app/src/test/resources/api/v1/envelope-success.json`
+- Create: `app/src/test/resources/api/v1/envelope-error.json`
+- Create: `app/src/test/resources/api/v1/native-401.json`
+- Create: `app/src/test/resources/api/v1/native-403.json`
+- Create: `app/src/test/resources/api/v1/native-404.json`
+- Create: `app/src/test/resources/api/v1/native-429.json`
+- Create: `app/src/test/resources/api/v1/native-500.json`
+- Create: `app/src/test/resources/api/v1/native-503.json`
+- Create: `app/src/test/resources/api/v1/malformed-response.json`
+- Create: `app/src/test/resources/api/v1/incompatible-api-version.json`
+- Create: `app/src/test/resources/api/v1/additive-fields.json`
+- Create: `app/src/test/resources/api/v1/unknown-enum.json`
+
+**Interfaces:**
+
+- Produces `ApiResult.Success`, `ApiResult.ExpectedFailure`,
+  `ApiResult.TransportFailure`, and `ApiResult.ProtocolFailure`.
+- Produces `MobilePosApiClient.execute(request, deserializer)` using its OkHttp
+  client directly.
+- Produces typed network DTOs and one checked-in contract table for all 14
+  approved endpoints.
+- Contract-example DTOs/fixtures for blocked flows are parser snapshots, not
+  final runtime integration evidence; their feature tasks may update them only
+  after the corresponding backend gate.
+
+- [ ] **Step 1: Write failing parser and transport tests**
+
+Cover outer `message`, additive fields, decimal strings, stable error, native
+401/403/404/429/500/503, `Retry-After`, request ID, redacted headers,
+cancellation, malformed body, and missing or incompatible API major version.
+Cover every canonical-origin invariant from `authentication.md`, additive
+fields, and unknown enum mapping to an unsupported state.
+
+Run one parameterized suite from `endpoint-contracts.json` covering all 14
+methods, exact versioned paths, query/body encoding, authentication,
+idempotency, automatic retry class, request fields, DTO optionality,
+success/error envelopes, decimal strings, and additive compatibility. Assert no
+health or return-preview row exists.
+
+Test every canonical accepted and rejected example from `authentication.md`.
+
+- [ ] **Step 2: Run the red tests**
+
+```bash
+./gradlew testDebugUnitTest --tests "com.rotiropi.pos_erpnext.data.api.*"
+```
+
+Expected: FAIL because API types do not exist.
+
+- [ ] **Step 3: Implement the minimum boundary**
+
+Add OkHttp and Kotlin serialization only. Use MockWebServer against
+`MobilePosApiClient` directly; do not add a one-implementation transport
+interface. Construct URLs only from `CanonicalBackendOrigin` and the checked-in
+endpoint table. Disable redirects, reject arbitrary absolute URLs, configure
+unknown-field tolerance and explicit timeouts, perform no mutation auto-retry,
+and use an allowlisted logger that never emits headers or request bodies.
+
+Record fixture endpoint, backend phase, source type, backend SHA/version, review
+reference, and no-credential/no-production-PII assertion. Review each future
+feature DTO change with its refreshed fixture.
+
+- [ ] **Step 4: Run the Phase 1 gate**
+
+```bash
+./gradlew testDebugUnitTest
+./gradlew testReleaseUnitTest
+./gradlew lintDebug
+./gradlew lintRelease
+./gradlew assembleDebug
+./gradlew assembleRelease
+```
+
+Expected: PASS.
+
+**Acceptance criteria:** Exactly 14 unique business endpoint rows and four
+idempotent mutations are present; all parser, path, method, retry, DTO,
+compatibility, native-error, and origin assertions pass; no health,
+return-preview, arbitrary URL, credential logging, redirect, or mutation
+auto-retry path exists.
+
+- [ ] **Step 5: Review and stop**
+
+Inspect the intended diff and report `feat: add mobile POS API transport`.
+Wait for explicit approval before commit or Android Phase 2.
+
+---
+
+## Android Phase 2: Authentication and Bootstrap
+
+### Task 3: Implement OAuth PKCE and Token Storage
+
+**Depends on:** Approved and passing Task 2.
+
+**Backend gate:** Backend Phase 3 plus approved redirect URI, base URL, client
+ID, App Link association, and OAuth Client provisioning.
+
+**Files:**
+
+- Modify: `gradle/libs.versions.toml`
+- Modify: `app/build.gradle.kts`
+- Modify: `app/src/main/AndroidManifest.xml`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/MobilePosApplication.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/auth/OAuthConfiguration.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/auth/OAuthCoordinator.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/auth/OAuthAttemptStore.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/auth/TokenStore.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/auth/AuthCompletionActivity.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/ApiFailure.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/MobilePosApiClient.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/auth/SignInFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/auth/SignInViewModel.kt`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/auth/OAuthCoordinatorTest.kt`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/data/api/AuthenticatedMobilePosApiClientTest.kt`
+- Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/auth/AuthRedirectSecurityTest.kt`
+- Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/auth/OAuthAttemptStoreTest.kt`
+- Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/auth/OAuthAttemptProcessDeathTest.kt`
+- Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/auth/TokenStoreTest.kt`
+- Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/auth/BrowserOAuthJourneyTest.kt`
+- Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/test/SpecialHarnessOnly.kt`
+- Modify: `tools/run-device-tests.sh`
+- Create: `tools/oauth-process-death.sh`
+
+**Produces:**
+
+- `OAuthCoordinator.beginAuthorization()`.
+- `OAuthCoordinator.handleCompletion(Intent)`.
+- `OAuthCoordinator.refresh()`.
+- `OAuthAttemptStore.read`, `write`, `consume`, and `clear`.
+- `TokenStore.read`, `write`, and `clear`.
+- An authenticated API client that sends bearer tokens only to the configured
+  canonical origin, refreshes an eligible read once, and never automatically
+  replays a mutation.
+
+- [ ] **Step 1: Confirm the hard gate**
+
+For the debug or staging variant being exercised, record its exact canonical
+origin, public client ID, fixed authorize/token paths, scope `all`, redirect URI,
+application ID, signing-certificate fingerprint, OAuth allowlist,
+`assetlinks.json` association, non-production test cashier, configuration
+provisioning method, and approved attempt lifetime. Stop when any value or
+external provisioning evidence is absent. Android does not provision the OAuth
+client or cashier. Production remains a separate Final gate.
+
+- [ ] **Step 2: Write failing OAuth and Keystore tests**
+
+Test mandatory S256, no client secret, exact redirect/state validation,
+single-use code, cold/warm completion, forged explicit Intent, duplicate
+parameters, merged-manifest exported state, and App Link verification.
+
+Test `OAuthAttemptStore` encrypted round trip, the approved attempt lifetime
+(10 minutes only if that proposal is approved),
+origin/client/redirect binding, atomic replacement, unique IV, malformed or
+tampered data, consume-once, cancellation, terminal cleanup, logout, and
+process-death restoration. Inject death after consumed persistence and after
+token persistence; assert neither boundary performs a second exchange.
+Assert a mismatched unsolicited callback preserves the original pending attempt
+and expiry for the matching callback.
+
+Test `TokenStore` unique IV, independent IV/tag/ciphertext tampering,
+malformed/truncated/unknown-version data, atomic replacement, injected partial
+write, origin/client binding, backup exclusion, key invalidation, logout, and
+terminal cleanup.
+
+Add API-client tests proving exact-origin Bearer attachment, no redirect or
+cross-origin forwarding, one serialized refresh and retry for eligible reads,
+one refresh for concurrent read 401 responses, and no second network dispatch
+for mutation 401. Reject arbitrary absolute, cross-origin, and redirecting token
+endpoints for both authorization-code exchange and refresh; accept only the
+fixed Frappe token path on the canonical origin.
+Accept authorization only at the fixed canonical-origin authorize path with
+scope `all`; reject discovery, dynamic endpoints, nested URLs, redirects, and
+cashier-editable endpoint values.
+
+- [ ] **Step 3: Run the red tests**
+
+```bash
+./gradlew testDebugUnitTest --tests "com.rotiropi.pos_erpnext.auth.*"
+./gradlew testDebugUnitTest \
+  --tests "com.rotiropi.pos_erpnext.data.api.AuthenticatedMobilePosApiClientTest"
+./tools/run-device-tests.sh api23
+```
+
+Expected: FAIL because authentication components do not exist.
+
+- [ ] **Step 4: Implement with AppAuth and Android Keystore**
+
+Use AppAuth for browser/Custom Tab authorization and PKCE. Declare only
+AppAuth's `RedirectUriReceiverActivity` as the exact exported BROWSABLE App Link
+receiver. Deliver explicit completion/cancellation PendingIntents to the
+non-exported `AuthCompletionActivity`, then apply identical coordinator
+validation to cold and warm delivery.
+
+Persist the active attempt in `OAuthAttemptStore` before browser launch. Encrypt
+its canonical origin, client ID, state, verifier, redirect metadata, creation,
+and expiry using an API 23-compatible AES-GCM Keystore key and `AtomicFile`.
+Store tokens in a separately versioned encrypted record.
+
+Annotate every host-script-controlled setup/verification method
+`SpecialHarnessOnly`. Broad device runs exclude that annotation; the OAuth
+script invokes exact class/method names and records isolated artifacts.
+
+Persist `pending` or `consumed` in the attempt record. After restart, never
+exchange a code from a consumed attempt: retain already persisted matching
+tokens and clean up the attempt, otherwise require a new browser authorization.
+
+Inject `TokenStore` and serialized refresh behavior directly into
+`MobilePosApiClient`. Construct only allowlisted endpoint URLs, disable
+redirects, and verify canonical origin before reading or attaching credentials.
+An eligible read may refresh and retry once. Mutation 401 returns a typed
+authentication-required result without another network dispatch; Task 5 maps it
+durably to `auth_required`. Exchange and refresh only at
+`<canonical-origin>/api/method/frappe.integrations.oauth2.get_token` with
+redirects disabled.
+
+- [ ] **Step 5: Run OAuth process-death recovery**
+
+```bash
+./tools/oauth-process-death.sh api23
+```
+
+Expected: the first instrumentation invocation persists an attempt, the host
+force-stops and relaunches the app, the second invocation restores and validates
+the attempt, a test-only exchanger succeeds once, and terminal state deletes the
+attempt. Run additional injected boundaries after consumed persistence and after
+token persistence; both must prove no second exchange.
+
+- [ ] **Step 6: Verify App Links for the exercised environment**
+
+Use `adb -s <serial> shell pm verify-app-links --re-verify <application-id>` on
+API 36, then poll
+`adb -s <serial> shell pm get-app-links <application-id>` to a terminal state
+with a bounded timeout. Expected: only the exact approved host verifies for that
+installed package and certificate. Preserve commands and output. Debug or
+staging evidence does not satisfy production.
+
+- [ ] **Step 7: Verify and inspect secrets**
+
+```bash
+./gradlew testDebugUnitTest
+./gradlew testReleaseUnitTest
+./gradlew lintDebug
+./gradlew lintRelease
+./gradlew assembleDebug
+./gradlew assembleRelease
+./tools/run-device-tests.sh api23
+./tools/run-device-tests.sh api36
+```
+
+Inspect the merged manifest and APK configuration. Expected: PASS with no
+client secret, token, verifier, or cleartext route.
+
+Run the real debug or approved staging browser/App Link journey with UI Automator
+because Espresso cannot cross the application boundary. UI Automator remains
+test-only.
+
+**Acceptance criteria:** The exercised environment passes exact fixed-route
+PKCE, callback, process-death, token-store, exact-origin transport, App Link,
+secret-inspection, API 23, and API 36 gates; host-only tests cannot run in the
+broad suite; production identity is not implied.
+
+- [ ] **Step 8: Review and stop**
+
+Report `feat: add secure OAuth PKCE authentication` and wait for approval.
+
+### Task 4: Implement Bootstrap and Profile Selection
+
+**Depends on:** Approved and passing Task 3.
+
+**Backend gate:** Verified `bootstrap.get` from Backend Phase 3.
+
+**Files:**
+
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/data/MobilePosRepository.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/BootstrapDtos.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/MobilePosApplication.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/AppViewModel.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/profile/ProfileSelectionFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/profile/ProfileSelectionViewModel.kt`
+- Create: `app/src/main/res/layout/fragment_profile_selection.xml`
+- Modify: `app/src/main/res/navigation/mobile_pos_nav_graph.xml`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/data/BootstrapRepositoryTest.kt`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/profile/ProfileSelectionViewModelTest.kt`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/session/LogoutCoordinatorTest.kt`
+- Create: `app/src/test/resources/api/v1/bootstrap-one-profile.json`
+- Create: `app/src/test/resources/api/v1/bootstrap-multiple-profiles.json`
+- Create: `app/src/test/resources/api/v1/bootstrap-stale-opening.json`
+
+**Produces:**
+
+- `MobilePosRepository.bootstrap(profileName)`.
+- `MobilePosRepository.refreshCapabilities(trigger)` with one coalesced in-flight
+  request.
+- `LogoutCoordinator.logout()` for credential/cache clearing and sign-in
+  routing; Task 5 adds unresolved-mutation guarding.
+- Profile and opening domain models.
+- Capability-driven initial routing.
+
+- [ ] **Step 1: Write failing bootstrap tests**
+
+Cover no profile, one profile, multiple profiles, selected profile, all
+capabilities false without selection, stale opening warning, unknown fields,
+401, known-offline startup, failed required refresh, coalesced concurrent
+refreshes, no observer/render/failure loop, and logout routing.
+Assert exactly one refresh after authentication success, authentication
+recovery, profile selection, and profile change. Assert no refresh from
+bootstrap completion, capability observation, rendering, or refresh failure.
+Verify logout clears authentication, bootstrap, and repository memory before
+routing to sign in.
+
+- [ ] **Step 2: Run the red tests**
+
+```bash
+./gradlew testDebugUnitTest --tests "*Bootstrap*" --tests "*ProfileSelection*"
+```
+
+Expected: FAIL on missing repository, routing, and ViewModels.
+
+- [ ] **Step 3: Implement bootstrap and routing**
+
+Map DTOs to domain models, select a single profile automatically, require
+selection for multiple profiles, expose `STALE_OPENING`, and use capabilities
+only for UI availability. Make `MobilePosRepository` the sole in-memory
+capability owner. Start every process with mutations disabled and refresh only
+after the authoritative events listed in `api-integration.md`; failed required
+refresh leaves mutations disabled until explicit Retry.
+
+- [ ] **Step 4: Verify Phase 2**
+
+```bash
+./gradlew testDebugUnitTest
+./gradlew testReleaseUnitTest
+./gradlew lintDebug
+./gradlew lintRelease
+./gradlew assembleDebug
+./gradlew assembleRelease
+./tools/run-device-tests.sh api23
+./tools/run-device-tests.sh api36
+```
+
+Expected: PASS on API 23 and API 36. An unavailable required device or image
+blocks Task 4 completion.
+
+**Acceptance criteria:** Bootstrap/profile routing, stale-opening display,
+capability ownership, exact refresh triggers, coalescing, failure-disablement,
+initial logout cleanup, and API 23/API 36 UI behavior pass with reviewed Backend
+Phase 3 fixtures.
+
+- [ ] **Step 5: Review and stop**
+
+Report `feat: add scoped mobile POS bootstrap` and wait for approval.
+
+---
+
+## Android Phase 3: Recovery and Opening
+
+### Task 5: Implement Durable Mutation Recovery
+
+**Depends on:** Approved and passing Task 4.
+
+**Backend gate:** Backend Phase 2 idempotency contract.
+
+**Files:**
+
+- Modify: `gradle/libs.versions.toml`
+- Modify: `app/build.gradle.kts`
+- Modify: `app/src/main/AndroidManifest.xml`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/MobilePosApplication.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/data/ConnectivityStatus.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/recovery/PendingMutation.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/recovery/PendingMutationStore.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/recovery/RecoveryCoordinator.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/recovery/RetryPendingMutationWorker.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/recovery/RecoveryFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/recovery/RecoveryViewModel.kt`
+- Create: `app/src/main/res/layout/fragment_recovery.xml`
+- Modify: `app/src/main/res/navigation/mobile_pos_nav_graph.xml`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/recovery/RecoveryCoordinatorTest.kt`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/data/ConnectivityStatusTest.kt`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/recovery/PendingMutationSerializationTest.kt`
+- Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/recovery/PendingMutationStoreTest.kt`
+- Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/recovery/ProcessDeathHarnessTest.kt`
+- Create: `tools/recovery-process-death.sh`
+
+**Produces:**
+
+- `RecoveryCoordinator.execute(spec, responseDeserializer)`.
+- Encrypted `PendingMutationStore`.
+- Unique WorkManager retry by transaction UUID.
+- Conservative `Online`, `KnownOffline`, and `Unknown` connectivity snapshots.
+
+- [ ] **Step 1: Write failing recovery tests**
+
+Cover persist-before-send, lowercase UUID, identical-body replay, timeout, 401,
+429/503, 500 exhaustion, terminal persistence, wrong-user/site/client
+rejection, unique AES-GCM IVs, authentication-tag failure, key invalidation,
+one unresolved mutation bound, and known-offline start creating no UUID, row,
+worker, serialization, or transport call. Verify mutation 401 is persisted as
+`auth_required` before authentication recovery and causes no hidden transport
+retry.
+
+Cover disconnect before body, disconnect after body, response-body loss,
+timeout, exact dispatch counts, serialize-once replay, unknown body format,
+stale `sending`, changed-action UUID, `IDEMPOTENCY_KEY_REUSED`, crash before UI
+acknowledgment, and logout guarding for every unresolved state. Verify initial
+dispatch plus five retries is at most six dispatches; valid HTTP
+`Retry-After`, stable `retry_after_seconds`, local delay, invalid values,
+persisted count, and next-eligible time follow `state-and-recovery.md`.
+Include HTTP 409 `REQUEST_IN_PROGRESS` in the same persisted precedence,
+attempt-count, and six-dispatch assertions.
+
+Connectivity restoration alone never starts never-prepared work; explicit Retry
+may. It may run one already persisted eligible worker. Ambiguous, stale,
+local/LAN, captive, or inspection-failed connectivity is `Unknown`, not
+`KnownOffline`.
+Annotate process-death setup and verification methods `SpecialHarnessOnly`; the
+host script invokes exact methods and broad device runs must exclude them.
+
+- [ ] **Step 2: Run the red tests**
+
+```bash
+./gradlew testDebugUnitTest --tests "*RecoveryCoordinator*"
+./tools/run-device-tests.sh api23
+```
+
+Expected: FAIL because the recovery boundary does not exist.
+
+- [ ] **Step 3: Implement the smallest durable store**
+
+Use `SQLiteOpenHelper` for metadata and Keystore AES-GCM for sensitive bodies.
+Store a version, fresh random 96-bit IV, ciphertext, and authentication tag for
+each write, atomically with mutation metadata. Bind each record to normalized
+HTTPS origin and OAuth client identity. Add WorkManager only for
+network-constrained durable retries. Do not add Room, a redundant plaintext
+hash, or an offline queue.
+
+Add `ACCESS_NETWORK_STATE`. Implement `ConnectivityStatus` with Android
+`ConnectivityManager`/`NetworkCapabilities` and an injectable test fake. Map the
+validated endpoint DTO once to UTF-8 JSON, persist exact bytes, content type,
+serializer identity, and local format version, and never reserialize a replay.
+
+Before UUID allocation or serialization, return `NotStartedOffline` when
+connectivity is known unavailable. Preserve UI input and require explicit Retry.
+Route every prepared mutation, including authentication recovery, through
+`RecoveryCoordinator`; the API client never performs an invisible mutation
+replay.
+
+- [ ] **Step 4: Verify recovery**
+
+```bash
+./gradlew testDebugUnitTest
+./gradlew testReleaseUnitTest
+./gradlew lintDebug
+./gradlew lintRelease
+./gradlew assembleDebug
+./gradlew assembleRelease
+./tools/run-device-tests.sh api23
+./tools/run-device-tests.sh api36
+```
+
+Expected: PASS for unit, crypto, and in-process instrumentation behavior.
+
+**Acceptance criteria:** Persist-before-send, exact bytes/UUID, tri-state
+connectivity, bounded retry, 401 pause, identity/origin/client binding, process
+restart, terminal acknowledgment, crypto failure, logout guard, API 23, and API
+36 checks pass; no offline queue or hidden transport retry exists.
+
+- [ ] **Step 5: Run the two-process recovery harness**
+
+```bash
+./tools/recovery-process-death.sh api23
+```
+
+The first `adb shell am instrument` invocation persists a mutation and exits.
+The script then force-stops and relaunches the app before a second instrumentation
+invocation verifies the same site, user, UUID, and byte-equivalent body. A
+single instrumentation runner or `ActivityScenario.recreate()` is not accepted
+as process-death evidence.
+
+- [ ] **Step 6: Review and stop**
+
+Report `feat: add durable mobile POS recovery` and wait for approval.
+
+### Task 6: Implement Opening
+
+**Depends on:** Approved and passing Task 5.
+
+**Backend gate:** Backend Phase 4 plus approved opening payment-mode projection,
+decimal-input contract, and externally owned lost-response procedure.
+
+**Files:**
+
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/opening/OpeningFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/opening/OpeningViewModel.kt`
+- Create: `app/src/main/res/layout/fragment_opening.xml`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/SessionDtos.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/MobilePosRepository.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
+- Modify: `app/src/main/res/navigation/mobile_pos_nav_graph.xml`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/opening/OpeningViewModelTest.kt`
+- Create: `app/src/test/resources/api/v1/session-current.json`
+- Create: `app/src/test/resources/api/v1/session-opened.json`
+
+**Produces:**
+
+- `MobilePosRepository.currentSession`.
+- `MobilePosRepository.openSession`.
+- Recovery-safe opening UI.
+
+- [ ] **Step 1: Confirm payment-mode metadata**
+
+Stop if the backend cannot enumerate the modes needed by opening balances.
+Also stop if locale syntax, precision, scale, bounds, no-rounding behavior,
+fixture provenance, or the external post-completion response-drop protocol is
+unapproved. Do not finalize DTO fields before this gate.
+
+- [ ] **Step 2: Write failing opening tests**
+
+Cover configured rows, decimal input, stale warning, double-tap suppression,
+replay, 401, timeout, `SESSION_ALREADY_OPEN`, and current-session reconciliation.
+Assert successful or replayed opening completion emits exactly one coalescible
+capability-refresh trigger; rejection does not.
+Verify logout clears opening balances/input and terminal acknowledgment behavior.
+
+- [ ] **Step 3: Run the red tests**
+
+```bash
+./gradlew testDebugUnitTest --tests "*Opening*"
+```
+
+Expected: FAIL on missing opening components.
+
+- [ ] **Step 4: Implement through RecoveryCoordinator**
+
+Create rows only from server modes, persist before submit, disable duplicate UI
+actions, navigate only from terminal server state, and request the documented
+capability refresh after successful or replayed completion.
+
+- [ ] **Step 5: Verify opening**
+
+```bash
+./gradlew testDebugUnitTest
+./gradlew testReleaseUnitTest
+./gradlew lintDebug
+./gradlew lintRelease
+./gradlew assembleDebug
+./gradlew assembleRelease
+./tools/run-device-tests.sh api23
+./tools/run-device-tests.sh api36
+```
+
+Expected: every command exits 0 with reviewed Backend Phase 4 fixtures.
+
+- [ ] **Step 6: Verify staging lost response**
+
+Consume the externally operated one-shot fault condition. Preserve evidence
+binding backend SHA, original/replay UUID, post-upstream-completion drop,
+original Opening Entry reference, exactly one POS Opening Entry, operator
+evidence ID, and approved protocol reference.
+
+**Acceptance criteria:** Server-provided modes, decimal syntax, recovery,
+reconciliation, capability refresh, logout cleanup, API 23/API 36 behavior, and
+exactly-one Opening Entry evidence pass without local accounting.
+
+- [ ] **Step 7: Review and stop**
+
+Inspect only the listed files, report `feat: add recoverable POS opening`, and
+wait for approval.
+
+---
+
+## Android Phase 4: Customer, Catalog, and Cart
+
+### Task 7: Implement Customer Search
+
+**Depends on:** Approved and passing Task 6.
+
+**Backend gate:** Backend Phase 4 customer contract.
+
+**Files:**
+
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/customer/CustomerSearchFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/customer/CustomerSearchViewModel.kt`
+- Create: `app/src/main/res/layout/fragment_customer_search.xml`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/CustomerDtos.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/MobilePosRepository.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
+- Modify: `app/src/main/res/navigation/mobile_pos_nav_graph.xml`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/customer/CustomerSearchViewModelTest.kt`
+- Create: `app/src/test/resources/api/v1/customer-page.json`
+
+**Produces:**
+
+- `MobilePosRepository.searchCustomers(query, posProfile, page, pageLength)`
+  mapped from the reviewed customer contract.
+
+- [ ] **Step 1: Write failing customer tests**
+
+Cover 300 ms debounce, cancellation, pagination, default walk-in selection,
+registered selection, display-name visibility, empty state, errors, fixture
+provenance, and logout cache clearing.
+
+- [ ] **Step 2: Run red tests**
+
+```bash
+./gradlew testDebugUnitTest --tests "*CustomerSearch*"
+```
+
+Expected: FAIL.
+
+- [ ] **Step 3: Implement bounded customer selection**
+
+Use page size 20, never create customers, and clear walk-in display name when a
+registered customer is selected.
+
+- [ ] **Step 4: Verify customer search**
+
+```bash
+./gradlew testDebugUnitTest
+./gradlew testReleaseUnitTest
+./gradlew lintDebug
+./gradlew lintRelease
+./gradlew assembleDebug
+./gradlew assembleRelease
+./tools/run-device-tests.sh api23
+./tools/run-device-tests.sh api36
+```
+
+Expected: every command exits 0.
+
+**Acceptance criteria:** Search is debounced, cancellable, paginated to 20 by
+default, bounded by 100, scoped, walk-in-safe, cache-cleared on logout, and
+verified on API 23/API 36 without customer creation.
+
+- [ ] **Step 5: Review and stop**
+
+Inspect only the listed files, report `feat: add customer selection`, and wait
+for approval.
+
+### Task 8: Implement Catalog, Scan, Quote, and Cart
+
+**Depends on:** Approved and passing Task 7.
+
+**Backend gate:** Backend Phase 5 catalog contract plus approved serial-change
+quote and decimal quantity syntax decisions.
+
+**Files:**
+
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/sale/CartState.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/sale/SaleFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/sale/SaleViewModel.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/sale/CatalogAdapter.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/sale/CartAdapter.kt`
+- Create: `app/src/main/res/layout/fragment_sale.xml`
+- Create: `app/src/main/res/layout/item_catalog.xml`
+- Create: `app/src/main/res/layout/item_cart.xml`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/MobilePosRepository.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/CatalogDtos.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
+- Modify: `app/src/main/res/navigation/mobile_pos_nav_graph.xml`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/sale/SaleViewModelTest.kt`
+- Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/ui/sale/CatalogAccessibilityTest.kt`
+- Create: `app/src/test/resources/api/v1/catalog-page.json`
+- Create: `app/src/test/resources/api/v1/catalog-scan.json`
+- Create: `app/src/test/resources/api/v1/catalog-quote.json`
+- Create: `tools/accessibility-harness.sh`
+
+**Produces:**
+
+- `MobilePosRepository.searchCatalog(...)`, `scanCatalog(...)`, and
+  `quoteItem(...)` signatures derived only after the reviewed backend/serial
+  gate. Do not add an uncontracted serial quote field.
+- In-memory `CartState` capped at 50 distinct rows.
+
+- [ ] **Step 1: Write failing catalog/cart tests**
+
+Cover pagination, search cancellation, scanner input, UOM conversion,
+batch/serial propagation, warnings, stale quote cancellation, quantity changes,
+stock snapshot labeling, row merging by item/UOM/batch, serial uniqueness across
+the cart, and rejection of the fifty-first cart row.
+Cover the approved serial-change behavior, decimal syntax/no-rounding rule,
+fixture provenance, and logout clearing catalog/cart/quote state.
+
+- [ ] **Step 2: Run red tests**
+
+```bash
+./gradlew testDebugUnitTest --tests "*SaleViewModel*"
+```
+
+Expected: FAIL.
+
+- [ ] **Step 3: Implement the minimal sale workspace**
+
+Use HID/manual scan input, server-resolved identifiers, bounded RecyclerViews,
+and estimate labels. Merge non-serialized rows only when item, resolved UOM,
+and batch match; never place one serial in multiple rows. Do not add CameraX,
+an image loader, inventory picker, or local authoritative total.
+
+- [ ] **Step 4: Verify catalog and cart**
+
+```bash
+./gradlew testDebugUnitTest
+./gradlew testReleaseUnitTest
+./gradlew lintDebug
+./gradlew lintRelease
+./gradlew assembleDebug
+./gradlew assembleRelease
+./tools/run-device-tests.sh api23
+./tools/run-device-tests.sh api36
+./tools/accessibility-harness.sh api23
+./tools/accessibility-harness.sh api36
+```
+
+Expected: every command exits 0 and scanner/accessibility artifacts pass.
+
+**Acceptance criteria:** Search, scan, quote, UOM/batch/serial propagation,
+stale cancellation, 50-row bound, exact merge/serial rules, logout cleanup,
+scanner operation, accessibility, and API 23/API 36 behavior pass without local
+inventory/accounting authority or an unapproved camera/image dependency.
+
+- [ ] **Step 5: Review and stop**
+
+Inspect only the listed files, report `feat: add catalog and bounded cart`, and
+wait for approval.
+
+---
+
+## Android Phase 5: Sale, Payment, and Receipt
+
+### Task 9: Implement Fully Settled Sale
+
+**Depends on:** Approved and passing Task 8.
+
+**Backend gate:** Backend Phase 6, allowed payment-mode metadata, and an
+authoritative cart payable workflow, approved exact-settlement/decimal rules,
+and externally owned lost-response procedure.
+
+**Files:**
+
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/payment/PaymentFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/payment/PaymentViewModel.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/receipt/ReceiptFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/receipt/ReceiptViewModel.kt`
+- Create: `app/src/main/res/layout/fragment_payment.xml`
+- Create: `app/src/main/res/layout/fragment_receipt.xml`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/MobilePosRepository.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/SalesDtos.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
+- Modify: `app/src/main/res/navigation/mobile_pos_nav_graph.xml`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/payment/PaymentViewModelTest.kt`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/receipt/ReceiptViewModelTest.kt`
+- Create: `app/src/test/resources/api/v1/sale-success.json`
+- Create: `app/src/test/resources/api/v1/sale-replayed.json`
+- Create: `app/src/test/resources/api/v1/sale-price-changed.json`
+
+**Produces:**
+
+- `MobilePosRepository.submitSale(...)` and `getSale(...)` mapped only from the
+  final reviewed payable/payment contract.
+- Exact-settlement payment and server-only receipt UI.
+
+- [ ] **Step 1: Confirm all sale gates**
+
+Stop unless Android can receive authoritative payable values and valid payment
+modes without local accounting. Also stop unless exact-only settlement is
+aligned with the backend example, decimal syntax is approved, fixtures have
+provenance, and the external post-completion response-drop protocol is approved.
+Do not finalize payment DTO fields or repository signatures before this gate.
+
+- [ ] **Step 2: Write failing payment/sale tests**
+
+Cover exact settlement, multiple distinct modes, underpayment and overpayment
+prevention, absence of local change calculation/presentation, double-tap
+suppression, `PRICE_CHANGED`, 401, timeout, replayed success, process death, and
+server-only receipt values. Assert successful or replayed sale completion emits
+exactly one coalescible capability-refresh trigger; rejection does not.
+Verify replay fixture compatibility, fixture provenance, terminal
+acknowledgment, and logout clearing payment/cart/receipt state.
+
+- [ ] **Step 3: Run red tests**
+
+```bash
+./gradlew testDebugUnitTest --tests "*Payment*" --tests "*Receipt*"
+```
+
+Expected: FAIL.
+
+- [ ] **Step 4: Implement sale through RecoveryCoordinator**
+
+Persist the complete request, submit once, treat price change as terminal
+rejection requiring review, accept only payment rows summing exactly to the
+authoritative payable value, render receipt only from `SaleDetail`, and request
+the documented capability refresh after successful or replayed completion.
+
+- [ ] **Step 5: Verify sale**
+
+```bash
+./gradlew testDebugUnitTest
+./gradlew testReleaseUnitTest
+./gradlew lintDebug
+./gradlew lintRelease
+./gradlew assembleDebug
+./gradlew assembleRelease
+./tools/run-device-tests.sh api23
+./tools/run-device-tests.sh api36
+```
+
+Expected: every command exits 0 with the approved payable contract.
+
+- [ ] **Step 6: Verify staging lost response**
+
+An approved external operator triggers the one-shot response drop behind the
+normal staging HTTPS ingress and supplies its evidence ID. Android owns no proxy,
+certificate, credential, control endpoint, ingress change, or deployment
+automation. Verify the replay uses the original transaction ID and returns the
+original reference. Preserve backend SHA, original/replay UUID,
+post-upstream-completion drop, original POS Invoice reference, exactly one POS
+Invoice, operator evidence ID, and approved protocol reference.
+
+**Acceptance criteria:** Authoritative payable/modes, exact settlement,
+price-change rejection, durable replay, capability refresh, terminal
+acknowledgment, logout cleanup, API 23/API 36 behavior, and exactly-one POS
+Invoice evidence pass without local totals, overpayment, or change calculation.
+
+- [ ] **Step 7: Review and stop**
+
+Inspect only the listed files, report `feat: submit recoverable POS sales`, and
+wait for approval.
+
+---
+
+## Android Phase 6: History and Return
+
+### Task 10: Implement History and Return
+
+**Depends on:** Approved and passing Task 9.
+
+**Backend gate:** Backend Phase 6 plus an authoritative refund workflow,
+approved decimal rules, and externally owned lost-response procedure.
+
+**Files:**
+
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/history/HistoryFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/history/HistoryViewModel.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/history/HistoryAdapter.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/history/SaleDetailFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/returning/ReturnFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/returning/ReturnViewModel.kt`
+- Create: `app/src/main/res/layout/fragment_history.xml`
+- Create: `app/src/main/res/layout/item_sale_history.xml`
+- Create: `app/src/main/res/layout/fragment_sale_detail.xml`
+- Create: `app/src/main/res/layout/fragment_return.xml`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/MobilePosRepository.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/SalesDtos.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
+- Modify: `app/src/main/res/navigation/mobile_pos_nav_graph.xml`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/history/HistoryViewModelTest.kt`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/returning/ReturnViewModelTest.kt`
+- Create: `app/src/test/resources/api/v1/sale-history.json`
+- Create: `app/src/test/resources/api/v1/sale-detail.json`
+- Create: `app/src/test/resources/api/v1/return-success.json`
+- Create: `app/src/test/resources/api/v1/return-limit-exceeded.json`
+
+**Produces:**
+
+- `MobilePosRepository.listSales(...)` and `getSale(...)` from the reviewed
+  history contract.
+- `MobilePosRepository.createReturn(...)` only after the final
+  remaining-returnable/refund contract is approved.
+
+- [ ] **Step 1: Confirm the refund gate**
+
+Stop unless the backend defines server-authoritative remaining quantities and
+refund payment values or another approved workflow with equivalent safety. Also
+stop unless decimal syntax, fixture provenance, and the external
+post-completion response-drop protocol are approved. History DTOs may be
+reviewed, but the combined task cannot complete and return interfaces cannot be
+finalized before this gate.
+
+- [ ] **Step 2: Write failing history/return tests**
+
+Cover pagination, scope, walk-in name, required reason, row quantities,
+`RETURN_LIMIT_EXCEEDED`, exact refund, replay, process death, and no
+cancellation action. Assert successful or replayed return completion emits
+exactly one coalescible capability-refresh trigger; rejection does not.
+Verify `RETURN_LIMIT_EXCEEDED` fixture compatibility, terminal acknowledgment,
+and logout clearing history, detail, return input, and receipt state.
+
+- [ ] **Step 3: Run red tests**
+
+```bash
+./gradlew testDebugUnitTest --tests "*History*" --tests "*ReturnViewModel*"
+```
+
+Expected: FAIL.
+
+- [ ] **Step 4: Implement paginated history and recoverable return**
+
+Use POS Invoice only, display server values, submit through RecoveryCoordinator,
+render the return receipt from terminal response, and request the documented
+capability refresh after successful or replayed return completion.
+
+- [ ] **Step 5: Verify history and return**
+
+```bash
+./gradlew testDebugUnitTest
+./gradlew testReleaseUnitTest
+./gradlew lintDebug
+./gradlew lintRelease
+./gradlew assembleDebug
+./gradlew assembleRelease
+./tools/run-device-tests.sh api23
+./tools/run-device-tests.sh api36
+```
+
+Expected: every command exits 0 with the approved refund contract.
+
+- [ ] **Step 6: Verify staging lost response**
+
+Consume the externally operated one-shot fault condition. Preserve evidence
+binding backend SHA, original/replay UUID, post-upstream-completion drop,
+original return POS Invoice reference, exactly one return POS Invoice, operator
+evidence ID, and approved protocol reference.
+
+**Acceptance criteria:** Scoped paginated history, server-authoritative return
+limits/refund, reason validation, durable replay, capability refresh, terminal
+acknowledgment, logout cleanup, API 23/API 36 behavior, and exactly-one return
+POS Invoice evidence pass without cancellation or local refund calculation.
+
+- [ ] **Step 7: Review and stop**
+
+Inspect only the listed files, report `feat: add POS history and returns`, and
+wait for approval.
+
+---
+
+## Android Phase 7: Closing
+
+### Task 11: Implement Closing and Status Recovery
+
+**Depends on:** Approved and passing Task 10.
+
+**Backend gate:** Backend Phase 7 plus approved decimal rules, externally owned
+lost-response procedure, and externally owned deterministic queued-closing
+staging procedure.
+
+**Files:**
+
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/closing/ClosingFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/closing/ClosingViewModel.kt`
+- Create: `app/src/main/res/layout/fragment_closing.xml`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/MobilePosRepository.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/ClosingDtos.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
+- Modify: `app/src/main/res/navigation/mobile_pos_nav_graph.xml`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/closing/ClosingViewModelTest.kt`
+- Create: `app/src/test/resources/api/v1/closing-preview.json`
+- Create: `app/src/test/resources/api/v1/closing-draft.json`
+- Create: `app/src/test/resources/api/v1/closing-queued.json`
+- Create: `app/src/test/resources/api/v1/closing-failed.json`
+- Create: `app/src/test/resources/api/v1/closing-cancelled.json`
+- Create: `app/src/test/resources/api/v1/closing-processing.json`
+- Create: `app/src/test/resources/api/v1/closing-completed.json`
+- Create: `app/src/test/resources/api/v1/closing-rejected.json`
+- Create: `app/src/test/resources/api/v1/closing-submitted.json`
+
+**Produces:**
+
+- `MobilePosRepository.previewClosing(...)`, `submitClosing(...)`, and
+  `closingStatus(...)` from the reviewed closing contract.
+
+- [ ] **Step 1: Write failing closing tests**
+
+Cover preview, counted balances, double tap, timeout, `REQUEST_IN_PROGRESS`,
+transport-unknown `waiting_retry`, Processing submit replay, Completed stored
+result, Rejected terminal behavior, bare Draft manual recovery, queued polling
+only after Completed, process death, submitted, failed manager guidance,
+cancelled manager-controlled terminal behavior, and bounded backoff. Assert one
+coalescible capability refresh after accepted submission and after terminal
+status recovery.
+Assert foreground polling delays 2, 4, 8, 16, then 30 seconds, stops after five
+minutes, schedules no status worker, preserves queued state, and resumes only
+from explicit `Check status`. Verify terminal acknowledgment and logout clearing
+preview, counted balances, queued/terminal status, and navigation state.
+
+- [ ] **Step 2: Run red tests**
+
+```bash
+./gradlew testDebugUnitTest --tests "*Closing*"
+```
+
+Expected: FAIL.
+
+- [ ] **Step 3: Implement closing recovery**
+
+Submit through RecoveryCoordinator. Replay the exact submit only while the
+local state is transport-unknown `waiting_retry` or persisted request
+disposition is Processing; use the stored result when it is Completed; never
+replay Rejected. A bare `draft` without disposition enters manual recovery. Poll
+`closing.status` only when a Completed result is `queued`, treat `submitted`,
+`failed`, and `cancelled` as terminal, stop foreground polling after five
+minutes, emit only the documented capability-refresh triggers, and never create
+a replacement closing. After five minutes, preserve queued state and require an
+explicit `Check status`; do not enqueue an automatic status worker.
+
+- [ ] **Step 4: Verify real queued behavior**
+
+Consume the externally approved deterministic staging-only queued procedure.
+It must use active workers, expose no Android endpoint or production test hook,
+and require no Android control of ingress/workers. Record the real `queued` to
+terminal transition and its operational evidence reference.
+
+- [ ] **Step 5: Verify closing**
+
+```bash
+./gradlew testDebugUnitTest
+./gradlew testReleaseUnitTest
+./gradlew lintDebug
+./gradlew lintRelease
+./gradlew assembleDebug
+./gradlew assembleRelease
+./tools/run-device-tests.sh api23
+./tools/run-device-tests.sh api36
+```
+
+Expected: every command exits 0 with reviewed Backend Phase 7 fixtures.
+
+- [ ] **Step 6: Verify staging lost response**
+
+Consume the externally operated one-shot fault condition. Preserve evidence
+binding backend SHA, original/replay UUID, post-upstream-completion drop,
+original Closing Entry reference, exactly one POS Closing Entry, operator
+evidence ID, and approved protocol reference.
+
+**Acceptance criteria:** Preview/counts, Processing/Completed/Rejected,
+transport-unknown replay, bare-Draft safety, queued/terminal behavior, bounded
+explicit polling, capability refresh, terminal acknowledgment, logout cleanup,
+API 23/API 36 behavior, deterministic queued evidence, and exactly-one Closing
+Entry evidence pass without a replacement closing.
+
+- [ ] **Step 7: Review and stop**
+
+Inspect only the listed files, report `feat: add recoverable POS closing`, and
+wait for approval.
+
+---
+
+## Android Final: Hardening and Release Evidence
+
+### Task 12: Verify the Complete Android Lifecycle
+
+**Depends on:** Approved and passing Task 11.
+
+**Backend gate:** Backend Final and approved staging environment.
+
+**Files:**
+
+- Replace: `app/src/test/java/com/rotiropi/pos_erpnext/ExampleUnitTest.kt`
+- Modify: `app/build.gradle.kts`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/MobilePosApplication.kt`
+- Create: `app/src/androidTest/AndroidManifest.xml`
+- Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/MobilePosTestRunner.kt`
+- Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/TestMobilePosApplication.kt`
+- Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/test/TestHttpsFixture.kt`
+- Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/MobilePosJourneyTest.kt`
+- Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/AccessibilityJourneyTest.kt`
+- Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/MobilePosPerformanceTest.kt`
+- Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/LogoutResidualStateTest.kt`
+- Modify: `tools/accessibility-harness.sh`
+- Create: `tools/performance-harness.sh`
+- Create: `tools/verify-release-artifacts.sh`
+- Modify: `docs/mobile-pos/*.md` only when executable evidence justifies status
+  or contract updates.
+
+- [ ] **Step 1: Confirm the remaining hard gates**
+
+Stop unless Backend Final staging evidence, the externally owned lost-response
+gate, and approved numeric launch-p95, per-request-p95, UI-flow-p95, and
+PSS-growth thresholds are available. Require all four correlated mutation
+evidence records, the approved representative physical device, the externally
+owned deterministic queued-closing evidence, and a readable non-empty external
+release denylist. A production release claim additionally requires approved
+production
+application ID, canonical origin, public client ID, redirect URI, signing
+fingerprint, OAuth allowlist, and `assetlinks.json` association. Do not reuse
+debug or staging App Link evidence for production.
+
+- [ ] **Step 2: Run complete unit and build verification**
+
+```bash
+./gradlew testDebugUnitTest
+./gradlew testReleaseUnitTest
+./gradlew lintDebug
+./gradlew lintRelease
+./gradlew assembleDebug
+./gradlew assembleRelease
+```
+
+Expected: every command exits 0.
+
+- [ ] **Step 3: Run API 23 instrumentation**
+
+```bash
+./tools/run-device-tests.sh api23 --matrix
+```
+
+Expected: PASS on API 23.
+
+- [ ] **Step 4: Run API 36 instrumentation**
+
+```bash
+./tools/run-device-tests.sh api36 --matrix
+```
+
+Expected: PASS on API 36.
+
+- [ ] **Step 5: Run the repeatable low-end performance harness**
+
+```bash
+./tools/performance-harness.sh api23
+./tools/performance-harness.sh --serial <approved-physical-device-serial>
+```
+
+Use the fixed low-end AVD, seed `20260724`, fixed timestamps and request IDs,
+100-row read datasets, a 50-row cart, five warm-ups, 30 recorded samples, and 50
+sale/receipt cycles. Preserve raw samples, summary JSON, instrumentation output,
+logcat, commands, device metadata, and before/after meminfo. Fail on approved
+threshold violations, retained destroyed views, main-thread StrictMode
+violations, or out-of-memory behavior. Never report a metric with no approved
+threshold as PASS.
+
+Use a test-only runner, application, manifest, TLS fixture, and injected HTTPS
+MockWebServer under `androidTest`; production trust and the production APK must
+remain unchanged. The AVD is repeatable regression evidence. Final performance
+acceptance uses the approved physical device and the same sampling protocol.
+Annotate every performance setup/measurement method `SpecialHarnessOnly`.
+`performance-harness.sh` invokes the exact
+`MobilePosPerformanceTest#runPerformanceScenario` method and records its class,
+method, TLS fixture fingerprint, and isolated artifact path. Broad device runs
+must exclude the method.
+
+- [ ] **Step 6: Verify accessibility and low-memory behavior**
+
+```bash
+./tools/accessibility-harness.sh api23
+./tools/accessibility-harness.sh api36
+```
+
+Require complete PASS/FAIL evidence for labels/descriptions, 48 dp targets,
+focus order, error announcements, non-color status, TalkBack, font scale 1.5,
+portrait/landscape, external keyboard/scanner, process kill, and every core
+screen. Use only synthetic data and apply the artifact redaction rules.
+
+- [ ] **Step 7: Run staging lifecycle**
+
+Exercise sign in, bootstrap, stale opening, opening, customer, scan/UOM, cart,
+fully settled sale, lost-response replay, receipt, history, return, closing,
+queued status, and logout. Record only non-sensitive request IDs and business
+references.
+
+After logout, `LogoutResidualStateTest` verifies no readable token, active OAuth
+attempt, opening input, customer/catalog/history cache, cart, receipt, return or
+closing input/status, encrypted terminal body, or protected navigation state
+remains. It must not delete an unresolved mutation because logout is blocked in
+that state.
+
+Run both two-stage ADB process-death harnesses. Validate the contents and
+correlation of the opening, sale, return, and closing evidence records: operation,
+environment, backend SHA, original/replay UUID, post-upstream-completion drop,
+original business reference, expected document type/name, document count exactly
+one, operator evidence ID, and protocol reference. A single instrumentation
+process, non-correlated ID, or MockWebServer response loss is not sufficient
+evidence of server-commit recovery.
+
+- [ ] **Step 8: Verify production App Links when making a production claim**
+
+Install the production-signed artifact on API 36, run
+`adb -s <serial> shell pm verify-app-links --re-verify <application-id>`, then
+poll `adb -s <serial> shell pm get-app-links <application-id>` to a terminal
+state with a bounded timeout. Assert only the exact production host and preserve
+package, certificate, host, commands, and verification output. Stop if
+production signing ownership or association is unavailable.
+
+- [ ] **Step 9: Inspect release artifacts**
+
+```bash
+MOBILE_POS_RELEASE_DENYLIST=/absolute/external/path/denylist.txt \
+  ./tools/verify-release-artifacts.sh app/build/outputs/apk/release/app-release.apk
+```
+
+The script fails for absent/unreadable/empty inputs, never prints or copies
+denylist values, hashes the selected APK, inspects merged manifest/generated
+configuration/unpacked APK/repository paths/captured release logs, and emits a
+redacted report. Confirm no client secret, API key, shared credential, token,
+verifier, authorization code, Administrator data, cleartext traffic, backup
+path, test certificate/runner, or repository signing secret.
+
+**Acceptance criteria:** All build, API 23/API 36 matrix, process-death,
+accessibility, physical-device performance, four-mutation correlation, queued
+closing, logout residual-state, production-conditional App Link, and release
+security gates pass with complete redacted artifacts. No missing threshold or
+external evidence is reported as PASS.
+
+- [ ] **Step 10: Review the complete intended diff and stop**
+
+Confirm only approved Android files changed and backend files did not change.
+Report the proposed commit message `test: verify Android mobile POS lifecycle`.
+Do not commit, publish, sign, or deploy without explicit approval.
+
+## Audit Disposition
+
+| Audit finding | Executable disposition or blocker |
+| --- | --- |
+| Cross-system proof covered sale only | Tasks 6, 9, 10, and 11 capture correlated exactly-one-document evidence; Task 12 validates all four records. |
+| Site provisioning absent from Task 3 | Task 3 blocks on the approved configuration source, environment identity, test cashier, App Link evidence, and attempt lifetime. |
+| Known-offline owner undefined | Task 5 creates and tests tri-state `ConnectivityStatus`. |
+| Capability trigger matrix incomplete | Task 4 owns auth/profile/negative triggers; Tasks 6, 9, 10, and 11 own mutation/recovery triggers. |
+| Unstable-network cases unassigned | Tasks 2 and 5 test every disconnect boundary and exact dispatch count. |
+| Recovery retirement assertions missing | Task 5 tests serialize-once, stale process, key conflict, terminal persistence, acknowledgment, and restart. |
+| Compile platform not deterministic | Task 1A records one source of truth; Task 1B tooling reads and verifies it. |
+| Device-state matrix incomplete | Task 12 runs serial-pinned API 23/API 36 state matrices and accessibility harnesses. |
+| Host-only tests could run broadly | Task 3 adds `SpecialHarnessOnly`; broad runners exclude it. |
+| AVD claimed representative performance | Task 12 separates AVD regression evidence from approved physical-device final evidence. |
+| Performance injection ownership missing | Task 12 owns test-only runner, application, manifest, TLS fixture, dependency, and injection changes. |
+| Accessibility verification vague | Task 12 runs exact harness commands and a blocking per-screen checklist. |
+| Release inspection not reproducible | Task 12 creates `verify-release-artifacts.sh` with external-denylist and redacted-report gates. |
+| Tasks 6-11 used ambiguous verification shorthand | Every task now contains literal unit, release, lint, assemble, API 23, and API 36 commands. |
+| Logout cache coverage incomplete | Tasks 4-11 extend `LogoutCoordinator`; Task 12 verifies no residual sensitive state. |
+| Canonical-origin cases incomplete | Task 2 covers every normative parser invariant. |
+| Mismatched callback retention untested | Task 3 preserves and tests the original pending attempt and expiry. |
+| Task 3 red filter omitted API client | Task 3 runs `AuthenticatedMobilePosApiClientTest` explicitly. |
+| Task 1B dependency evidence absent | Task 1B green gate runs `:app:dependencies`. |
+| OAuth lifetime ambiguous | Task 3 hard-blocks until the 10-minute proposal or another value is approved. |
+| Backend follow-up authorization ambiguous | A separate user request is mandatory before any backend documentation diff. |
+| Fixture ownership incomplete | Task 2 defines provenance; each backend-gated feature refreshes/reviews its DTO and fixtures together. |
+| Unknown enum compatibility untested | Task 2 owns the unknown-enum fixture and unsupported-state assertion. |
+| OAuth conflicted with generic-method exclusion | Product/auth/API docs define only two literal canonical-origin OAuth control-plane routes. |
+| Replay body definition ambiguous | Task 5 persists one serialized UTF-8 body plus format metadata and never reconstructs it. |
+| WorkManager restoration ambiguous | Task 5 permits automatic work only for already persisted eligible mutations. |
+| Blocked interfaces could be frozen early | Tasks 6, 8, 9, and 10 prohibit final DTO/signature decisions before their contract gates. |
+| Retry and closing continuation ambiguous | Task 5 defines six-dispatch maximum and precedence; Task 11 uses explicit bounded status checks. |
+| Serial requote and decimal behavior unresolved | They are explicit hard gates before affected feature tasks. |
+| Queued staging trigger nondeterministic | Task 11 consumes an externally owned deterministic staging-only procedure. |
+
+## Remaining Decision Gates
+
+| Decision | Blocks |
+| --- | --- |
+| Compatible dependencies or `compileSdk 37` | Task 1A |
+| OAuth environment values, configuration source, test cashier, and attempt lifetime | Task 3 |
+| Opening payment-mode projection | Task 6 |
+| Decimal locale, precision, scale, bounds, and no-rounding behavior | Tasks 6, 8, 9, 10, and 11 |
+| Serial-change quote behavior | Task 8 |
+| Authoritative payable and sale payment modes | Task 9 |
+| Exact-only settlement alignment with backend overpayment examples | Task 9 |
+| Remaining-returnable and authoritative refund workflow | Task 10 |
+| External fault-gate owner, protocol, cleanup, and evidence schema | Tasks 6, 9, 10, 11, and 12 |
+| Deterministic queued-closing staging procedure | Task 11 |
+| Launch, request, UI-flow, and PSS thresholds | Task 12 |
+| Representative physical low-end device | Task 12 |
+| External release denylist | Task 12 |
+| Production signing, App Links, and distribution | Production readiness |
+| Backend factual cleanup and product/contract alignment | Separate backend request and review |
+
+## Implementation Acceptance Criteria
+
+- All product requirements and testing gates pass.
+- Every mutation is idempotent across timeout and process death.
+- API 23 and API 36 are verified.
+- XML Views and ViewBinding are used exclusively.
+- OAuth PKCE S256 works without a client secret.
+- No generic Frappe business API beyond the exact OAuth control-plane exception
+  or local authoritative accounting exists.
+- Accessibility and low-end performance evidence is preserved.
+- Backend and Android diffs remain independent.
+- Release verification does not claim R8 optimization or production deployment.
+- Completion of one phase never authorizes the next phase.
+
+## Execution Handoff
+
+After this plan is approved and written, stop. A later explicit instruction must
+choose either:
+
+1. `superpowers:subagent-driven-development`, with a fresh implementer and
+   review per task.
+2. `superpowers:executing-plans`, with inline task checkpoints.
+
+Neither option authorizes commits, later phases, publishing, signing, or
+deployment without separate approval.
