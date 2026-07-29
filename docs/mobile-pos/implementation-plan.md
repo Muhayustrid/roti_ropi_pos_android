@@ -238,6 +238,20 @@ approval.
 
 ### Task 1B: Replace Compose with XML Views and ViewBinding
 
+**Status:** Completed — audited 2026-07-29; implementation commit `1bb1bd0`.
+
+**Audit evidence:** AndroidX Test Core/Runner aligned at 1.7.0, resolving the
+instrumentation runtime mismatch. Clean `./gradlew clean testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease`
+passed with 101 tasks. `./tools/run-device-tests.sh api23` passed with exact
+API 23 `3/3` tests; `./tools/run-device-tests.sh api36` passed with exact API 36
+`3/3` tests. Evidence is preserved under
+`app/build/reports/mobile-pos-devices/api23` and
+`app/build/reports/mobile-pos-devices/api36`. `./tools/create-test-avds.sh`
+verified compile platform 36.1, API 23 Google APIs arm64 revision 33, API 36
+Google APIs arm64 revision 7, and emulator 36.6.11. Source, configuration, and
+resolved dependencies contain no Compose artifact. Manifest controls enforce
+`allowBackup="false"` and `usesCleartextTraffic="false"`.
+
 **Depends on:** Approved and passing Task 1A.
 
 **Backend gate:** Approved and passing Task 1A baseline.
