@@ -2,9 +2,10 @@
 
 ## Authority
 
-Server OAuth and route rules are defined by backend `authentication.md` and
-`api-contract.md`. This document defines only the Android public-client
-lifecycle.
+Server OAuth and route rules are defined by backend
+[`authentication.md`](backend/authentication.md) and
+[`api-contract.md`](backend/api-contract.md). This document defines only the
+Android public-client lifecycle.
 
 ## Required Protocol
 

@@ -1,5 +1,12 @@
 # Android Mobile POS State and Recovery
 
+## Authority
+
+Server idempotency, replay, retention, and closing recovery semantics are defined
+by backend
+[`idempotency-and-recovery.md`](backend/idempotency-and-recovery.md). This
+document defines Android persistence, retry orchestration, and UI recovery state.
+
 ## Goals
 
 - Prevent duplicate business mutations.

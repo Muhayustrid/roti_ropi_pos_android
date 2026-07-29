@@ -3,8 +3,11 @@
 ## Authority
 
 The complete endpoint inventory, payloads, stable envelopes, error fields, and
-compatibility rules live in backend `api-contract.md`. Android must not copy or
-extend those contracts independently.
+compatibility rules live in backend
+[`api-contract.md`](backend/api-contract.md). Server mutation and replay
+semantics live in
+[`idempotency-and-recovery.md`](backend/idempotency-and-recovery.md). Android
+must not extend those contracts independently.
 
 ## Allowed Surface
 

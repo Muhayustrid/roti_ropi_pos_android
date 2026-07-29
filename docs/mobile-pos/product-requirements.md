@@ -14,15 +14,16 @@ canonical-origin authorization path and may exchange or refresh tokens only at
 the fixed canonical-origin token path. This narrow exception does not authorize
 generic Frappe method dispatch.
 
-The following backend documents are normative and are not duplicated here:
+The following backend documents are normative. Five reviewed snapshots are
+stored under [`backend/`](backend/README.md) for Android implementation agents:
 
-- `product-requirements.md`: product scope and business rules.
-- `authentication.md`: server OAuth and authorization behavior.
-- `api-contract.md`: endpoint inventory, DTO shapes, and stable errors.
-- `idempotency-and-recovery.md`: mutation and replay contract.
-- `integration-boundaries.md`: ERPNext, Frappe, and bakery ownership.
-- `testing-strategy.md`: backend and cross-system gates.
-- `implementation-plan.md`: backend implementation phases.
+- [`product-requirements.md`](backend/product-requirements.md): product scope and business rules.
+- [`authentication.md`](backend/authentication.md): server OAuth and authorization behavior.
+- [`api-contract.md`](backend/api-contract.md): endpoint inventory, DTO shapes, and stable errors.
+- [`idempotency-and-recovery.md`](backend/idempotency-and-recovery.md): mutation and replay contract.
+- [`integration-boundaries.md`](https://github.com/Muhayustrid/roti_ropi_pos/blob/b2a09d2/docs/mobile-pos/integration-boundaries.md): ERPNext, Frappe, and bakery ownership.
+- [`testing-strategy.md`](https://github.com/Muhayustrid/roti_ropi_pos/blob/b2a09d2/docs/mobile-pos/testing-strategy.md): backend and cross-system gates.
+- [`implementation-plan.md`](https://github.com/Muhayustrid/roti_ropi_pos/blob/b2a09d2/docs/mobile-pos/implementation-plan.md): backend implementation phases.
 
 If Android documentation conflicts with those documents, implementation stops
 until the contract owners approve one consistent decision.
