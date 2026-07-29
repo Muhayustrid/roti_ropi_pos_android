@@ -4,7 +4,8 @@
     "error": {
       "code": "STALE_OPENING",
       "message": "Prior opening session detected",
-      "retry_after_seconds": null
+      "details": {},
+      "retryable": false
     },
     "meta": {
       "api_version": "v1",

@@ -8,57 +8,57 @@ import org.junit.Test
 class CanonicalBackendOriginTest {
 
     @Test
-    fun valid_https_origin_without_path_is_accepted() {
-        val origin = CanonicalBackendOrigin.parse("https://erpnext.example.com")
-        assertTrue(origin.isValid)
-        assertEquals("https://erpnext.example.com", origin.serialized)
+    fun accepted_origins_are_canonicalized() {
+        val cases = mapOf(
+            "https://pos.example.com" to "https://pos.example.com",
+            "HTTPS://POS.EXAMPLE.COM/" to "https://pos.example.com",
+            "https://pos.example.com:443/" to "https://pos.example.com",
+            "https://pos.example.com:8443/" to "https://pos.example.com:8443"
+        )
+
+        cases.forEach { (input, expected) ->
+            val origin = CanonicalBackendOrigin.parse(input)
+            assertTrue("Expected valid origin: $input", origin.isValid)
+            assertEquals(expected, origin.serialized)
+        }
     }
 
     @Test
-    fun valid_https_origin_with_port_is_accepted() {
-        val origin = CanonicalBackendOrigin.parse("https://erpnext.example.com:8443")
-        assertTrue(origin.isValid)
-        assertEquals("https://erpnext.example.com:8443", origin.serialized)
+    fun rejected_origins_are_invalid() {
+        val inputs = listOf(
+            "",
+            "http://pos.example.com",
+            "https://pos.example.com/api",
+            "https://user@pos.example.com",
+            "https://user:pass@pos.example.com",
+            "https://pos.example.com?site=x",
+            "https://pos.example.com/#callback",
+            " https://pos.example.com",
+            "https://pos.example.com ",
+            "https://pos.example.com.",
+            "https://pos.example.com:99999",
+            "https://",
+            "https://pos.example.com//",
+            "https:\\pos.example.com",
+            "https://pos.example.com/%zz",
+            "https://pos.example.com\n"
+        )
+
+        inputs.forEach { input ->
+            assertFalse("Expected invalid origin: $input", CanonicalBackendOrigin.parse(input).isValid)
+        }
     }
 
     @Test
-    fun trailing_slash_is_normalized() {
-        val origin = CanonicalBackendOrigin.parse("https://erpnext.example.com/")
-        assertTrue(origin.isValid)
-        assertEquals("https://erpnext.example.com", origin.serialized)
-    }
+    fun all_ascii_control_characters_are_rejected() {
+        val controls = (0..31).map(Int::toChar) + 127.toChar()
 
-    @Test
-    fun http_scheme_is_rejected() {
-        val origin = CanonicalBackendOrigin.parse("http://erpnext.example.com")
-        assertFalse(origin.isValid)
-    }
-
-    @Test
-    fun origin_with_path_is_rejected() {
-        val origin = CanonicalBackendOrigin.parse("https://erpnext.example.com/api")
-        assertFalse(origin.isValid)
-    }
-
-    @Test
-    fun origin_with_query_or_fragment_is_rejected() {
-        assertFalse(CanonicalBackendOrigin.parse("https://erpnext.example.com?query=1").isValid)
-        assertFalse(CanonicalBackendOrigin.parse("https://erpnext.example.com#fragment").isValid)
-    }
-
-    @Test
-    fun origin_with_userinfo_is_rejected() {
-        assertFalse(CanonicalBackendOrigin.parse("https://user:pass@erpnext.example.com").isValid)
-    }
-
-    @Test
-    fun origin_with_whitespace_or_control_chars_is_rejected() {
-        assertFalse(CanonicalBackendOrigin.parse("https://erpnext.example.com ").isValid)
-        assertFalse(CanonicalBackendOrigin.parse("https://erpnext\n.example.com").isValid)
-    }
-
-    @Test
-    fun origin_with_trailing_dot_host_is_rejected() {
-        assertFalse(CanonicalBackendOrigin.parse("https://erpnext.example.com.").isValid)
+        controls.forEach { control ->
+            val input = "https://pos.example.com${control}x"
+            assertFalse(
+                "Expected control U+${control.code.toString(16).padStart(4, '0')} to be rejected",
+                CanonicalBackendOrigin.parse(input).isValid
+            )
+        }
     }
 }

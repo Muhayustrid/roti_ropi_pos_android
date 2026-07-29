@@ -355,6 +355,28 @@ views`. Do not commit or begin Task 2 without explicit approval.
 
 ### Task 2: Implement the API Envelope and Transport Boundary
 
+**Status:** Completed — initial implementation commit `e8fdba6`; completion diff
+remains uncommitted.
+
+**Audit evidence:** Current source enforces the canonical HTTPS origin and a
+closed production catalog matching all 14 contract rows. Request factories
+validate query/body placement, required/optional fields, Bearer presence, and
+lowercase UUID idempotency on exactly four mutations. Transport performs one
+cancellable OkHttp dispatch with redirects and automatic retries disabled,
+parses stable success/error envelopes before native status classification,
+preserves valid `Retry-After`, exposes only allowlisted log events, and maps
+malformed/incompatible responses safely. DTO parser snapshots match the checked-in
+contract, preserve decimal strings, reject missing required fields, and map
+unknown statuses to `UNSUPPORTED`. Fixture provenance records backend SHA
+`b2a09d2` and excludes credentials/production PII/runtime-evidence claims.
+
+Fresh focused and full debug unit runs passed 27 tests with zero failures. Clean
+`./gradlew clean testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease`
+passed 101 tasks (100 executed, one up-to-date). AGP 9.2.1 exposes no
+`testReleaseUnitTest` task in this project; release Kotlin compilation and
+assemble evidence passed. Task 2 has no Android UI/device output, so API 23/API 36
+device runs were not required.
+
 **Depends on:** Approved and passing Task 1B.
 
 **Backend gate:** Backend Phase 1 stable envelope plus approved Phase 0 contract

@@ -4,14 +4,14 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class CustomerSearchResponseDto(
-    val customers: List<CustomerDto> = emptyList(),
-    val has_more: Boolean = false
+    val customers: List<CustomerDto>,
+    val page: PageDto
 )
 
 @Serializable
 data class CustomerDto(
     val name: String,
     val customer_name: String,
-    val mobile_no: String? = null,
-    val email_id: String? = null
+    val mobile_no: String?,
+    val is_default_walk_in: Boolean
 )

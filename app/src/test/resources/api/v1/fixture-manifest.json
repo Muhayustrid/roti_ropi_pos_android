@@ -1,0 +1,24 @@
+{
+  "backend_sha": "b2a09d2",
+  "source_type": "contract_example",
+  "review_reference": "docs/mobile-pos/backend/api-contract.md",
+  "contains_credentials": false,
+  "contains_production_pii": false,
+  "runtime_integration_evidence": false,
+  "fixtures": [
+    {"path":"endpoint-contracts.json","scope":"all-v1-endpoints","backend_phase":"Phase 0"},
+    {"path":"envelope-success.json","scope":"shared-envelope","backend_phase":"Phase 1"},
+    {"path":"envelope-error.json","scope":"shared-envelope","backend_phase":"Phase 1"},
+    {"path":"native-401.json","scope":"native-error","backend_phase":"Phase 1"},
+    {"path":"native-403.json","scope":"native-error","backend_phase":"Phase 1"},
+    {"path":"native-404.json","scope":"native-error","backend_phase":"Phase 1"},
+    {"path":"native-429.json","scope":"native-error","backend_phase":"Phase 1"},
+    {"path":"native-500.json","scope":"native-error","backend_phase":"Phase 1"},
+    {"path":"native-503.json","scope":"native-error","backend_phase":"Phase 1"},
+    {"path":"malformed-response.json","scope":"shared-envelope","backend_phase":"Phase 1"},
+    {"path":"incompatible-api-version.json","scope":"shared-envelope","backend_phase":"Phase 1"},
+    {"path":"additive-fields.json","scope":"shared-envelope","backend_phase":"Phase 1"},
+    {"path":"unknown-enum.json","scope":"compatibility","backend_phase":"Phase 1"},
+    {"path":"dto-contract-examples.json","scope":"all-v1-dto-snapshots","backend_phase":"Phase 0"}
+  ]
+}

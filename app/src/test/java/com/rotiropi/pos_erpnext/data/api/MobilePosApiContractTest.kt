@@ -3,6 +3,7 @@ package com.rotiropi.pos_erpnext.data.api
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -10,40 +11,58 @@ class MobilePosApiContractTest {
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    @Test
-    fun contract_table_has_exactly_14_unique_business_endpoints() {
-        val jsonText = javaClass.getResourceAsStream("/api/v1/endpoint-contracts.json")!!.bufferedReader().readText()
-        val contractTable = json.decodeFromString<EndpointContractTable>(jsonText)
-
-        assertEquals("v1", contractTable.api_version)
-        assertEquals(14, contractTable.endpoints.size)
-
-        val uniquePaths = contractTable.endpoints.map { it.path }.toSet()
-        assertEquals(14, uniquePaths.size)
+    private fun contractTable(): EndpointContractTable {
+        val text = javaClass.getResourceAsStream("/api/v1/endpoint-contracts.json")!!.bufferedReader().readText()
+        return json.decodeFromString(text)
     }
 
     @Test
-    fun contract_table_excludes_health_and_return_preview() {
-        val jsonText = javaClass.getResourceAsStream("/api/v1/endpoint-contracts.json")!!.bufferedReader().readText()
-        val contractTable = json.decodeFromString<EndpointContractTable>(jsonText)
+    fun contract_table_matches_closed_production_catalog() {
+        val table = contractTable()
+        assertEquals("v1", table.api_version)
+        assertEquals(14, table.endpoints.size)
+        assertEquals(14, table.endpoints.map { it.path }.toSet().size)
+        assertEquals(MobilePosEndpoint.entries.map { it.path }.toSet(), table.endpoints.map { it.path }.toSet())
 
-        val paths = contractTable.endpoints.map { it.path }
-        assertFalse(paths.any { it.contains("health") })
-        assertFalse(paths.any { it.contains("return_preview") })
+        table.endpoints.forEach { row ->
+            val endpoint = MobilePosEndpoint.fromPath(row.path)
+            assertNotNull("Unknown endpoint ${row.path}", endpoint)
+            endpoint!!
+            assertEquals(endpoint.method.name, row.http_method)
+            assertEquals(endpoint.requestLocation.name.lowercase(), row.request_location)
+            assertEquals(endpoint.requiredRequestFields, row.required_request_fields)
+            assertEquals(endpoint.optionalRequestFields, row.optional_request_fields)
+            assertEquals(endpoint.requiresIdempotency, row.requires_idempotency)
+            assertEquals(endpoint.retryClass.name.lowercase(), row.retry_class)
+            assertEquals(endpoint.serializerIdentity, row.serializer_identity)
+            assertTrue(row.requires_bearer)
+            assertTrue(row.required_response_fields.isNotEmpty())
+        }
     }
 
     @Test
-    fun contract_table_requires_idempotency_on_exactly_4_mutations() {
-        val jsonText = javaClass.getResourceAsStream("/api/v1/endpoint-contracts.json")!!.bufferedReader().readText()
-        val contractTable = json.decodeFromString<EndpointContractTable>(jsonText)
+    fun exactly_four_mutations_require_idempotency() {
+        val idempotent = MobilePosEndpoint.entries.filter { it.requiresIdempotency }
+        assertEquals(
+            setOf(
+                MobilePosEndpoint.SESSIONS_OPEN,
+                MobilePosEndpoint.SALES_SUBMIT,
+                MobilePosEndpoint.SALES_CREATE_RETURN,
+                MobilePosEndpoint.CLOSING_SUBMIT
+            ),
+            idempotent.toSet()
+        )
+    }
 
-        val idempotentEndpoints = contractTable.endpoints.filter { it.requires_idempotency }
-        assertEquals(4, idempotentEndpoints.size)
-
-        val idempotentNames = idempotentEndpoints.map { "${it.module}.${it.method_name}" }.toSet()
-        assertTrue(idempotentNames.contains("sessions.open"))
-        assertTrue(idempotentNames.contains("sales.submit"))
-        assertTrue(idempotentNames.contains("sales.create_return"))
-        assertTrue(idempotentNames.contains("closing.submit"))
+    @Test
+    fun forbidden_endpoint_shapes_are_absent() {
+        MobilePosEndpoint.entries.forEach { endpoint ->
+            assertFalse(endpoint.path.contains("health"))
+            assertFalse(endpoint.path.contains("return_preview"))
+            assertFalse(endpoint.path.startsWith("http"))
+            assertTrue(endpoint.path.startsWith("/api/method/roti_ropi_pos.api.v1."))
+        }
+        assertEquals(null, MobilePosEndpoint.fromPath("/api/resource/Item"))
+        assertEquals(null, MobilePosEndpoint.fromPath("https://evil.example/api/method/x"))
     }
 }
