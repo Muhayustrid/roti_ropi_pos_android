@@ -6,10 +6,12 @@ import com.rotiropi.pos_erpnext.ui.reports.ReportMetric
 import com.rotiropi.pos_erpnext.ui.reports.ReportPeriod
 import com.rotiropi.pos_erpnext.ui.reports.ReportTopProduct
 import com.rotiropi.pos_erpnext.ui.reports.ReportsContent
+import com.rotiropi.pos_erpnext.ui.reports.chartBarSlot
 import com.rotiropi.pos_erpnext.ui.settings.PosThemeMode
 import com.rotiropi.pos_erpnext.ui.settings.ThemePreferences
 import com.rotiropi.pos_erpnext.ui.theme.PosAccent
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ReportsMoreStateTest {
@@ -38,6 +40,26 @@ class ReportsMoreStateTest {
         assertEquals(0.4f, ReportChartBar("mid", "Mid", "40", 0.4f).safeFraction)
         assertEquals(1f, ReportChartBar("high", "High", "100", 1.5f).safeFraction)
         assertEquals(0f, ReportChartBar("invalid", "Invalid", "—", Float.NaN).safeFraction)
+    }
+
+    @Test
+    fun chart_bars_are_centered_in_equal_width_slots() {
+        val width = 800f
+        val count = 4
+        val slotWidth = width / count
+
+        repeat(count) { index ->
+            val slot = chartBarSlot(index, count, width)
+            val center = slot.x + slot.width / 2f
+            assertEquals((index + 0.5f) * slotWidth, center, 0.01f)
+            assertTrue("bar must stay inside its slot", slot.width <= slotWidth)
+        }
+    }
+
+    @Test
+    fun narrow_chart_keeps_minimum_bar_width() {
+        val slot = chartBarSlot(0, 40, 100f)
+        assertEquals(10f, slot.width, 0.01f)
     }
 
     @Test

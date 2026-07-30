@@ -36,7 +36,7 @@ Task status, not unchecked execution-step boxes below, records current completio
 | 2B | Completed | Uncommitted implementation replaces the placeholder XML/ViewBinding shell with Compose BOM `2026.06.00`, Material 3 semantic light/dark themes and Blue/Teal accents, five unique root destinations, elevated Cashier action, save/restore navigation, compact/expanded width behavior, honest unavailable states, debug previews, and release-fixture exclusion. On 2026-07-30, all five Android Studio Quail previews rendered and passed visual/semantics inspection; 32 debug unit tests, debug/release lint, debug/release assembly, release Kotlin compilation, Android-test APK assembly, and exact API 23/API 36 runs with 5/5 Compose tests each passed. AGP 9.2.1 exposes no `testReleaseUnitTest` task. |
 | 2C | Completed | Commit `3801d03`, merged via `3352ddd`. Dashboard/Products states, adaptive layouts, honest unavailable release wiring, debug previews, and unit/Compose UI tests exist. Cumulative fresh verification through Task 2E passes the full Gradle and API 23/API 36 gates. Complete live aggregates remain unavailable. |
 | 2D | Completed | Commit `ee56e73`, merged via `ef491fd`. Cashier/cart/checkout/receipt states, bounded rows, manual/HID barcode input, adaptive cart layouts, honest disabled payment confirmation, server-receipt display, debug previews, and unit/Compose UI tests exist. Cumulative fresh verification through Task 2E passes the full Gradle and API 23/API 36 gates. |
-| 2E | Completed | Candidate `a391411` plus a test-only API 23 visibility fix. Reports/More states, application-private theme persistence, shell wiring, debug previews, and unit/Compose UI tests exist. Clean Gradle gate passed 100 tasks; API 23 and API 36 each passed 39 tests; six Task 2E previews rendered and passed visual/semantics inspection. Complete live reports remain unavailable. |
+| 2E | Completed | Candidate `a391411` plus a test-only API 23 visibility fix and a chart slot alignment fix. Reports/More states, application-private theme persistence, shell wiring, debug previews, and unit/Compose UI tests exist. Clean Gradle gate passed 100 tasks; API 23 and API 36 each passed 40 tests; six Task 2E previews rendered and passed visual/semantics inspection. Complete live reports remain unavailable. |
 | 3 | Not Started | OAuth, encrypted attempt/token storage, redirect components, tests, and harness are absent. |
 | 4 | Not Started | Repository, bootstrap/profile routing, logout coordinator, UI, tests, and fixtures are absent. |
 | 5 | Not Started | Connectivity, pending mutation storage, recovery coordinator/worker, UI, tests, and process-death harness are absent. |
@@ -782,13 +782,15 @@ before Task 2E.
 ### Task 2E: Add Reports and More Visual Surfaces
 
 **Status:** Completed — verified on 2026-07-30 from candidate `a391411` plus
-the test-only API 23 visibility fix. With explicit SDK environment, clean
+the test-only API 23 visibility fix and a chart slot alignment fix. With explicit
+SDK environment, clean
 `./gradlew clean testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease`
 passed 100 tasks. `./tools/run-device-tests.sh api23` and
-`./tools/run-device-tests.sh api36` each passed `OK (39 tests)`. Six Task 2E
+`./tools/run-device-tests.sh api36` each passed `OK (40 tests)`. Six Task 2E
 previews rendered in Android Studio Quail and passed visual/semantics inspection
 across compact/expanded, light/dark, Blue/Teal, portrait/landscape, and font scale
-1.5 coverage.
+1.5 coverage. Chart bars, value labels, and axis labels now share one equal-width
+slot helper (`chartBarSlot`), covered by a red-green verified regression test.
 
 **Depends on:** Approved and passing Task 2D.
 

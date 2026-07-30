@@ -35,6 +35,16 @@ import com.rotiropi.pos_erpnext.ui.theme.PosDimensions
 fun reportsGridColumns(layoutMode: PosLayoutMode): Int =
     if (layoutMode == PosLayoutMode.EXPANDED) 4 else 2
 
+internal data class ChartBarSlot(val x: Float, val width: Float)
+
+/** Bars, value labels, and axis labels all share these equal-width slots so they stay aligned. */
+internal fun chartBarSlot(index: Int, count: Int, availableWidth: Float): ChartBarSlot {
+    val slotWidth = availableWidth / count
+    val barWidth = (slotWidth / 2f).coerceAtLeast(10f)
+    val center = (index + 0.5f) * slotWidth
+    return ChartBarSlot(center - barWidth / 2f, barWidth)
+}
+
 @Composable
 fun ReportsScreen(
     state: ReportsUiState,
@@ -231,12 +241,12 @@ private fun MetricCard(metric: ReportMetric, modifier: Modifier = Modifier) {
 private fun ReportsChartSection(content: ReportsContent) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         val primaryColor = MaterialTheme.colorScheme.primary
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
+        Row(modifier = Modifier.fillMaxWidth()) {
             content.chartBars.forEach { bar ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
                     Text(bar.valueLabel, style = MaterialTheme.typography.labelSmall)
                 }
             }
@@ -252,30 +262,27 @@ private fun ReportsChartSection(content: ReportsContent) {
         ) {
             val barCount = content.chartBars.size
             if (barCount > 0) {
-                val availableWidth = size.width
                 val availableHeight = size.height
-                val barWidth = (availableWidth / (barCount * 2)).coerceAtLeast(10f)
-                val spacing = (availableWidth - (barWidth * barCount)) / (barCount + 1)
 
                 content.chartBars.forEachIndexed { index, bar ->
+                    val slot = chartBarSlot(index, barCount, size.width)
                     val barHeight = availableHeight * bar.safeFraction
-                    val x = spacing + index * (barWidth + spacing)
                     val y = availableHeight - barHeight
 
                     drawRect(
                         color = primaryColor,
-                        topLeft = Offset(x, y),
-                        size = Size(barWidth, barHeight),
+                        topLeft = Offset(slot.x, y),
+                        size = Size(slot.width, barHeight),
                     )
                 }
             }
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
+        Row(modifier = Modifier.fillMaxWidth()) {
             content.chartBars.forEach { bar ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
                     Text(bar.label, style = MaterialTheme.typography.labelMedium)
                 }
             }

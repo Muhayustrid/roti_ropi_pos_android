@@ -12,6 +12,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
@@ -29,6 +30,8 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.rotiropi.pos_erpnext.ui.navigation.PosLayoutMode
@@ -40,15 +43,18 @@ import com.rotiropi.pos_erpnext.ui.reports.ReportTopProduct
 import com.rotiropi.pos_erpnext.ui.reports.ReportsContent
 import com.rotiropi.pos_erpnext.ui.reports.ReportsScreen
 import com.rotiropi.pos_erpnext.ui.reports.ReportsUiState
+import com.rotiropi.pos_erpnext.ui.reports.chartBarSlot
 import com.rotiropi.pos_erpnext.ui.settings.MoreScreen
 import com.rotiropi.pos_erpnext.ui.settings.MoreUiState
 import com.rotiropi.pos_erpnext.ui.theme.PosAccent
 import com.rotiropi.pos_erpnext.ui.theme.PosTheme
 import com.rotiropi.pos_erpnext.ui.settings.PosThemeMode
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlin.math.abs
 
 @RunWith(AndroidJUnit4::class)
 class ReportsMoreScreenTest {
@@ -307,6 +313,53 @@ class ReportsMoreScreenTest {
             .performScrollTo()
             .assertIsDisplayed()
     }
+
+    @Test
+    fun chart_axis_labels_are_centered_on_their_bars() {
+        val bars = listOf(
+            ReportChartBar("open", "8", "IDR 121,000", 0.4f),
+            ReportChartBar("mid", "Wednesday noon", "IDR 302,000", 1.0f),
+            ReportChartBar("close", "14", "IDR 196,000", 0.65f),
+        )
+        composeRule.setContent {
+            PosTheme {
+                Box(Modifier.width(400.dp).height(900.dp)) {
+                    ReportsScreen(
+                        state = ReportsUiState.Content(reportsFixture().content.copy(chartBars = bars)),
+                        layoutMode = PosLayoutMode.COMPACT,
+                    )
+                }
+            }
+        }
+
+        val chart = composeRule.onNodeWithTag("reports-chart")
+            .performScrollTo()
+            .getUnclippedBoundsInRoot()
+        bars.forEachIndexed { index, bar ->
+            val expected = chart.left + slotCenter(index, bars.size, chart.right - chart.left)
+            val actual = composeRule.onNodeWithText(bar.label)
+                .getUnclippedBoundsInRoot()
+                .centerX()
+            assertTrue(
+                "axis label '${bar.label}' center $actual should match bar center $expected",
+                abs(actual.value - expected.value) <= 2f,
+            )
+            val valueActual = composeRule.onNodeWithText(bar.valueLabel)
+                .getUnclippedBoundsInRoot()
+                .centerX()
+            assertTrue(
+                "value label '${bar.valueLabel}' center $valueActual should match bar center $expected",
+                abs(valueActual.value - expected.value) <= 2f,
+            )
+        }
+    }
+
+    private fun slotCenter(index: Int, count: Int, width: Dp): Dp {
+        val slot = chartBarSlot(index, count, width.value)
+        return Dp(slot.x + slot.width / 2f)
+    }
+
+    private fun DpRect.centerX(): Dp = left + (right - left) / 2f
 
     private fun reportsFixture(): ReportsUiState.Content {
         return ReportsUiState.Content(
