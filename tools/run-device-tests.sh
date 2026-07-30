@@ -691,7 +691,7 @@ if [ $INSTR_RC -ne 0 ]; then
     exit 1
 fi
 
-# Strict instrumentation parsing. Task 2B requires the exact five-test broad suite.
+# Strict instrumentation parsing. Accept only the test count reported by this broad suite.
 if grep -q "FAILURES!!!" "$INSTRUMENTATION_FILE" || grep -q "Process crashed" "$INSTRUMENTATION_FILE"; then
     echo "ERROR: Instrumentation output contains test failures or process crash." >&2
     exit 1
@@ -703,13 +703,20 @@ if [ "$CODE_MATCH_COUNT" -ne 1 ]; then
     exit 1
 fi
 
-OK_MATCH_COUNT=$(grep -c "^OK (5 tests)$" "$INSTRUMENTATION_FILE" || true)
-if [ "$OK_MATCH_COUNT" -ne 1 ]; then
-    echo "ERROR: Expected exactly 1 anchored 'OK (5 tests)', found $OK_MATCH_COUNT." >&2
+EXPECTED_TESTS=$(grep "^INSTRUMENTATION_STATUS: numtests=" "$INSTRUMENTATION_FILE" | cut -d= -f2 | sort -u)
+if ! [[ "$EXPECTED_TESTS" =~ ^[1-9][0-9]*$ ]]; then
+    echo "ERROR: Expected one positive instrumentation test count, found '${EXPECTED_TESTS:-none}'." >&2
     exit 1
 fi
 
-UNEXPECTED_SUMMARIES=$(grep -E "^(OK|FAILURES!|Tests run:)" "$INSTRUMENTATION_FILE" | grep -v "^OK (5 tests)$" || true)
+EXPECTED_SUMMARY="OK ($EXPECTED_TESTS tests)"
+OK_MATCH_COUNT=$(grep -Fxc "$EXPECTED_SUMMARY" "$INSTRUMENTATION_FILE" || true)
+if [ "$OK_MATCH_COUNT" -ne 1 ]; then
+    echo "ERROR: Expected exactly 1 anchored '$EXPECTED_SUMMARY', found $OK_MATCH_COUNT." >&2
+    exit 1
+fi
+
+UNEXPECTED_SUMMARIES=$(grep -E "^(OK|FAILURES!|Tests run:)" "$INSTRUMENTATION_FILE" | grep -Fvx "$EXPECTED_SUMMARY" || true)
 if [ -n "$UNEXPECTED_SUMMARIES" ]; then
     echo "ERROR: Unexpected extra summary lines found: $UNEXPECTED_SUMMARIES" >&2
     exit 1

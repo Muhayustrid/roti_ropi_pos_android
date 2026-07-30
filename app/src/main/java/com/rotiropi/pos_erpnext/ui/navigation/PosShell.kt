@@ -18,7 +18,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.rotiropi.pos_erpnext.ui.components.RootNavigationBar
+import com.rotiropi.pos_erpnext.ui.dashboard.DashboardScreen
+import com.rotiropi.pos_erpnext.ui.dashboard.DashboardUiState
 import com.rotiropi.pos_erpnext.ui.placeholder.PlaceholderScreen
+import com.rotiropi.pos_erpnext.ui.products.ProductsScreen
+import com.rotiropi.pos_erpnext.ui.products.ProductsUiState
 import com.rotiropi.pos_erpnext.ui.theme.PosDimensions
 
 @Composable
@@ -68,7 +72,25 @@ fun PosShell(modifier: Modifier = Modifier) {
                             }
                         ),
                 ) {
-                    PosDestination.entries.forEach { destination ->
+                    composable(PosDestination.HOME.route) {
+                        DashboardScreen(
+                            state = DashboardUiState.Unavailable,
+                            layoutMode = layoutMode,
+                            modifier = Modifier.testTag("destination-content-home"),
+                        )
+                    }
+                    composable(PosDestination.PRODUCTS.route) {
+                        ProductsScreen(
+                            state = ProductsUiState.Unavailable,
+                            layoutMode = layoutMode,
+                            modifier = Modifier.testTag("destination-content-products"),
+                        )
+                    }
+                    listOf(
+                        PosDestination.CASHIER,
+                        PosDestination.REPORTS,
+                        PosDestination.MORE,
+                    ).forEach { destination ->
                         composable(destination.route) {
                             PlaceholderScreen(
                                 destination = destination,
