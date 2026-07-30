@@ -86,7 +86,10 @@ class ComposeShellTest {
     }
 
     @Test
-    fun foundation_shell_does_not_claim_scanner_input_before_cashier_integration() {
+    fun cashier_release_destination_is_honest_and_has_no_input() {
+        composeRule.onNodeWithTag("root-cashier").performClick()
+        composeRule.onNodeWithText("Cashier unavailable").assertIsDisplayed()
+        composeRule.onNodeWithText("Demo data").assertDoesNotExist()
         composeRule.onAllNodes(hasSetTextAction()).assertCountEquals(0)
     }
 }

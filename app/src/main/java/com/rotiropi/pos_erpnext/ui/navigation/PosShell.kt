@@ -17,6 +17,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.rotiropi.pos_erpnext.ui.cashier.CashierScreen
+import com.rotiropi.pos_erpnext.ui.cashier.CashierUiState
 import com.rotiropi.pos_erpnext.ui.components.RootNavigationBar
 import com.rotiropi.pos_erpnext.ui.dashboard.DashboardScreen
 import com.rotiropi.pos_erpnext.ui.dashboard.DashboardUiState
@@ -86,8 +88,14 @@ fun PosShell(modifier: Modifier = Modifier) {
                             modifier = Modifier.testTag("destination-content-products"),
                         )
                     }
+                    composable(PosDestination.CASHIER.route) {
+                        CashierScreen(
+                            state = CashierUiState.Unavailable,
+                            layoutMode = layoutMode,
+                            modifier = Modifier.testTag("destination-content-cashier"),
+                        )
+                    }
                     listOf(
-                        PosDestination.CASHIER,
                         PosDestination.REPORTS,
                         PosDestination.MORE,
                     ).forEach { destination ->
