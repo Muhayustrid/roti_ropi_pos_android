@@ -22,8 +22,10 @@ MockWebServer, Compose UI test, test-only UI Automator, minSdk 23, and targetSdk
 ## Verified Implementation Status
 
 Status last audited on 2026-07-30 from current source and tests, commits
-`21feaa9`, `1bb1bd0`, `e8fdba6`, and `f49f624`, plus fresh Gradle, preview,
-and API 23/API 36 evidence for the uncommitted Task 2B implementation diff.
+`21feaa9`, `1bb1bd0`, `e8fdba6`, and `f49f624` (Tasks 1A–2), merged
+Task 2C commit `3801d03`, merged Task 2D commit `ee56e73`, and Task 2E
+candidate `a391411` plus its API 23 test fix. Fresh Gradle, preview, and API
+23/API 36 evidence covers the cumulative Android implementation through Task 2E.
 Task status, not unchecked execution-step boxes below, records current completion.
 
 | Task | Status | Evidence summary |
@@ -32,9 +34,9 @@ Task status, not unchecked execution-step boxes below, records current completio
 | 1B | Completed | Test Core/Runner 1.7.0 alignment; clean `./gradlew clean testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease` PASS (101 tasks); exact API 23 and API 36 device runs PASS with 3/3 tests each; deterministic evidence captured under `app/build/reports/mobile-pos-devices/api23` and `app/build/reports/mobile-pos-devices/api36`. |
 | 2 | Completed | Commit `f49f624` enforces canonical HTTPS origin and a closed 14-endpoint catalog, validates request fields and four idempotent mutations, parses stable/native responses, classifies timeout/cancellation, aligns DTO snapshots, records fixture provenance, and passes 27 focused/full debug unit tests plus a clean 101-task debug/release unit, lint, and assemble gate. AGP 9.2.1 exposes no `testReleaseUnitTest` task; release Kotlin compilation and `assembleRelease` pass. |
 | 2B | Completed | Uncommitted implementation replaces the placeholder XML/ViewBinding shell with Compose BOM `2026.06.00`, Material 3 semantic light/dark themes and Blue/Teal accents, five unique root destinations, elevated Cashier action, save/restore navigation, compact/expanded width behavior, honest unavailable states, debug previews, and release-fixture exclusion. On 2026-07-30, all five Android Studio Quail previews rendered and passed visual/semantics inspection; 32 debug unit tests, debug/release lint, debug/release assembly, release Kotlin compilation, Android-test APK assembly, and exact API 23/API 36 runs with 5/5 Compose tests each passed. AGP 9.2.1 exposes no `testReleaseUnitTest` task. |
-| 2C | Not Started | Dashboard and Products visual states, adaptive compositions, previews, and UI tests are absent. Live aggregates remain unavailable. |
-| 2D | Not Started | Cashier, cart, exact-settlement checkout, and server-receipt visual states, previews, and UI tests are absent. |
-| 2E | Not Started | Reports and More/Settings visual states, theme preferences, previews, and UI tests are absent. Live reports remain unavailable. |
+| 2C | Completed | Commit `3801d03`, merged via `3352ddd`. Dashboard/Products states, adaptive layouts, honest unavailable release wiring, debug previews, and unit/Compose UI tests exist. Cumulative fresh verification through Task 2E passes the full Gradle and API 23/API 36 gates. Complete live aggregates remain unavailable. |
+| 2D | Completed | Commit `ee56e73`, merged via `ef491fd`. Cashier/cart/checkout/receipt states, bounded rows, manual/HID barcode input, adaptive cart layouts, honest disabled payment confirmation, server-receipt display, debug previews, and unit/Compose UI tests exist. Cumulative fresh verification through Task 2E passes the full Gradle and API 23/API 36 gates. |
+| 2E | Completed | Candidate `a391411` plus a test-only API 23 visibility fix. Reports/More states, application-private theme persistence, shell wiring, debug previews, and unit/Compose UI tests exist. Clean Gradle gate passed 100 tasks; API 23 and API 36 each passed 39 tests; six Task 2E previews rendered and passed visual/semantics inspection. Complete live reports remain unavailable. |
 | 3 | Not Started | OAuth, encrypted attempt/token storage, redirect components, tests, and harness are absent. |
 | 4 | Not Started | Repository, bootstrap/profile routing, logout coordinator, UI, tests, and fixtures are absent. |
 | 5 | Not Started | Connectivity, pending mutation storage, recovery coordinator/worker, UI, tests, and process-death harness are absent. |
@@ -46,10 +48,9 @@ Task status, not unchecked execution-step boxes below, records current completio
 | 11 | Not Started | Closing UI/repository behavior, tests, and fixtures are absent. |
 | 12 | Not Started | Final lifecycle, performance, accessibility, release-inspection tests and harnesses are absent. |
 
-The next incomplete Android task is Task 2C. Completion of Task 2B does not
-authorize Task 2C; it requires separate explicit approval. Tasks 2C through 2E
-add the approved visual surfaces in small reviewable steps. Task 3 must not start
-until Task 2E passes and its external gate is approved.
+The next incomplete Android task is Task 3. Completion of Task 2E does not
+authorize Task 3; it requires separate explicit approval and the external OAuth
+environment/provisioning gates documented below.
 
 ## Global Constraints
 
@@ -691,7 +692,8 @@ wait for explicit approval before commit or Task 2C.
 
 ### Task 2C: Add Dashboard and Products Visual Surfaces
 
-**Status:** Not Started.
+**Status:** Completed — verified on 2026-07-30; commit `3801d03` merged via
+`3352ddd`.
 
 **Depends on:** Approved and passing Task 2B.
 
@@ -734,7 +736,8 @@ light/dark, portrait/landscape, tablet, font scale 1.5, and accessibility. Repor
 
 ### Task 2D: Add Cashier, Cart, Checkout, and Receipt Visual Surfaces
 
-**Status:** Not Started.
+**Status:** Completed — verified on 2026-07-30; commit `ee56e73` merged via
+`ef491fd`.
 
 **Depends on:** Approved and passing Task 2C.
 
@@ -778,7 +781,14 @@ before Task 2E.
 
 ### Task 2E: Add Reports and More Visual Surfaces
 
-**Status:** Not Started.
+**Status:** Completed — verified on 2026-07-30 from candidate `a391411` plus
+the test-only API 23 visibility fix. With explicit SDK environment, clean
+`./gradlew clean testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease`
+passed 100 tasks. `./tools/run-device-tests.sh api23` and
+`./tools/run-device-tests.sh api36` each passed `OK (39 tests)`. Six Task 2E
+previews rendered in Android Studio Quail and passed visual/semantics inspection
+across compact/expanded, light/dark, Blue/Teal, portrait/landscape, and font scale
+1.5 coverage.
 
 **Depends on:** Approved and passing Task 2D.
 

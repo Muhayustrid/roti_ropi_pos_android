@@ -92,7 +92,9 @@ class ReportsMoreScreenTest {
         composeRule.onNodeWithTag("reports-period-month").performClick()
         composeRule.runOnIdle { assertEquals(ReportPeriod.MONTH, selected) }
         composeRule.onNodeWithText("IDR 825,000").assertIsDisplayed()
-        composeRule.onNodeWithText("IDR 525,000").assertIsDisplayed()
+        composeRule.onNodeWithText("IDR 525,000")
+            .performScrollTo()
+            .assertIsDisplayed()
         composeRule.onNodeWithTag("reports-top-product-coffee")
             .performScrollTo()
             .assertIsDisplayed()
@@ -184,7 +186,11 @@ class ReportsMoreScreenTest {
         }
 
         listOf("Outlet", "User and session", "Appearance", "Printer", "Synchronization")
-            .forEach { composeRule.onNodeWithText(it).assertIsDisplayed() }
+            .forEach {
+                composeRule.onNodeWithText(it)
+                    .performScrollTo()
+                    .assertIsDisplayed()
+            }
         composeRule.onAllNodesWithText("Unavailable").assertCountEquals(2)
         composeRule.onNodeWithTag("more-theme-system").assertIsSelected()
         composeRule.onNodeWithTag("more-accent-blue").assertIsSelected()
