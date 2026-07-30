@@ -8,12 +8,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -34,7 +40,11 @@ import com.rotiropi.pos_erpnext.ui.reports.ReportTopProduct
 import com.rotiropi.pos_erpnext.ui.reports.ReportsContent
 import com.rotiropi.pos_erpnext.ui.reports.ReportsScreen
 import com.rotiropi.pos_erpnext.ui.reports.ReportsUiState
+import com.rotiropi.pos_erpnext.ui.settings.MoreScreen
+import com.rotiropi.pos_erpnext.ui.settings.MoreUiState
+import com.rotiropi.pos_erpnext.ui.theme.PosAccent
 import com.rotiropi.pos_erpnext.ui.theme.PosTheme
+import com.rotiropi.pos_erpnext.ui.settings.PosThemeMode
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -148,6 +158,146 @@ class ReportsMoreScreenTest {
         }
 
         composeRule.onNodeWithTag("reports-top-product-coffee")
+            .performScrollTo()
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun more_shows_honest_groups_and_emits_theme_selections() {
+        val mode = mutableStateOf(PosThemeMode.SYSTEM)
+        val accent = mutableStateOf(PosAccent.BLUE)
+        composeRule.setContent {
+            PosTheme {
+                MoreScreen(
+                    state = MoreUiState(
+                        outletLabel = null,
+                        userSessionLabel = null,
+                        themeMode = mode.value,
+                        accent = accent.value,
+                        demoData = false,
+                    ),
+                    layoutMode = PosLayoutMode.COMPACT,
+                    onThemeModeSelected = { mode.value = it },
+                    onAccentSelected = { accent.value = it },
+                )
+            }
+        }
+
+        listOf("Outlet", "User and session", "Appearance", "Printer", "Synchronization")
+            .forEach { composeRule.onNodeWithText(it).assertIsDisplayed() }
+        composeRule.onAllNodesWithText("Unavailable").assertCountEquals(2)
+        composeRule.onNodeWithTag("more-theme-system").assertIsSelected()
+        composeRule.onNodeWithTag("more-accent-blue").assertIsSelected()
+        composeRule.onNodeWithTag("more-theme-dark")
+            .assertHasClickAction()
+            .assertHeightIsAtLeast(48.dp)
+            .performClick()
+        composeRule.onNodeWithTag("more-accent-teal")
+            .assertHasClickAction()
+            .assertHeightIsAtLeast(48.dp)
+            .performClick()
+        composeRule.onNodeWithTag("more-theme-dark").assertIsSelected()
+        composeRule.onNodeWithTag("more-accent-teal").assertIsSelected()
+        composeRule.onNodeWithText("Demo data").assertDoesNotExist()
+    }
+
+    @Test
+    fun unsupported_more_capabilities_are_disabled_without_actions() {
+        composeRule.setContent {
+            PosTheme {
+                MoreScreen(
+                    state = MoreUiState(
+                        outletLabel = null,
+                        userSessionLabel = null,
+                        themeMode = PosThemeMode.SYSTEM,
+                        accent = PosAccent.BLUE,
+                        demoData = false,
+                    ),
+                    layoutMode = PosLayoutMode.COMPACT,
+                )
+            }
+        }
+
+        composeRule.onAllNodesWithText("Not supported").assertCountEquals(2)
+        composeRule.onNodeWithTag("more-printer")
+            .assertIsNotEnabled()
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
+        composeRule.onNodeWithTag("more-synchronization")
+            .assertIsNotEnabled()
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
+    }
+
+    @Test
+    fun more_layout_adapts_from_stack_to_two_columns() {
+        val layoutMode = mutableStateOf(PosLayoutMode.COMPACT)
+        composeRule.setContent {
+            PosTheme {
+                MoreScreen(
+                    state = MoreUiState(
+                        outletLabel = null,
+                        userSessionLabel = null,
+                        themeMode = PosThemeMode.SYSTEM,
+                        accent = PosAccent.BLUE,
+                        demoData = false,
+                    ),
+                    layoutMode = layoutMode.value,
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("more-compact").assertIsDisplayed()
+        composeRule.runOnIdle { layoutMode.value = PosLayoutMode.EXPANDED }
+        composeRule.onNodeWithTag("more-expanded").assertIsDisplayed()
+        composeRule.onNodeWithTag("more-compact").assertDoesNotExist()
+    }
+
+    @Test
+    fun appearance_controls_follow_external_keyboard_order() {
+        composeRule.setContent {
+            PosTheme {
+                MoreScreen(
+                    state = MoreUiState(
+                        outletLabel = null,
+                        userSessionLabel = null,
+                        themeMode = PosThemeMode.SYSTEM,
+                        accent = PosAccent.BLUE,
+                        demoData = false,
+                    ),
+                    layoutMode = PosLayoutMode.COMPACT,
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("more-theme-system").requestFocus().assertIsFocused()
+        composeRule.onNodeWithTag("more-theme-system").performKeyInput { pressKey(Key.Tab) }
+        composeRule.onNodeWithTag("more-theme-light").assertIsFocused()
+        composeRule.onNodeWithTag("more-theme-light").performKeyInput { pressKey(Key.Tab) }
+        composeRule.onNodeWithTag("more-theme-dark").assertIsFocused()
+    }
+
+    @Test
+    fun more_remains_scrollable_at_font_scale_1_5() {
+        composeRule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 1.5f)) {
+                PosTheme {
+                    Box(Modifier.width(400.dp).height(600.dp)) {
+                        MoreScreen(
+                            state = MoreUiState(
+                                outletLabel = null,
+                                userSessionLabel = null,
+                                themeMode = PosThemeMode.SYSTEM,
+                                accent = PosAccent.BLUE,
+                                demoData = false,
+                            ),
+                            layoutMode = PosLayoutMode.COMPACT,
+                        )
+                    }
+                }
+            }
+        }
+
+        composeRule.onNodeWithTag("more-synchronization")
             .performScrollTo()
             .assertIsDisplayed()
     }

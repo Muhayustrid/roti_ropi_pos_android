@@ -1,5 +1,6 @@
 package com.rotiropi.pos_erpnext.ui
 
+import android.content.Context
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
@@ -11,10 +12,12 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.unit.dp
@@ -91,5 +94,41 @@ class ComposeShellTest {
         composeRule.onNodeWithText("Cashier unavailable").assertIsDisplayed()
         composeRule.onNodeWithText("Demo data").assertDoesNotExist()
         composeRule.onAllNodes(hasSetTextAction()).assertCountEquals(0)
+    }
+
+    @Test
+    fun reports_and_more_release_destinations_are_honest_feature_surfaces() {
+        composeRule.onNodeWithTag("root-reports").performClick()
+        composeRule.onNodeWithText("Reports unavailable").assertIsDisplayed()
+        composeRule.onNodeWithText("Demo data").assertDoesNotExist()
+
+        composeRule.onNodeWithTag("root-more").performClick()
+        composeRule.onNodeWithText("Appearance").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Unavailable").assertCountEquals(2)
+        composeRule.onAllNodesWithText("Not supported").assertCountEquals(2)
+    }
+
+    @Test
+    fun theme_selection_persists_across_activity_recreation() {
+        composeRule.activityRule.scenario.onActivity { activity ->
+            activity.getSharedPreferences("pos_ui_preferences", Context.MODE_PRIVATE)
+                .edit().clear().commit()
+        }
+        try {
+            composeRule.activityRule.scenario.recreate()
+            composeRule.onNodeWithTag("root-more").performClick()
+            composeRule.onNodeWithTag("more-accent-teal").performScrollTo().performClick()
+
+            composeRule.activityRule.scenario.recreate()
+
+            composeRule.onNodeWithTag("root-more").performClick()
+            composeRule.onNodeWithTag("more-accent-teal").performScrollTo().assertIsSelected()
+            composeRule.onNodeWithTag("more-accent-blue").performClick()
+        } finally {
+            composeRule.activityRule.scenario.onActivity { activity ->
+                activity.getSharedPreferences("pos_ui_preferences", Context.MODE_PRIVATE)
+                    .edit().clear().commit()
+            }
+        }
     }
 }

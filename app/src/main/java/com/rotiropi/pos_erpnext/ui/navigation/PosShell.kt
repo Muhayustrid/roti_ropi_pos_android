@@ -22,13 +22,24 @@ import com.rotiropi.pos_erpnext.ui.cashier.CashierUiState
 import com.rotiropi.pos_erpnext.ui.components.RootNavigationBar
 import com.rotiropi.pos_erpnext.ui.dashboard.DashboardScreen
 import com.rotiropi.pos_erpnext.ui.dashboard.DashboardUiState
-import com.rotiropi.pos_erpnext.ui.placeholder.PlaceholderScreen
 import com.rotiropi.pos_erpnext.ui.products.ProductsScreen
 import com.rotiropi.pos_erpnext.ui.products.ProductsUiState
+import com.rotiropi.pos_erpnext.ui.reports.ReportsScreen
+import com.rotiropi.pos_erpnext.ui.reports.ReportsUiState
+import com.rotiropi.pos_erpnext.ui.settings.MoreScreen
+import com.rotiropi.pos_erpnext.ui.settings.MoreUiState
+import com.rotiropi.pos_erpnext.ui.settings.PosThemeMode
+import com.rotiropi.pos_erpnext.ui.theme.PosAccent
 import com.rotiropi.pos_erpnext.ui.theme.PosDimensions
 
 @Composable
-fun PosShell(modifier: Modifier = Modifier) {
+fun PosShell(
+    themeMode: PosThemeMode = PosThemeMode.SYSTEM,
+    accent: PosAccent = PosAccent.BLUE,
+    onThemeModeSelected: (PosThemeMode) -> Unit = {},
+    onAccentSelected: (PosAccent) -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val selectedDestination = PosDestination.entries.firstOrNull {
@@ -95,18 +106,27 @@ fun PosShell(modifier: Modifier = Modifier) {
                             modifier = Modifier.testTag("destination-content-cashier"),
                         )
                     }
-                    listOf(
-                        PosDestination.REPORTS,
-                        PosDestination.MORE,
-                    ).forEach { destination ->
-                        composable(destination.route) {
-                            PlaceholderScreen(
-                                destination = destination,
-                                modifier = Modifier.testTag(
-                                    "destination-content-${destination.route}"
-                                ),
-                            )
-                        }
+                    composable(PosDestination.REPORTS.route) {
+                        ReportsScreen(
+                            state = ReportsUiState.Unavailable,
+                            layoutMode = layoutMode,
+                            modifier = Modifier.testTag("destination-content-reports"),
+                        )
+                    }
+                    composable(PosDestination.MORE.route) {
+                        MoreScreen(
+                            state = MoreUiState(
+                                outletLabel = null,
+                                userSessionLabel = null,
+                                themeMode = themeMode,
+                                accent = accent,
+                                demoData = false,
+                            ),
+                            layoutMode = layoutMode,
+                            modifier = Modifier.testTag("destination-content-more"),
+                            onThemeModeSelected = onThemeModeSelected,
+                            onAccentSelected = onAccentSelected,
+                        )
                     }
                 }
             }
