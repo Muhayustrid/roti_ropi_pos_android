@@ -135,6 +135,27 @@ get_serial_identity() {
     echo "${AVD_NAME_OUT}:${API_LEVEL_OUT}"
 }
 
+wait_for_serial_removal() {
+    local SERIAL="$1"
+    local DEADLINE
+    DEADLINE=$(python3 -c 'import time; print(time.monotonic() + 30.0)')
+
+    while true; do
+        local DEVICES=""
+        DEVICES=$(run_cmd_bounded 5 "$ADB" devices 2>/dev/null || true)
+        if ! echo "$DEVICES" | grep -q "^${SERIAL}[[:space:]]"; then
+            return 0
+        fi
+
+        local NOW
+        NOW=$(python3 -c 'import time; print(time.monotonic())')
+        if [ "$(python3 -c "print(1 if $NOW >= $DEADLINE else 0)")" -eq 1 ]; then
+            return 1
+        fi
+        python3 -c 'import time; time.sleep(0.5)'
+    done
+}
+
 AVD_EXISTS=false
 if "$EMULATOR" -list-avds 2>/dev/null | grep -q "^${AVD_NAME}$"; then
     AVD_EXISTS=true
@@ -162,6 +183,9 @@ cleanup() {
             if [ "$CUR_AVD" = "$AVD_NAME" ] && [ "$CUR_API" = "$EXPECTED_API" ]; then
                 echo "Stopping owned emulator $AVD_NAME on $RUNNING_SERIAL..."
                 run_cmd_bounded 10 "$ADB" -s "$RUNNING_SERIAL" emu kill >/dev/null 2>&1 || true
+                if ! wait_for_serial_removal "$RUNNING_SERIAL"; then
+                    echo "WARNING: Serial $RUNNING_SERIAL remained registered after emulator shutdown." >&2
+                fi
             else
                 echo "WARNING: Serial $RUNNING_SERIAL identity mismatch ($CUR_AVD:$CUR_API). Terminating PID $EMULATOR_PID..."
                 if [ -n "$EMULATOR_PID" ]; then
@@ -667,7 +691,7 @@ if [ $INSTR_RC -ne 0 ]; then
     exit 1
 fi
 
-# Strict instrumentation parsing
+# Strict instrumentation parsing. Task 2B requires the exact five-test broad suite.
 if grep -q "FAILURES!!!" "$INSTRUMENTATION_FILE" || grep -q "Process crashed" "$INSTRUMENTATION_FILE"; then
     echo "ERROR: Instrumentation output contains test failures or process crash." >&2
     exit 1
@@ -679,13 +703,13 @@ if [ "$CODE_MATCH_COUNT" -ne 1 ]; then
     exit 1
 fi
 
-OK_MATCH_COUNT=$(grep -c "^OK (3 tests)$" "$INSTRUMENTATION_FILE" || true)
+OK_MATCH_COUNT=$(grep -c "^OK (5 tests)$" "$INSTRUMENTATION_FILE" || true)
 if [ "$OK_MATCH_COUNT" -ne 1 ]; then
-    echo "ERROR: Expected exactly 1 anchored 'OK (3 tests)', found $OK_MATCH_COUNT." >&2
+    echo "ERROR: Expected exactly 1 anchored 'OK (5 tests)', found $OK_MATCH_COUNT." >&2
     exit 1
 fi
 
-UNEXPECTED_SUMMARIES=$(grep -E "^(OK|FAILURES!|Tests run:)" "$INSTRUMENTATION_FILE" | grep -v "^OK (3 tests)$" || true)
+UNEXPECTED_SUMMARIES=$(grep -E "^(OK|FAILURES!|Tests run:)" "$INSTRUMENTATION_FILE" | grep -v "^OK (5 tests)$" || true)
 if [ -n "$UNEXPECTED_SUMMARIES" ]; then
     echo "ERROR: Unexpected extra summary lines found: $UNEXPECTED_SUMMARIES" >&2
     exit 1

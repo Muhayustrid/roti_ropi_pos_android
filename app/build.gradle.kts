@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.kotlin.compose)
 }
 
 android {
@@ -33,27 +34,31 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
     buildFeatures {
-        viewBinding = true
+        compose = true
     }
 }
 
 dependencies {
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
     implementation(libs.material)
-    implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.navigation.fragment.ktx)
-    implementation(libs.androidx.navigation.ui.ktx)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.navigation.compose)
 
     testImplementation(libs.junit)
     testImplementation(libs.mockwebserver)
     testImplementation(libs.okhttp.tls)
 
-    debugImplementation(libs.androidx.fragment.testing.manifest)
-    androidTestImplementation(libs.androidx.fragment.testing)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.espresso.core)

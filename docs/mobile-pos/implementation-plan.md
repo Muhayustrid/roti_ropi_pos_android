@@ -8,15 +8,48 @@
 **Goal:** Build the approved Android cashier client for the versioned Mobile
 POS API without duplicating ERPNext business logic.
 
-**Architecture:** One Kotlin Android application module uses XML Fragments,
-ViewBinding, ViewModels, a small repository/API boundary, AppAuth, and encrypted
-OAuth-attempt, token, and durable mutation storage. ERPNext remains
+**Architecture:** One Kotlin Android application module uses Jetpack Compose,
+Material 3, immutable ViewModel state, a small repository/API boundary, AppAuth,
+and encrypted OAuth-attempt, token, and durable mutation storage. ERPNext remains
 authoritative, every mutation is prepared before transmission, and known-offline
-startup never exposes an offline transaction workflow.
+startup never exposes an offline transaction workflow. Task 1B's verified
+XML/ViewBinding shell remains historical evidence until Task 2B replaces it.
 
-**Tech Stack:** Kotlin 2.2.10, AGP 9.2.1, XML Views, ViewBinding, AndroidX,
+**Tech Stack:** Kotlin 2.2.10, AGP 9.2.1, Jetpack Compose, Material 3, AndroidX,
 coroutines, OkHttp, Kotlin serialization, AppAuth, WorkManager, JUnit 4,
-MockWebServer, Espresso, test-only UI Automator, minSdk 23, and targetSdk 36.
+MockWebServer, Compose UI test, test-only UI Automator, minSdk 23, and targetSdk 36.
+
+## Verified Implementation Status
+
+Status last audited on 2026-07-30 from current source and tests, commits
+`21feaa9`, `1bb1bd0`, `e8fdba6`, and `f49f624`, plus fresh Gradle, preview,
+and API 23/API 36 evidence for the uncommitted Task 2B implementation diff.
+Task status, not unchecked execution-step boxes below, records current completion.
+
+| Task | Status | Evidence summary |
+| --- | --- | --- |
+| 1A | Completed | The dependency/compile-platform correction is present; clean unit, lint, debug, and release verification passes. The correction was committed with Task 1B rather than as an isolated Task 1A diff. |
+| 1B | Completed | Test Core/Runner 1.7.0 alignment; clean `./gradlew clean testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease` PASS (101 tasks); exact API 23 and API 36 device runs PASS with 3/3 tests each; deterministic evidence captured under `app/build/reports/mobile-pos-devices/api23` and `app/build/reports/mobile-pos-devices/api36`. |
+| 2 | Completed | Commit `f49f624` enforces canonical HTTPS origin and a closed 14-endpoint catalog, validates request fields and four idempotent mutations, parses stable/native responses, classifies timeout/cancellation, aligns DTO snapshots, records fixture provenance, and passes 27 focused/full debug unit tests plus a clean 101-task debug/release unit, lint, and assemble gate. AGP 9.2.1 exposes no `testReleaseUnitTest` task; release Kotlin compilation and `assembleRelease` pass. |
+| 2B | Completed | Uncommitted implementation replaces the placeholder XML/ViewBinding shell with Compose BOM `2026.06.00`, Material 3 semantic light/dark themes and Blue/Teal accents, five unique root destinations, elevated Cashier action, save/restore navigation, compact/expanded width behavior, honest unavailable states, debug previews, and release-fixture exclusion. On 2026-07-30, all five Android Studio Quail previews rendered and passed visual/semantics inspection; 32 debug unit tests, debug/release lint, debug/release assembly, release Kotlin compilation, Android-test APK assembly, and exact API 23/API 36 runs with 5/5 Compose tests each passed. AGP 9.2.1 exposes no `testReleaseUnitTest` task. |
+| 2C | Not Started | Dashboard and Products visual states, adaptive compositions, previews, and UI tests are absent. Live aggregates remain unavailable. |
+| 2D | Not Started | Cashier, cart, exact-settlement checkout, and server-receipt visual states, previews, and UI tests are absent. |
+| 2E | Not Started | Reports and More/Settings visual states, theme preferences, previews, and UI tests are absent. Live reports remain unavailable. |
+| 3 | Not Started | OAuth, encrypted attempt/token storage, redirect components, tests, and harness are absent. |
+| 4 | Not Started | Repository, bootstrap/profile routing, logout coordinator, UI, tests, and fixtures are absent. |
+| 5 | Not Started | Connectivity, pending mutation storage, recovery coordinator/worker, UI, tests, and process-death harness are absent. |
+| 6 | Not Started | Opening UI/repository behavior, tests, and fixtures are absent. |
+| 7 | Not Started | Customer selection UI/repository behavior, tests, and fixture are absent. |
+| 8 | Not Started | Catalog/cart UI/repository behavior, tests, fixtures, and accessibility harness are absent. |
+| 9 | Not Started | Payment/receipt UI/repository behavior, tests, and fixtures are absent. |
+| 10 | Not Started | History/return UI/repository behavior, tests, and fixtures are absent. |
+| 11 | Not Started | Closing UI/repository behavior, tests, and fixtures are absent. |
+| 12 | Not Started | Final lifecycle, performance, accessibility, release-inspection tests and harnesses are absent. |
+
+The next incomplete Android task is Task 2C. Completion of Task 2B does not
+authorize Task 2C; it requires separate explicit approval. Tasks 2C through 2E
+add the approved visual surfaces in small reviewable steps. Task 3 must not start
+until Task 2E passes and its external gate is approved.
 
 ## Global Constraints
 
@@ -24,9 +57,11 @@ MockWebServer, Espresso, test-only UI Automator, minSdk 23, and targetSdk 36.
 - Do not begin a later task or phase without explicit approval.
 - Do not commit, push, publish, deploy, or provision production credentials
   without separate explicit approval.
-- Use Kotlin, XML Views, and ViewBinding.
+- Use Kotlin, Jetpack Compose, and Material 3 for new UI work after Task 2B.
+- Keep Task 1B's XML/ViewBinding shell as historical evidence until Task 2B replaces it.
 - Keep `minSdk 23`.
-- Do not use Jetpack Compose.
+- Keep fake records in debug previews or test source sets only; release runtime never presents mock data as ERPNext integration.
+- Use the pinned reference repository only for licensed visual and interaction analysis; do not copy branding, database, authentication, business logic, or offline architecture.
 - Call only the approved versioned Mobile POS API.
 - Treat the fixed canonical-origin OAuth authorize and token routes as the only
   authentication control-plane exception; do not use discovery or another
@@ -41,7 +76,15 @@ MockWebServer, Espresso, test-only UI Automator, minSdk 23, and targetSdk 36.
   replay bytes; unknown formats enter manual recovery.
 - A known-offline new mutation creates no UUID, row, worker, or transport call.
 - Accept exact settlement only. Overpayment and local change calculation remain
-  unsupported until separately contracted.
+  unsupported until separately contracted; receipt UI may display only a
+  server-returned `change_amount`.
+- Keep discount editing absent or disabled until a versioned contract supplies an
+  authoritative input and validation flow; server-returned discounts are display-only.
+- Keep camera scanning, printer integration, and synchronization controls absent
+  or disabled until separately approved.
+- Do not derive complete Dashboard or Reports aggregates from bounded API pages.
+  Unsupported live sections remain unavailable; populated designs live only in
+  debug previews marked `Demo data`.
 - Capability refresh is event-triggered and coalesced.
 - Bind each pending mutation to its HTTPS origin and OAuth client identity.
 - Keep DTOs separate from domain and UI models.
@@ -51,17 +94,17 @@ MockWebServer, Espresso, test-only UI Automator, minSdk 23, and targetSdk 36.
 - Add no DI framework, ORM, Retrofit, image framework, or speculative module.
 - Every task ends with fresh verification, intended diff review, and a stop for
   approval.
-- Tasks execute serially in this exact order: 1A, 1B, 2, 3, 4, 5, 6, 7, 8, 9,
-  10, 11, 12. Approval of one task never authorizes the next.
+- Tasks execute serially in this exact order: 1A, 1B, 2, 2B, 2C, 2D, 2E, 3,
+  4, 5, 6, 7, 8, 9, 10, 11, 12. Approval of one task never authorizes the next.
 
-## Verified Baseline Blocker
+## Baseline Audit Resolution
 
-The Phase 0 baseline command currently fails at `:app:checkDebugAarMetadata`.
-`androidx.core:core-ktx:1.19.0` and
-`androidx.lifecycle:lifecycle-runtime-compose:2.11.0` require compile SDK 37,
-while the project compiles against Android 36.1. Task 1A must choose the smallest
-compatible dependency/compile SDK correction, preserve `minSdk 23`, and obtain
-explicit review before Task 1B removes Compose.
+The former Phase 0 `:app:checkDebugAarMetadata` blocker is resolved. Current
+source compiles against Android 36.1, preserves `minSdk 23` and `targetSdk 36`,
+and uses dependency versions compatible with that platform. Fresh clean unit,
+lint, debug, and release verification passed on 2026-07-29. The correction was
+included in commit `1bb1bd0` with the Task 1B Compose-to-Views change rather than
+in an isolated Task 1A commit.
 
 ## External Hard Stops
 
@@ -90,8 +133,13 @@ explicit review before Task 1B removes Compose.
   PSS-growth thresholds are explicitly approved.
 - Task 12 requires an approved representative low-end physical device and an
   external non-empty release denylist.
-- Camera scanning, printer integration, R8 changes, distribution, and production
-  signing are outside this plan.
+- Camera scanning, printer integration, synchronization controls, R8 changes,
+  distribution, and production signing are outside this plan.
+- Complete Dashboard and Reports aggregates require a separately approved backend
+  contract. Tasks 2C through 2E may create debug-only populated previews, but
+  release runtime must not claim complete analytics from the current 14 endpoints.
+- Editable discount input requires a separately approved versioned contract;
+  server-returned discount values remain display-only.
 
 ## Separate Backend Documentation Follow-Up
 
@@ -127,7 +175,7 @@ does not modify backend application code, contracts, staging, or deployment.
 | Path | Responsibility |
 | --- | --- |
 | `app/src/main/java/com/rotiropi/pos_erpnext/MobilePosApplication.kt` | Manual application container |
-| `app/src/main/java/com/rotiropi/pos_erpnext/MainActivity.kt` | Navigation host only |
+| `app/src/main/java/com/rotiropi/pos_erpnext/MainActivity.kt` | Compose host only after Task 2B |
 | `app/src/main/java/com/rotiropi/pos_erpnext/auth/*` | OAuth, encrypted active attempt, and encrypted tokens |
 | `app/src/main/java/com/rotiropi/pos_erpnext/data/api/CanonicalBackendOrigin.kt` | Canonical origin parser |
 | `app/src/main/java/com/rotiropi/pos_erpnext/data/api/*` | HTTPS transport, envelopes, and DTOs |
@@ -135,13 +183,15 @@ does not modify backend application code, contracts, staging, or deployment.
 | `app/src/main/java/com/rotiropi/pos_erpnext/data/ConnectivityStatus.kt` | Conservative platform connectivity snapshot |
 | `app/src/main/java/com/rotiropi/pos_erpnext/recovery/*` | Pending store, executor, and worker |
 | `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt` | Unresolved-state guard and complete local cleanup |
-| `app/src/main/java/com/rotiropi/pos_erpnext/ui/*` | XML Fragment and ViewModel features |
-| `app/src/main/res/layout/*` | XML layouts |
-| `app/src/main/res/navigation/mobile_pos_nav_graph.xml` | Navigation graph |
+| `app/src/main/java/com/rotiropi/pos_erpnext/ui/theme/*` | Compose semantic tokens, typography, shapes, spacing, and light/dark theme |
+| `app/src/main/java/com/rotiropi/pos_erpnext/ui/components/*` | Focused reusable Compose components |
+| `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/*` | Navigation Compose destinations, host, and bottom bar |
+| `app/src/main/java/com/rotiropi/pos_erpnext/ui/*` | Compose features and immutable ViewModel state |
+| `app/src/debug/java/com/rotiropi/pos_erpnext/ui/preview/*` | Synthetic populated preview fixtures marked `Demo data` |
 | `app/src/test/resources/api/v1/endpoint-contracts.json` | Parameter table for all 14 approved endpoints |
 | `app/src/test/resources/api/v1/*` | Reviewed contract fixtures |
 | `app/src/test/*` | Unit and HTTP integration tests |
-| `app/src/androidTest/*` | Espresso, Keystore, redirect, and lifecycle tests |
+| `app/src/androidTest/*` | Compose UI, Keystore, redirect, lifecycle, and accessibility tests |
 | `tools/create-test-avds.sh` | Deterministic API 23/API 36 AVD creation |
 | `tools/run-device-tests.sh` | Serial-pinned deterministic device matrix runner |
 | `tools/oauth-process-death.sh` | Two-process OAuth-attempt harness |
@@ -179,6 +229,15 @@ and waits for separate approval.
 ## Android Phase 1: Platform and API Foundation
 
 ### Task 1A: Correct the Gradle and Build Baseline
+
+**Status:** Completed — audited 2026-07-29; implementation commit `1bb1bd0`.
+
+**Audit evidence:** Current `compileSdk` is 36.1 with `minSdk 23` and
+`targetSdk 36`; the incompatible Compose-era dependency versions are absent.
+`./gradlew clean test lint assembleDebug` and
+`./gradlew testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease`
+both passed. No standalone Task 1A commit/review exists because `1bb1bd0`
+combined the baseline correction with Task 1B UI work.
 
 **Depends on:** Explicit Android Phase 0 documentation approval.
 
@@ -355,8 +414,8 @@ views`. Do not commit or begin Task 2 without explicit approval.
 
 ### Task 2: Implement the API Envelope and Transport Boundary
 
-**Status:** Completed — initial implementation commit `e8fdba6`; completion diff
-remains uncommitted.
+**Status:** Completed — initial implementation commit `e8fdba6`; completion commit
+`f49f624`.
 
 **Audit evidence:** Current source enforces the canonical HTTPS origin and a
 closed production catalog matching all 14 contract rows. Request factories
@@ -487,7 +546,274 @@ auto-retry path exists.
 - [ ] **Step 5: Review and stop**
 
 Inspect the intended diff and report `feat: add mobile POS API transport`.
-Wait for explicit approval before commit or Android Phase 2.
+Wait for explicit approval before commit or Task 2B.
+
+### Task 2B: Migrate the Verified Shell to Compose
+
+**Status:** Completed — audited 2026-07-30 from the uncommitted implementation
+and fresh blocking verification. Task 1B remains completed historical evidence;
+this task replaces only its placeholder XML/ViewBinding shell after Task 2 passed.
+
+**Audit evidence:** `MainActivity` now hosts Compose directly. Material 3 uses
+semantic light/dark schemes, Blue/Teal accent choices, system sans-serif fallback,
+and shared shape/spacing/touch-target tokens. Navigation defines exactly Home,
+Products, Cashier, Reports, and More, uses single-top save/restore behavior, keeps
+Cashier visually elevated, exposes selected-state semantics, switches compact and
+expanded width layout bounds at 600 dp, and renders only honest unavailable
+release states. Foundation previews exist only under `app/src/debug/`; unit tests
+verify root uniqueness/order, width classification, theme accents/colors/shapes,
+and release preview exclusion.
+
+The XML layouts, Fragment, navigation graph, ViewBinding config/dependencies, and
+old XML/ViewBinding tests are removed after parity. Fresh focused UI tests passed,
+and the clean full available gate
+`./gradlew clean testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease assembleDebugAndroidTest compileReleaseKotlin`
+passed 129 tasks with 32 debug unit tests. `testReleaseUnitTest` remains unavailable
+under AGP 9.2.1. Exact sequential `./tools/run-device-tests.sh api23` and `api36`
+runs each passed five Compose launch, navigation, recreation, touch-target,
+external-keyboard, and scanner-input-absence tests, with deterministic runtime
+state confirmed. Their cleanup waits until the owned emulator serial leaves ADB
+before the next API starts.
+
+Android Studio Quail rendered all five foundation previews: phone light/Blue,
+phone dark/Teal, phone landscape at font scale 1.5, tablet portrait, and tablet
+landscape. PNG and semantics inspection confirmed correct light/dark surfaces,
+distinct accents, bounded content, centered elevated Cashier action, five root
+actions in visual order, unclipped primary labels, and the honest Home unavailable
+state. No input, total, stock, payment, printer, sync, live report, fake ERPNext
+data, or release fixture appeared. Compose semantics and device tests provide the
+Task 2B accessibility/input evidence; full manual TalkBack journeys remain a Task
+12 lifecycle gate rather than a Task 2B blocker.
+
+**Depends on:** Approved and passing Task 2.
+
+**Backend gate:** None beyond Task 2. Populated Dashboard, Cashier, Products,
+Reports, and Settings data remains debug-preview-only until each existing feature
+task and backend gate passes.
+
+**Reference:** [`ui-ux-reference-design.md`](ui-ux-reference-design.md), based on
+`jipraks/kasirgratisan` commit
+`25c244027d7b9723f1b53a71649630e020e63413`. Use visual and interaction patterns
+only; do not import React, Capacitor, Dexie, authentication, business logic,
+offline architecture, or branding.
+
+**Files:**
+
+- Modify: `gradle/libs.versions.toml`
+- Modify: `app/build.gradle.kts`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/MainActivity.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/theme/*`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/components/*`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/*`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/placeholder/*`
+- Create: `app/src/debug/java/com/rotiropi/pos_erpnext/ui/preview/FoundationPreviews.kt`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/*`
+- Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/ui/*`
+- Delete after equivalent tests pass: `app/src/main/res/layout/activity_main.xml`
+- Delete after equivalent tests pass: `app/src/main/res/layout/fragment_sign_in.xml`
+- Delete after equivalent tests pass: `app/src/main/res/navigation/mobile_pos_nav_graph.xml`
+- Delete after equivalent tests pass: `app/src/main/java/com/rotiropi/pos_erpnext/ui/auth/SignInFragment.kt`
+- Replace after equivalent tests pass: Task 1B XML launch and ViewBinding lifecycle instrumentation tests
+
+**Produces:**
+
+- Material 3 light/dark semantic theme, configurable accent, consistent spacing,
+  radius, elevation, typography, and licensed icons/font.
+- Safe-area-aware five-destination shell: Home, Products, elevated Cashier,
+  Reports, and More.
+- Phone, tablet, portrait, and landscape layouts.
+- Focused reusable Compose components and immutable screen-state contracts.
+- Debug previews for foundation tokens and shell states.
+- Honest release unavailable placeholders for every unintegrated root destination.
+
+- [ ] **Step 1: Resolve the Compose dependency set**
+
+At execution time, use current official Android documentation to choose the
+minimum Kotlin 2.2.10/AGP 9.2.1/API 23-compatible Compose BOM, Material 3,
+Navigation Compose, Lifecycle/ViewModel Compose, and UI-test dependencies. Do not
+add a DI framework, image framework, chart library, screenshot framework, ORM,
+or reference runtime dependency.
+
+- [ ] **Step 2: Write failing shell and design-system tests**
+
+Cover the five root destinations, elevated Cashier action, tab back-stack
+preservation, no duplicate destinations, light/dark semantic colors, accent
+selection, safe-area insets, 48 dp targets, state descriptions, phone/tablet
+layout switch, font scale 1.5, and release exclusion of debug fixtures.
+
+- [ ] **Step 3: Implement the minimum Compose foundation**
+
+Convert `MainActivity` to `setContent`, add semantic theme tokens, and create the
+Navigation Compose shell. Bundle Plus Jakarta Sans only from a pinned
+OFL-licensed source with its license notice; use a verified bundled Android
+sans-serif fallback if API 23 fails. Use Material Icons or another licensed
+Android set and copy no branding assets.
+
+Create honest unavailable placeholders for Dashboard, Products, Cashier,
+Reports, and More. Keep foundation preview data under `app/src/debug/`. Release
+runtime must not claim live aggregates, stock, totals, payment, printer, or sync
+support. Feature compositions belong to Tasks 2C through 2E.
+
+- [ ] **Step 4: Remove the placeholder XML shell only after parity**
+
+Delete the Task 1B placeholder layouts, Fragment, and navigation graph only after
+Compose launch, recreation, navigation, semantics, backup, cleartext, API 23,
+and API 36 checks replace their coverage. Do not rewrite Task 1B history.
+
+- [ ] **Step 5: Verify Task 2B**
+
+```bash
+./gradlew testDebugUnitTest
+./gradlew testReleaseUnitTest
+./gradlew lintDebug
+./gradlew lintRelease
+./gradlew assembleDebug
+./gradlew assembleRelease
+./tools/run-device-tests.sh api23
+./tools/run-device-tests.sh api36
+```
+
+Render representative previews with the installed Android Studio or Android CLI
+preview command after inspecting its current help. Inspect light/dark, phone,
+tablet, portrait, landscape, font scale 1.5, TalkBack order, external keyboard,
+and scanner-focus behavior.
+
+**Acceptance criteria:** The native Compose shell and static visual states pass
+API 23/API 36, accessibility, adaptive-layout, theme, navigation, and
+release-fixture-exclusion checks. No unapproved backend endpoint, reference
+runtime code, fake release data, local authoritative accounting, or unsupported
+feature is active.
+
+- [ ] **Step 6: Review and stop**
+
+Inspect only the listed files, report `feat: add Compose POS foundation`, and
+wait for explicit approval before commit or Task 2C.
+
+### Task 2C: Add Dashboard and Products Visual Surfaces
+
+**Status:** Not Started.
+
+**Depends on:** Approved and passing Task 2B.
+
+**Backend gate:** None for static visual states. Complete Dashboard aggregates and
+complete low-stock data remain unavailable under the current contract.
+
+**Files:**
+
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/dashboard/*`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/products/*`
+- Create: focused shared metric, search, category, product, stock, and state components
+- Create: `app/src/debug/java/com/rotiropi/pos_erpnext/ui/preview/DashboardPreviews.kt`
+- Create: `app/src/debug/java/com/rotiropi/pos_erpnext/ui/preview/ProductsPreviews.kt`
+- Create: targeted unit and Compose UI tests
+
+- [ ] **Step 1: Write failing immutable-state and UI tests**
+
+Cover loading, empty, populated preview, offline, unavailable, and error states;
+phone/tablet grids; ERPNext snapshot labels; quick-action semantics; 48 dp targets;
+and release exclusion of populated preview fixtures.
+
+- [ ] **Step 2: Implement Dashboard visual composition**
+
+Add outlet identity, sales/transaction KPI slots, capability quick-action slots,
+recent-transaction slots, and low-stock slots. Keep complete aggregate and
+low-stock values unavailable in release runtime. Never sum a bounded API page and
+label it as a complete day.
+
+- [ ] **Step 3: Implement Products visual composition**
+
+Add search, category filtering, adaptive list/grid, product detail, image
+placeholder, Item/Item Group identity, Price List/Item Price snapshot, Warehouse,
+and stock snapshot states. Product CRUD and local stock management remain absent.
+
+- [ ] **Step 4: Verify and stop**
+
+Run the full Gradle and API 23/API 36 gate, render representative previews, inspect
+light/dark, portrait/landscape, tablet, font scale 1.5, and accessibility. Report
+`feat: add Dashboard and Products UI` and wait before Task 2D.
+
+### Task 2D: Add Cashier, Cart, Checkout, and Receipt Visual Surfaces
+
+**Status:** Not Started.
+
+**Depends on:** Approved and passing Task 2C.
+
+**Backend gate:** None for static visual states. Functional cart quote, payment,
+and receipt integration remains gated by Tasks 7 through 9.
+
+**Files:**
+
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/cashier/*`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/payment/*`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/receipt/*`
+- Create: focused shared cart, quantity, payment-method, and result components
+- Create: debug-only previews and targeted unit/Compose UI tests
+
+- [ ] **Step 1: Write failing immutable-state and adaptive-layout tests**
+
+Cover search, manual/HID barcode input, category chips, product grid, empty and
+populated cart previews, phone floating cart summary and bottom sheet, expanded
+persistent cart pane, quantity controls, offline-not-submitted, price-changed,
+submitting, receipt, and error states.
+
+- [ ] **Step 2: Implement the visual Cashier and cart flow**
+
+Use server snapshot labels and a 50-row visual bound. Discount editing remains
+absent or disabled; server-returned discounts are display-only. Camera capture is
+absent.
+
+- [ ] **Step 3: Implement exact-settlement checkout and receipt compositions**
+
+Do not calculate authoritative payable, accept overpayment, or calculate change.
+Confirm remains disabled without a future authoritative payable and server modes.
+Receipt values come only from future terminal `SaleDetail`, including any
+server-returned `change_amount`.
+
+- [ ] **Step 4: Verify and stop**
+
+Run the full Gradle and API 23/API 36 gate, render representative previews, and
+inspect light/dark, adaptive cart layouts, font scale 1.5, TalkBack order, external
+keyboard, and scanner focus. Report `feat: add Cashier and checkout UI` and wait
+before Task 2E.
+
+### Task 2E: Add Reports and More Visual Surfaces
+
+**Status:** Not Started.
+
+**Depends on:** Approved and passing Task 2D.
+
+**Backend gate:** None for static visual states. Complete reports remain
+unavailable under the current 14-endpoint contract.
+
+**Files:**
+
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/reports/*`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/settings/*`
+- Create: debug-only previews and targeted unit/Compose UI tests
+
+- [ ] **Step 1: Write failing report/settings/theme tests**
+
+Cover period tabs, KPI and chart semantics, textual chart summaries, unavailable
+release state, grouped settings, outlet/user placeholders, theme mode and accent
+persistence, and disabled/hidden printer and synchronization controls.
+
+- [ ] **Step 2: Implement Reports visual composition**
+
+Add KPI slots, semantic breakdown rows, a compact Canvas chart, and top-product
+slots. Populated data remains debug-only and marked `Demo data`; release runtime
+shows `Reports unavailable` until a complete approved contract exists.
+
+- [ ] **Step 3: Implement More and theme settings**
+
+Add grouped outlet, user/session, theme, printer, and synchronization rows. Theme
+mode and accent use application-private `SharedPreferences`. Outlet/user become
+live only after Task 4. Printer/synchronization remain hidden or `Not supported`.
+
+- [ ] **Step 4: Verify and stop**
+
+Run the full Gradle and API 23/API 36 gate, render previews, and inspect
+light/dark, every accent, phone/tablet, portrait/landscape, font scale 1.5, and
+accessibility. Report `feat: add Reports and More UI` and wait before Task 3.
 
 ---
 
@@ -495,7 +821,10 @@ Wait for explicit approval before commit or Android Phase 2.
 
 ### Task 3: Implement OAuth PKCE and Token Storage
 
-**Depends on:** Approved and passing Task 2.
+**Status:** Not Started. External environment/provisioning gates below remain
+unapproved or unverified.
+
+**Depends on:** Approved and passing Task 2E.
 
 **Backend gate:** Backend Phase 3 plus approved redirect URI, base URL, client
 ID, App Link association, and OAuth Client provisioning.
@@ -513,8 +842,9 @@ ID, App Link association, and OAuth Client provisioning.
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/auth/AuthCompletionActivity.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/ApiFailure.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/MobilePosApiClient.kt`
-- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/auth/SignInFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/auth/SignInScreen.kt`
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/auth/SignInViewModel.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosNavHost.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/auth/OAuthCoordinatorTest.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/data/api/AuthenticatedMobilePosApiClientTest.kt`
 - Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/auth/AuthRedirectSecurityTest.kt`
@@ -670,6 +1000,8 @@ Report `feat: add secure OAuth PKCE authentication` and wait for approval.
 
 ### Task 4: Implement Bootstrap and Profile Selection
 
+**Status:** Not Started.
+
 **Depends on:** Approved and passing Task 3.
 
 **Backend gate:** Verified `bootstrap.get` from Backend Phase 3.
@@ -681,10 +1013,13 @@ Report `feat: add secure OAuth PKCE authentication` and wait for approval.
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/MobilePosApplication.kt`
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/AppViewModel.kt`
-- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/profile/ProfileSelectionFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/profile/ProfileSelectionScreen.kt`
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/profile/ProfileSelectionViewModel.kt`
-- Create: `app/src/main/res/layout/fragment_profile_selection.xml`
-- Modify: `app/src/main/res/navigation/mobile_pos_nav_graph.xml`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosNavHost.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/dashboard/DashboardScreen.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/dashboard/DashboardUiState.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/settings/MoreScreen.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/settings/SettingsUiState.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/data/BootstrapRepositoryTest.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/profile/ProfileSelectionViewModelTest.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/session/LogoutCoordinatorTest.kt`
@@ -762,6 +1097,8 @@ Report `feat: add scoped mobile POS bootstrap` and wait for approval.
 
 ### Task 5: Implement Durable Mutation Recovery
 
+**Status:** Not Started.
+
 **Depends on:** Approved and passing Task 4.
 
 **Backend gate:** Backend Phase 2 idempotency contract.
@@ -778,10 +1115,9 @@ Report `feat: add scoped mobile POS bootstrap` and wait for approval.
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/recovery/PendingMutationStore.kt`
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/recovery/RecoveryCoordinator.kt`
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/recovery/RetryPendingMutationWorker.kt`
-- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/recovery/RecoveryFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/recovery/RecoveryScreen.kt`
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/recovery/RecoveryViewModel.kt`
-- Create: `app/src/main/res/layout/fragment_recovery.xml`
-- Modify: `app/src/main/res/navigation/mobile_pos_nav_graph.xml`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosNavHost.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/recovery/RecoveryCoordinatorTest.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/data/ConnectivityStatusTest.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/recovery/PendingMutationSerializationTest.kt`
@@ -890,6 +1226,9 @@ Report `feat: add durable mobile POS recovery` and wait for approval.
 
 ### Task 6: Implement Opening
 
+**Status:** Not Started. Opening payment-mode, decimal-input, and external
+lost-response gates remain active.
+
 **Depends on:** Approved and passing Task 5.
 
 **Backend gate:** Backend Phase 4 plus approved opening payment-mode projection,
@@ -897,13 +1236,12 @@ decimal-input contract, and externally owned lost-response procedure.
 
 **Files:**
 
-- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/opening/OpeningFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/opening/OpeningScreen.kt`
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/opening/OpeningViewModel.kt`
-- Create: `app/src/main/res/layout/fragment_opening.xml`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/SessionDtos.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/MobilePosRepository.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
-- Modify: `app/src/main/res/navigation/mobile_pos_nav_graph.xml`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosNavHost.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/opening/OpeningViewModelTest.kt`
 - Create: `app/src/test/resources/api/v1/session-current.json`
 - Create: `app/src/test/resources/api/v1/session-opened.json`
@@ -980,19 +1318,20 @@ wait for approval.
 
 ### Task 7: Implement Customer Search
 
+**Status:** Not Started.
+
 **Depends on:** Approved and passing Task 6.
 
 **Backend gate:** Backend Phase 4 customer contract.
 
 **Files:**
 
-- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/customer/CustomerSearchFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/customer/CustomerSearchSheet.kt`
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/customer/CustomerSearchViewModel.kt`
-- Create: `app/src/main/res/layout/fragment_customer_search.xml`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/CustomerDtos.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/MobilePosRepository.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
-- Modify: `app/src/main/res/navigation/mobile_pos_nav_graph.xml`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosNavHost.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/customer/CustomerSearchViewModelTest.kt`
 - Create: `app/src/test/resources/api/v1/customer-page.json`
 
@@ -1046,6 +1385,9 @@ for approval.
 
 ### Task 8: Implement Catalog, Scan, Quote, and Cart
 
+**Status:** Not Started. Serial-change quote and decimal-quantity gates remain
+active.
+
 **Depends on:** Approved and passing Task 7.
 
 **Backend gate:** Backend Phase 5 catalog contract plus approved serial-change
@@ -1053,20 +1395,18 @@ quote and decimal quantity syntax decisions.
 
 **Files:**
 
-- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/sale/CartState.kt`
-- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/sale/SaleFragment.kt`
-- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/sale/SaleViewModel.kt`
-- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/sale/CatalogAdapter.kt`
-- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/sale/CartAdapter.kt`
-- Create: `app/src/main/res/layout/fragment_sale.xml`
-- Create: `app/src/main/res/layout/item_catalog.xml`
-- Create: `app/src/main/res/layout/item_cart.xml`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/cashier/CartState.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/cashier/CashierScreen.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/cashier/CashierUiState.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/cashier/CashierViewModel.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/cashier/ProductGrid.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/cashier/CartContent.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/MobilePosRepository.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/CatalogDtos.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
-- Modify: `app/src/main/res/navigation/mobile_pos_nav_graph.xml`
-- Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/sale/SaleViewModelTest.kt`
-- Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/ui/sale/CatalogAccessibilityTest.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosNavHost.kt`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/cashier/CashierViewModelTest.kt`
+- Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/ui/cashier/CatalogAccessibilityTest.kt`
 - Create: `app/src/test/resources/api/v1/catalog-page.json`
 - Create: `app/src/test/resources/api/v1/catalog-scan.json`
 - Create: `app/src/test/resources/api/v1/catalog-quote.json`
@@ -1091,7 +1431,7 @@ fixture provenance, and logout clearing catalog/cart/quote state.
 - [ ] **Step 2: Run red tests**
 
 ```bash
-./gradlew testDebugUnitTest --tests "*SaleViewModel*"
+./gradlew testDebugUnitTest --tests "*CashierViewModel*"
 ```
 
 Expected: FAIL.
@@ -1136,6 +1476,9 @@ wait for approval.
 
 ### Task 9: Implement Fully Settled Sale
 
+**Status:** Not Started. Authoritative payable/payment-mode, exact-settlement,
+decimal-input, and external lost-response gates remain active.
+
 **Depends on:** Approved and passing Task 8.
 
 **Backend gate:** Backend Phase 6, allowed payment-mode metadata, and an
@@ -1144,16 +1487,14 @@ and externally owned lost-response procedure.
 
 **Files:**
 
-- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/payment/PaymentFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/payment/PaymentDialog.kt`
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/payment/PaymentViewModel.kt`
-- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/receipt/ReceiptFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/receipt/ReceiptScreen.kt`
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/receipt/ReceiptViewModel.kt`
-- Create: `app/src/main/res/layout/fragment_payment.xml`
-- Create: `app/src/main/res/layout/fragment_receipt.xml`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/MobilePosRepository.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/SalesDtos.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
-- Modify: `app/src/main/res/navigation/mobile_pos_nav_graph.xml`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosNavHost.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/payment/PaymentViewModelTest.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/receipt/ReceiptViewModelTest.kt`
 - Create: `app/src/test/resources/api/v1/sale-success.json`
@@ -1240,6 +1581,9 @@ wait for approval.
 
 ### Task 10: Implement History and Return
 
+**Status:** Not Started. Authoritative refund, decimal-input, and external
+lost-response gates remain active.
+
 **Depends on:** Approved and passing Task 9.
 
 **Backend gate:** Backend Phase 6 plus an authoritative refund workflow,
@@ -1247,20 +1591,15 @@ approved decimal rules, and externally owned lost-response procedure.
 
 **Files:**
 
-- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/history/HistoryFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/history/HistoryScreen.kt`
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/history/HistoryViewModel.kt`
-- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/history/HistoryAdapter.kt`
-- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/history/SaleDetailFragment.kt`
-- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/returning/ReturnFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/history/SaleDetailScreen.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/returning/ReturnScreen.kt`
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/returning/ReturnViewModel.kt`
-- Create: `app/src/main/res/layout/fragment_history.xml`
-- Create: `app/src/main/res/layout/item_sale_history.xml`
-- Create: `app/src/main/res/layout/fragment_sale_detail.xml`
-- Create: `app/src/main/res/layout/fragment_return.xml`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/MobilePosRepository.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/SalesDtos.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
-- Modify: `app/src/main/res/navigation/mobile_pos_nav_graph.xml`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosNavHost.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/history/HistoryViewModelTest.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/returning/ReturnViewModelTest.kt`
 - Create: `app/src/test/resources/api/v1/sale-history.json`
@@ -1345,6 +1684,9 @@ wait for approval.
 
 ### Task 11: Implement Closing and Status Recovery
 
+**Status:** Not Started. Decimal-input, external lost-response, and deterministic
+queued-closing gates remain active.
+
 **Depends on:** Approved and passing Task 10.
 
 **Backend gate:** Backend Phase 7 plus approved decimal rules, externally owned
@@ -1353,13 +1695,12 @@ staging procedure.
 
 **Files:**
 
-- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/closing/ClosingFragment.kt`
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/closing/ClosingScreen.kt`
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/closing/ClosingViewModel.kt`
-- Create: `app/src/main/res/layout/fragment_closing.xml`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/MobilePosRepository.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/ClosingDtos.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
-- Modify: `app/src/main/res/navigation/mobile_pos_nav_graph.xml`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosNavHost.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/closing/ClosingViewModelTest.kt`
 - Create: `app/src/test/resources/api/v1/closing-preview.json`
 - Create: `app/src/test/resources/api/v1/closing-draft.json`
@@ -1455,6 +1796,10 @@ wait for approval.
 ## Android Final: Hardening and Release Evidence
 
 ### Task 12: Verify the Complete Android Lifecycle
+
+**Status:** Not Started. Backend Final, staging evidence, performance thresholds,
+representative device, release denylist, and production-readiness gates remain
+active.
 
 **Depends on:** Approved and passing Task 11.
 
@@ -1653,7 +1998,6 @@ Do not commit, publish, sign, or deploy without explicit approval.
 
 | Decision | Blocks |
 | --- | --- |
-| Compatible dependencies or `compileSdk 37` | Task 1A |
 | OAuth environment values, configuration source, test cashier, and attempt lifetime | Task 3 |
 | Opening payment-mode projection | Task 6 |
 | Decimal locale, precision, scale, bounds, and no-rounding behavior | Tasks 6, 8, 9, 10, and 11 |
@@ -1674,7 +2018,7 @@ Do not commit, publish, sign, or deploy without explicit approval.
 - All product requirements and testing gates pass.
 - Every mutation is idempotent across timeout and process death.
 - API 23 and API 36 are verified.
-- XML Views and ViewBinding are used exclusively.
+- Jetpack Compose and Material 3 are used for current UI after Task 2B; Task 1B remains historical XML/ViewBinding evidence.
 - OAuth PKCE S256 works without a client secret.
 - No generic Frappe business API beyond the exact OAuth control-plane exception
   or local authoritative accounting exists.
