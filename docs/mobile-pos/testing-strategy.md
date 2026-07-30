@@ -2,15 +2,18 @@
 
 ## Current Baseline
 
-The generated project currently contains only placeholder JUnit and
-instrumentation tests. Compose test dependencies must be removed when the
-starter is replaced with XML Views and ViewBinding.
+Tasks 1A and 1B resolved the dependency baseline and established a verified
+XML/ViewBinding shell as historical evidence. Task 2 completed the approved API
+transport boundary. Task 2B then replaced only the placeholder shell with a
+verified Jetpack Compose and Material 3 foundation.
 
-The current baseline command does not reach tests because dependency metadata
-checking fails: `androidx.core:core-ktx:1.19.0` and
-`androidx.lifecycle:lifecycle-runtime-compose:2.11.0` require compile SDK 37,
-while the project compiles against Android 36.1. Android Phase 1 must establish
-a compatible dependency and compile SDK baseline before any feature claim.
+On 2026-07-30, Task 2B passed 32 debug unit tests, debug/release lint and assembly,
+release Kotlin compilation, Android-test APK assembly, five Compose tests on each
+of API 23 and API 36, and deterministic device-state checks. Android Studio Quail
+rendered five light/dark, phone/tablet, portrait/landscape, and font-scale 1.5
+previews; image and semantics inspection found no clipping, unsupported feature
+claim, or release fixture. AGP 9.2.1 exposes no `testReleaseUnitTest` task, so its
+absence is recorded rather than reported as passing.
 
 ## Objectives
 
@@ -18,7 +21,7 @@ a compatible dependency and compile SDK baseline before any feature claim.
 - Prove authentication secrets and redirect handling are safe.
 - Prove each logical mutation uses one UUID and one exact body.
 - Prove process death and unstable networks cannot create duplicate documents.
-- Prove XML/ViewBinding lifecycle behavior on API 23 and target API 36.
+- Prove Compose lifecycle, navigation, semantics, theme, and adaptive-layout behavior on API 23 and target API 36.
 - Prove accessibility and bounded performance on low-end devices.
 - Preserve executable evidence for debug and release builds.
 
@@ -29,8 +32,8 @@ a compatible dependency and compile SDK baseline before any feature claim.
 | Pure unit | JUnit 4, coroutine test | DTO mapping, PKCE helpers, state reducers, retry policy, cart bounds |
 | HTTP integration | OkHttp MockWebServer | Envelopes, native errors, timeouts, disconnects, headers, exact replay |
 | Repository integration | Fakes and contract fixtures | Endpoint mapping and DTO/domain separation |
-| Instrumentation | AndroidX Test and Espresso | XML UI, ViewBinding lifecycle, navigation, Keystore, backup config |
-| Device journey | Espresso in-app; UI Automator only across the browser boundary | Complete cashier lifecycle |
+| Instrumentation | AndroidX Test and Compose UI test | Compose semantics, navigation, lifecycle, adaptive layout, Keystore, backup config |
+| Device journey | Compose UI test in-app; UI Automator only across the browser boundary | Complete cashier lifecycle |
 | Manual security/accessibility | APK Analyzer, TalkBack, Accessibility Scanner | Secret inspection and human-operability |
 | Cross-system staging | Android app plus approved backend | OAuth, mutation replay, queued closing |
 
@@ -298,7 +301,7 @@ Required instrumentation scenarios include:
 - App Link re-verification polls boundedly to a terminal state and asserts only
   the exact expected host.
 - Keystore token round trip and deletion.
-- ViewBinding access stops after `onDestroyView`.
+- Compose content follows Activity lifecycle, preserves only approved saveable UI state, and retains no Activity or obsolete composition reference after recreation.
 - Back navigation does not duplicate submission.
 - Recovery before a new mutation.
 - Full opening-to-closing navigation using a fake or staging API.
@@ -405,7 +408,7 @@ It records:
 - Cold-launch time through `am start -W`.
 - Request latency p50/p95 for `bootstrap.get`, `catalog.search`, and
   `sales.submit`.
-- Critical UI action-to-Espresso-idle p50/p95.
+- Critical UI action-to-Compose-idle p50/p95.
 - Total PSS before and after 50 cycles.
 - StrictMode failures and retained destroyed views.
 
@@ -413,8 +416,8 @@ A cold launch force-stops the package, drops the app process, waits for device
 idle, then measures `am start -W` `TotalTime` until the sign-in or restored
 bootstrap destination is displayed. Request latency begins immediately before
 OkHttp dispatch and ends after the complete response is parsed. UI latency
-begins at the injected input event and ends at Espresso idle with the expected
-state rendered. PSS uses `dumpsys meminfo` after GC/idle at the same checkpoint
+begins at the injected input event and ends after Compose reaches idle with the
+expected state rendered. PSS uses `dumpsys meminfo` after GC/idle at the same checkpoint
 before warm-ups and after the fiftieth cycle.
 
 Artifacts are written under:
@@ -433,7 +436,7 @@ Current proposed thresholds are:
 
 - Critical UI-flow p95 at most 250 ms.
 - Total PSS growth below 20 MiB.
-- No retained destroyed Fragment view.
+- No retained Activity or obsolete composition reference.
 - No main-thread disk/network StrictMode violation.
 - No out-of-memory failure.
 
@@ -442,6 +445,30 @@ and request p50/p95, UI-flow p95, and PSS growth are recorded as
 `NOT_EVALUATED` while their thresholds remain unapproved. Final completion is
 blocked until numeric launch-p95, per-request-p95, UI-flow-p95, and PSS-growth
 thresholds are approved. A missing threshold is never reported as PASS.
+
+## Compose UI and Preview Verification
+
+The Compose foundation and every major screen include tests or debug previews for:
+
+- Loading, empty, populated when integrated, offline, unavailable, and error states.
+- Light and dark themes with every supported accent.
+- Phone and tablet widths in portrait and landscape.
+- Font scale 1.0 and 1.5.
+- Safe-area and navigation-bar insets.
+- Stable list/grid keys, tab back-stack preservation, and no duplicate destination.
+- Cashier phone cart sheet and expanded-width persistent cart pane.
+- Semantics labels, roles, state descriptions, keyboard focus, and 48 dp targets.
+
+Populated synthetic fixtures live only in `app/src/debug/` or test source sets and
+are visibly labeled `Demo data`. Release builds fail verification if preview
+fixtures or mock ERPNext records are packaged. Dashboard and Reports release
+states stay unavailable or explicitly partial until an approved contract supplies
+complete aggregates; a bounded `sales.list` page is never tested or labeled as a
+complete daily report.
+
+Preview rendering uses the installed Android Studio or Android CLI command after
+its current help is inspected. Preview rendering is visual evidence, not a
+replacement for API 23/API 36 instrumentation or accessibility journeys.
 
 ## Accessibility Verification
 
@@ -452,7 +479,7 @@ exit codes, instrumentation output, and a generated checklist under
 
 The checklist requires PASS/FAIL and evidence for every core screen:
 
-- Espresso accessibility checks where stable.
+- Compose semantics and accessibility checks where stable.
 - Visible label or content description and minimum 48 dp touch target.
 - Logical focus order and announced loading, recoverable, and terminal errors.
 - No status conveyed by color alone.
