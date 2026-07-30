@@ -33,7 +33,7 @@ class ComposeShellTest {
     @Test
     fun launch_displays_compose_home_destination() {
         composeRule.onNodeWithTag("destination-content-home").assertIsDisplayed()
-        composeRule.onNodeWithText("Unavailable until this feature is integrated.")
+        composeRule.onNodeWithText("Complete dashboard metrics unavailable")
             .assertIsDisplayed()
         composeRule.onNodeWithTag("root-home")
             .assertIsSelected()
