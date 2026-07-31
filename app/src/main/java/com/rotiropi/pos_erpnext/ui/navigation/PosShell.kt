@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -22,6 +25,7 @@ import com.rotiropi.pos_erpnext.ui.cashier.CashierUiState
 import com.rotiropi.pos_erpnext.ui.components.RootNavigationBar
 import com.rotiropi.pos_erpnext.ui.dashboard.DashboardScreen
 import com.rotiropi.pos_erpnext.ui.dashboard.DashboardUiState
+import com.rotiropi.pos_erpnext.ui.demo.PosDemoStates
 import com.rotiropi.pos_erpnext.ui.products.ProductsScreen
 import com.rotiropi.pos_erpnext.ui.products.ProductsUiState
 import com.rotiropi.pos_erpnext.ui.reports.ReportsScreen
@@ -45,6 +49,10 @@ fun PosShell(
     val selectedDestination = PosDestination.entries.firstOrNull {
         it.route == backStackEntry?.destination?.route
     } ?: PosDestination.HOME
+    // Debug-only synthetic layouts. Off by default; the release source set reports
+    // `supported = false` so the toggle never renders and no fixture is packaged.
+    var demoData by rememberSaveable { mutableStateOf(false) }
+    val demoActive = PosDemoStates.supported && demoData
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val layoutMode = posLayoutModeForWidth(maxWidth.value.toInt())
@@ -87,28 +95,44 @@ fun PosShell(
                 ) {
                     composable(PosDestination.HOME.route) {
                         DashboardScreen(
-                            state = DashboardUiState.Unavailable,
+                            state = if (demoActive) {
+                                PosDemoStates.dashboard
+                            } else {
+                                DashboardUiState.Unavailable
+                            },
                             layoutMode = layoutMode,
                             modifier = Modifier.testTag("destination-content-home"),
                         )
                     }
                     composable(PosDestination.PRODUCTS.route) {
                         ProductsScreen(
-                            state = ProductsUiState.Unavailable,
+                            state = if (demoActive) {
+                                PosDemoStates.products
+                            } else {
+                                ProductsUiState.Unavailable
+                            },
                             layoutMode = layoutMode,
                             modifier = Modifier.testTag("destination-content-products"),
                         )
                     }
                     composable(PosDestination.CASHIER.route) {
                         CashierScreen(
-                            state = CashierUiState.Unavailable,
+                            state = if (demoActive) {
+                                PosDemoStates.cashier
+                            } else {
+                                CashierUiState.Unavailable
+                            },
                             layoutMode = layoutMode,
                             modifier = Modifier.testTag("destination-content-cashier"),
                         )
                     }
                     composable(PosDestination.REPORTS.route) {
                         ReportsScreen(
-                            state = ReportsUiState.Unavailable,
+                            state = if (demoActive) {
+                                PosDemoStates.reports
+                            } else {
+                                ReportsUiState.Unavailable
+                            },
                             layoutMode = layoutMode,
                             modifier = Modifier.testTag("destination-content-reports"),
                         )
@@ -116,16 +140,22 @@ fun PosShell(
                     composable(PosDestination.MORE.route) {
                         MoreScreen(
                             state = MoreUiState(
-                                outletLabel = null,
-                                userSessionLabel = null,
+                                outletLabel = if (demoActive) PosDemoStates.outletLabel else null,
+                                userSessionLabel = if (demoActive) {
+                                    PosDemoStates.userSessionLabel
+                                } else {
+                                    null
+                                },
                                 themeMode = themeMode,
                                 accent = accent,
-                                demoData = false,
+                                demoData = demoActive,
                             ),
                             layoutMode = layoutMode,
                             modifier = Modifier.testTag("destination-content-more"),
+                            demoToggleVisible = PosDemoStates.supported,
                             onThemeModeSelected = onThemeModeSelected,
                             onAccentSelected = onAccentSelected,
+                            onDemoDataToggled = { demoData = it },
                         )
                     }
                 }

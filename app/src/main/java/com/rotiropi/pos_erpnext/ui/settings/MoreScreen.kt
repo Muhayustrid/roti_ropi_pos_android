@@ -31,8 +31,10 @@ fun MoreScreen(
     state: MoreUiState,
     layoutMode: PosLayoutMode,
     modifier: Modifier = Modifier,
+    demoToggleVisible: Boolean = false,
     onThemeModeSelected: (PosThemeMode) -> Unit = {},
     onAccentSelected: (PosAccent) -> Unit = {},
+    onDemoDataToggled: (Boolean) -> Unit = {},
 ) {
     val rootTag = if (layoutMode == PosLayoutMode.EXPANDED) "more-expanded" else "more-compact"
     Column(
@@ -68,6 +70,9 @@ fun MoreScreen(
                 ) {
                     PrinterGroup()
                     SynchronizationGroup()
+                    if (demoToggleVisible) {
+                        DebugToolsGroup(state.demoData, onDemoDataToggled)
+                    }
                 }
             }
         } else {
@@ -81,6 +86,34 @@ fun MoreScreen(
             )
             PrinterGroup()
             SynchronizationGroup()
+            if (demoToggleVisible) {
+                DebugToolsGroup(state.demoData, onDemoDataToggled)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DebugToolsGroup(demoData: Boolean, onDemoDataToggled: (Boolean) -> Unit) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text("Debug tools", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Synthetic layouts for debug builds only. Not server data.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            FilterChip(
+                selected = demoData,
+                onClick = { onDemoDataToggled(!demoData) },
+                label = { Text("Demo layout") },
+                modifier = Modifier
+                    .heightIn(min = PosDimensions.touchTarget)
+                    .testTag("more-demo-data"),
+            )
         }
     }
 }

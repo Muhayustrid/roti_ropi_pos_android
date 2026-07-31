@@ -466,6 +466,14 @@ states stay unavailable or explicitly partial until an approved contract supplie
 complete aggregates; a bounded `sales.list` page is never tested or labeled as a
 complete daily report.
 
+Variant source sets, not a runtime flag, enforce that boundary for the shell.
+`com.rotiropi.pos_erpnext.ui.demo.PosDemoStates` is declared twice: populated with
+`supported = true` in `app/src/debug/`, and as an unavailable stub with
+`supported = false` in `app/src/release/`. `PosShell` reads it, so the debug
+`Demo layout` toggle under More renders only when `supported` is true, defaults
+off, and release packages no fixture. `ReleaseFixtureExclusionTest` asserts no
+`app/src/main` or `app/src/release` Kotlin file declares `demoData = true`.
+
 Preview rendering uses the installed Android Studio or Android CLI command after
 its current help is inspected. Preview rendering is visual evidence, not a
 replacement for API 23/API 36 instrumentation or accessibility journeys.
