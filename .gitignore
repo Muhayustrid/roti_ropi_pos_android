@@ -16,3 +16,6 @@ local.properties
 
 # generated
 graphify-out/
+
+# agent worktrees (large, machine-local)
+/.claude/worktrees/

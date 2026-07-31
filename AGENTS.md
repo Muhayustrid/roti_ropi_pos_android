@@ -1,96 +1,115 @@
 # POSERPNext Android Rules
 
-Read this file before changing the Android repository. These rules apply to the entire project.
+These permanent rules apply to all AI coding agents and developers working in this repository.
 
-## Communication and Change Control
+## Purpose and Repository Boundary
 
-- Communicate with the user in Indonesian.
-- Write repository Markdown, code comments, technical documentation, test names, and commit messages in English.
-- Do not commit, push, publish, deploy, or begin a later implementation phase without explicit user approval.
-- Keep backend and Android work in their own repositories and review their diffs independently.
+- This repository contains the native Android client for Roti Ropi Mobile POS.
+- Work only inside this Android repository unless the user explicitly approves another repository.
+- Do not modify `roti_ropi_pos`, `bakery_manufacturing`, ERPNext, Frappe, or another repository from an Android task.
+- The backend gateway is complete. Android consumes its versioned Mobile POS API and does not replace backend business logic.
+- ERPNext remains authoritative for profiles, customers, pricing, discounts, taxes, stock, warehouses, UOM conversion, batches, serials, payments, totals, document state, and accounting.
+- Do not silently change the Android contract to compensate for a presumed backend defect. Report a contract mismatch and stop the affected work.
 
-## Approved Android Stack
+## Communication and Repository Writing
 
-- Use Kotlin for application code.
-- Use XML layouts and ViewBinding for UI implementation.
-- Keep `minSdk 23` support.
-- Do not use Jetpack Compose without explicit user approval.
-- The current generated Compose starter is not approved application architecture and must not be extended as the Mobile POS UI.
-- Prefer Android platform and AndroidX APIs. Add only lightweight, maintained dependencies with a clear measurable need.
-- Design for low-end devices: bounded lists, paginated data, limited allocations, no unnecessary polling, efficient image loading, and no large in-memory ERPNext document graphs.
+- Communicate with the user in Bahasa Indonesia.
+- Write repository Markdown, source code, comments, tests, technical identifiers, and commit messages in English.
+- Keep permanent rules in `AGENTS.md` and Claude-specific workflow in `CLAUDE.md`.
+- Keep task status, progress, and verification evidence only in `docs/mobile-pos/implementation-plan.md`.
+- Do not copy daily progress or temporary session notes into instruction files.
 
-## Authentication and Secret Handling
+## Sources of Truth
 
-- Use OAuth 2.0 Authorization Code with mandatory PKCE S256.
-- Treat the app as a public OAuth client. Never embed a client secret.
-- Launch authorization in the system browser or a secure Custom Tab; do not capture ERPNext credentials in a WebView.
-- Generate a high-entropy verifier for each authorization attempt, send its S256 challenge, validate state and redirect URI, and treat authorization codes as single-use.
-- Store access and refresh tokens with Android Keystore-backed encryption and exclude them from backups, logs, analytics, screenshots, and crash reports.
-- Never use API keys, Basic credentials, shared cashier users, Administrator credentials, or service-account credentials.
-- Each cashier authenticates as an individual ERPNext user. Logout removes local tokens and sensitive cached responses; server revocation remains a manager ERPNext Desk operation until a no-secret public-client revocation flow is verified.
-- Use HTTPS only and reject cleartext endpoints.
+Never guess implementation status. Use this evidence order:
 
-## Server Authority and API Boundary
+1. Current source code and executable tests.
+2. Fresh focused and required verification results.
+3. Current Git branch, status, and relevant diff.
+4. `docs/mobile-pos/implementation-plan.md`.
+5. Checked-in backend contract and Android handoff documents.
 
-- Call only the versioned Mobile POS API documented under `apps/roti_ropi_pos/docs/mobile-pos/`.
-- Do not call generic Frappe resource APIs, arbitrary whitelisted methods, ERPNext document save APIs, or core POS helpers directly.
-- ERPNext owns Customer, POS Profile, price, discount, tax, stock, warehouse, UOM conversion, batch, serial, payment account, totals, status, and accounting decisions.
-- Treat catalog prices and stock as display snapshots. Accept authoritative server changes and stable validation errors during submit.
-- Never calculate or persist authoritative accounting totals locally.
-- Do not create a permanent Customer for a walk-in buyer. Use registered-customer selection or the POS Profile default walk-in Customer with an optional display name.
-- The MVP supports POS Invoice only and does not support partially paid invoices.
-- Multiple payment modes are valid only when the server confirms the invoice is fully settled.
+Additional rules:
 
-## Transaction IDs and Recovery
+- Source code and executable tests take precedence over Graphify, code graphs, generated reports, memory summaries, commit subjects, and stale documentation.
+- The implementation plan's verified status summary and active task section define project progress. Unchecked execution-step boxes alone do not define status.
+- `docs/mobile-pos/backend/api-contract.md` and `docs/mobile-pos/backend/android-backend-handoff.md` are the checked-in Android integration contract.
+- The backend snapshot baseline is backend commit `b2a09d2`; use `docs/mobile-pos/backend/README.md` for provenance.
+- Do not open the backend repository merely to resolve Android uncertainty. Report missing or conflicting local contract information.
 
-- Generate one lowercase UUID idempotency key before each logical mutation and send it as `X-Idempotency-Key`.
-- Persist the key, normalized request body, endpoint, creation time, and local recovery state before sending.
-- Reuse the same key and body after timeout, connection loss, process death, or app restart. Never generate a new key merely because the result is unknown.
-- Treat `REQUEST_IN_PROGRESS` and queued closing as recoverable states and poll only the documented status endpoint with bounded backoff.
-- On HTTP 401, preserve pending transactions, stop mutation retries, reauthenticate, then resume with the original key.
-- Retire local transaction data only after a terminal server response is safely persisted.
-- Never implement an offline ledger or assume a local pending transaction was accepted by ERPNext.
+## Android Architecture Boundary
 
-## Architecture and Performance
+- Use Kotlin, Jetpack Compose, and Material 3 for current and future UI work.
+- Preserve `minSdk 23`, `targetSdk 36`, and namespace/application ID `com.rotiropi.pos_erpnext` unless a separately approved task changes them.
+- Keep one native Android application. Do not introduce React, WebView application shells, PWA, Capacitor, or reference-repository runtime code.
+- Prefer Android platform and AndroidX APIs. Add dependencies only for a demonstrated current need.
+- Keep network DTOs separate from domain models and immutable UI state.
+- Use structured concurrency and lifecycle-aware cancellation.
+- Composables render state and emit events; ViewModels and repositories own orchestration.
+- Keep synthetic data in debug previews or test source sets only. Release runtime must not present mock data as ERPNext integration.
+- Call only documented Mobile POS API endpoints.
+- Do not calculate or persist authoritative accounting totals locally.
+- Do not create permanent walk-in Customers, implement an offline ledger, or infer server acceptance from local state.
+- Design bounded, paginated, adaptive flows for API 23, low-end devices, phone/tablet, portrait/landscape, font scaling, TalkBack, and external keyboard/scanner input.
+- Keep overpayment input, local change calculation, editable discounts, camera scanning, printer integration, and synchronization UI disabled or absent until separately approved.
+- Do not derive complete Dashboard or Reports aggregates from a bounded API page.
 
-- Keep network DTOs separate from domain/UI models and ignore additive unknown response fields.
-- Use a small repository/data-source boundary around the Mobile POS API.
-- Use structured concurrency and lifecycle-aware cancellation. Do not leak Activities, Views, or authentication callbacks.
-- Use ViewBinding only between view lifecycle creation and destruction.
-- Paginate customer, catalog, and sale-history results. Debounce search and cancel obsolete requests.
-- Use WorkManager only for recoverable, durable background retries with network constraints; do not use it for immediate UI calls.
-- Avoid dependency-heavy DI, ORM, navigation, serialization, or image frameworks unless a measured requirement justifies them.
+## Security and Recovery
 
-## Testing and Verification
+- Use OAuth 2.0 Authorization Code with mandatory PKCE S256 as a public client through a system browser or secure Custom Tab.
+- Never embed administrator credentials, permanent API secrets, privileged API keys, shared cashier credentials, or a client secret.
+- Use HTTPS only. Do not bypass certificate, trust-manager, or hostname verification.
+- Store sensitive durable state using the documented Keystore-backed design.
+- Never log passwords, tokens, cookies, authorization headers, OAuth codes/verifiers, or sensitive business data.
+- Generate one lowercase UUID `X-Idempotency-Key` per logical mutation.
+- Persist the exact request before sending and reuse the same key and bytes when the outcome is unknown.
+- Follow `docs/mobile-pos/state-and-recovery.md` for retries, duplicate prevention, process death, authentication recovery, and terminal acknowledgment.
 
-- Use test-driven development for transaction, authentication, parsing, and recovery behavior.
-- Run `./gradlew testDebugUnitTest`, `./gradlew lintDebug`, and `./gradlew assembleDebug` for normal verification.
-- Run `./gradlew connectedDebugAndroidTest` when an emulator/device is available.
-- Test API 23 and a current target API, XML/ViewBinding lifecycle, OAuth PKCE failures, token redaction/storage, DTO compatibility, full payment, customer selection, idempotent replay, process death, queued closing, and low-memory behavior.
-- Verify the final APK/config contains no client secret, API key, shared credential, token, verifier, or administrator data.
-- Do not claim completion without fresh command output and an inspected intended diff.
+## Task Scope, Approval, and Progress
 
-## Skills and Navigation
+- Execute tasks serially in the order defined by `docs/mobile-pos/implementation-plan.md`.
+- Determine the active task from verified evidence, not memory or unchecked boxes.
+- Before implementation, report the branch, working-tree state, verified prior task, active task, evidence, likely files, tests, approach, and risks.
+- Wait for explicit user approval before changing implementation code.
+- Approval covers only the named task and scope. It does not authorize the next task, phase, commit, push, deployment, or backend change.
+- After an approved task reaches a verified milestone or completion, update `docs/mobile-pos/implementation-plan.md` with concise factual status and evidence.
+- Updating progress for the just-approved task is part of its completion workflow, but it never authorizes the next task.
+- Do not mark a task complete without current source, tests, required verification, and intended-diff evidence.
+- Preserve task requirements, steps, gates, and acceptance criteria when updating progress. Update only status and factual audit evidence unless the user separately approves plan changes.
+- A lightweight documentation subagent may write the progress update, but the primary implementation/review model remains responsible for the completion verdict.
 
-- Use `brainstorming` before new user-visible behavior, `writing-plans` for approved multi-step work, `test-driven-development` during implementation, `systematic-debugging` for failures, `requesting-code-review` before completion, and `verification-before-completion` before success claims.
-- Use `graphify` only as a navigation aid. Source, Gradle configuration, Android documentation, and executable tests are authoritative.
-- Graphify skill: `/Users/rotiropi/.config/opencode/skills/graphify/SKILL.md`.
-- Run Android Graphify from `/Users/rotiropi/DockerERPNext/POSERPNext/`; its expected output directory is `/Users/rotiropi/DockerERPNext/POSERPNext/graphify-out/`.
-- Backend plan and contracts: `/Users/rotiropi/DockerERPNext/frappe_docker/development/frappe-bench/apps/roti_ropi_pos/docs/mobile-pos/`.
-- At the time of this reorganization, this repository had no commits and every scaffold, configuration, source, instruction, and Graphify path was untracked. Recheck Git status before work and do not infer a historical baseline from the current files.
-- The Android Graphify output currently contains only `.graphify_python`; no `.graphify_root`, `graph.json`, `GRAPH_REPORT.md`, or `graph.html` exists, so generation is incomplete and Graphify queries are unavailable.
-- Graphify output is local generated tooling data and must remain untracked. The repository root `.gitignore` does not currently exclude `/graphify-out/`; this documentation-only task does not change `.gitignore`.
+## Development and Verification
 
-## Android Skill Selection
+- Use test-driven development where practical, especially for authentication, parsing, transactions, and recovery.
+- Add or update focused tests before or with changed behavior.
+- During implementation, run the smallest relevant checks first.
+- At the task gate, run every verification command required by the active task.
+- Use emulator or physical-device checks for UI, lifecycle, security, and runtime behavior when relevant.
+- Verify API 23 and API 36 when required by the active task.
+- Compilation alone does not prove completion.
+- Report exact commands and actual results.
+- An unavailable required check is a blocker, not a pass.
+- Review the intended diff and working tree before claiming completion.
 
-- Android skills root: `/Users/rotiropi/DockerERPNext/ai-skills/android/skills/`.
-- Select skills by task and read the relevant `SKILL.md` before implementation. Do not assume one skill applies to the entire project or copy skill contents into this file.
-- For Android CLI, project inspection, device interaction, and journeys, use `devtools/android-cli/SKILL.md` and its task-relevant references.
-- For test setup and infrastructure, use `testing/testing-setup/SKILL.md` and follow its Views/Espresso path.
-- For OAuth redirects, incoming deep links, exported components, and Intent handling, use `security/android-intent-security/SKILL.md`.
-- No general OAuth 2.0/OIDC/PKCE Android skill is currently present. `identity/verified-email/SKILL.md` concerns Credential Manager verified-email/OpenID4VP and must not replace the approved ERPNext OAuth PKCE flow.
-- For an approved R8/release-hardening task, use `performance/r8-analyzer/SKILL.md`. The current release build has optimization disabled, so do not describe it as optimized.
-- For low-end profiling when a Perfetto trace exists, use `profilers/perfetto-trace-analysis/SKILL.md` and `profilers/perfetto-sql/SKILL.md`, then verify on representative constrained hardware and API 23.
-- Read `camera/camerax/SKILL.md` only when camera-based scanning is explicitly approved; retain XML/`PreviewView` unless Compose is separately approved.
-- Do not use skills under `jetpack-compose/` unless Jetpack Compose is explicitly approved.
-- Android skills are guidance only. These project rules, actual Gradle configuration, Android source, official Android behavior, and executable tests remain authoritative.
+## Git and Existing Changes
+
+- Read-only Git inspection is allowed.
+- Inspect `git status --short` before editing.
+- Treat pre-existing modified or untracked files as user work.
+- Do not overwrite, delete, reformat, stage, or incorporate unrelated changes.
+- If an intended edit overlaps existing local work, inspect the diff and preserve it or stop for clarification.
+- Without separate explicit approval, do not commit, push, merge, rebase, create a pull request, delete a branch, perform a destructive reset, or restore files in a way that discards changes.
+- Keep Android and backend diffs separate.
+
+## Context and Navigation Efficiency
+
+- Do not scan or reread the entire repository by default.
+- At startup, read only the implementation plan's verified status summary and the exact active task section.
+- Read the immediately preceding task only when a specific output is a direct dependency.
+- Load only the active task's listed files, relevant tests, and direct dependencies.
+- Read architecture or contract documents only when the active task explicitly references them or an actual ambiguity requires them.
+- Do not reread unchanged instruction or contract documents during the same session.
+- Use targeted symbol/text navigation instead of broad repository scans.
+- Graphify and code graphs are navigation aids only. Reopen actual source and tests before editing or making claims.
+- Do not generate or refresh a code graph unless the user explicitly requests it.
+- Prefer isolated subagents for searches, logs, and documentation work that would otherwise flood the main context.

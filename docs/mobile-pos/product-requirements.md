@@ -113,31 +113,31 @@ through an in-memory navigation flag.
 
 ## UI State Requirements
 
-- One activity hosts XML fragments through an AndroidX navigation graph.
-- A screen ViewModel owns render state, events, and cancellable requests.
-- ViewBinding exists only between `onCreateView` and `onDestroyView`.
-- Activity and Fragment instances never own tokens, API clients, or durable
-  transaction state.
-- Unsubmitted cart state survives configuration changes but is not an offline
-  sale and may be discarded after process death.
+- One activity hosts Jetpack Compose and Navigation Compose after the separately approved Compose migration.
+- Root navigation contains Home, Products, an elevated center Cashier action, Reports, and More.
+- A screen ViewModel owns immutable render state, events, and cancellable requests.
+- Composables render state and emit events; they never own tokens, API clients, or durable transaction state.
+- Unsubmitted cart state survives configuration changes through ViewModel state but is not an offline sale and may be discarded after process death.
 - A persisted pending mutation takes precedence over starting another mutation.
-- Loading, empty, recoverable-error, terminal-error, and content states are
-  explicit and accessible.
-- A known-offline mutation attempt preserves current input and displays an
-  accessible `Online connection required` state with explicit Retry. Network
-  restoration never starts that never-prepared action automatically. It may
-  resume only an already persisted eligible mutation through its recovery
-  workflow.
+- Loading, empty, populated when integrated, offline, unavailable, recoverable-error, and terminal-error states are explicit and accessible.
+- Synthetic populated fixtures live only in debug previews or test source sets and are visibly labeled `Demo data`; release runtime never presents them as ERPNext integration.
+- Phone Cashier uses a floating cart summary and modal bottom sheet; tablet and expanded landscape layouts use a persistent cart pane.
+- A known-offline mutation attempt preserves current input and displays an accessible `Online connection required` state with explicit Retry. Network restoration never starts that never-prepared action automatically. It may resume only an already persisted eligible mutation through its recovery workflow.
+- Complete dashboard/report aggregates remain unavailable until an approved contract supplies them. A bounded page is never presented as a complete daily aggregate.
+- Discount editing, camera capture, overpayment/change calculation, printer controls, and synchronization controls remain absent or disabled until separately approved.
 
 ## Non-Functional Requirements
 
 ### Platform
 
 - Application code uses Kotlin.
-- UI uses XML Views and ViewBinding.
+- New UI uses Jetpack Compose and Material 3 after the separately approved Compose migration.
+- The verified Task 1B XML/ViewBinding shell remains historical evidence until that migration replaces it.
 - `minSdk` remains 23.
-- Jetpack Compose is excluded without separate explicit approval.
 - API 23 and target API 36 are release test targets.
+- Phone, tablet, portrait, and landscape layouts are supported without forcing orientation.
+- Plus Jakarta Sans may be bundled only from a pinned OFL-licensed source with its license notice; use a verified bundled Android sans-serif fallback if needed.
+- Material Icons or another properly licensed Android icon set is used; reference branding assets are excluded.
 
 ### Security
 
@@ -187,7 +187,8 @@ through an in-memory navigation flag.
 
 ## Explicit Exclusions
 
-- Jetpack Compose.
+- React, WebView application shells, PWA, Capacitor, Dexie/IndexedDB, and copied reference runtime architecture.
+- Reference branding assets or unlicensed fonts/icons.
 - Generic Frappe resource or arbitrary method calls, except the exact approved
   OAuth authorization and token control-plane routes.
 - Local authoritative accounting calculations.
@@ -215,7 +216,7 @@ The Android MVP is accepted only when:
 1. A cashier completes sign in, bootstrap, opening, customer selection, catalog
    or scan, sale, receipt, history, return, closing, and logout.
 2. The workflow uses only approved v1 endpoints and an individual cashier.
-3. The app runs on API 23 and target API 36 with XML Views and ViewBinding.
+3. The app runs on API 23 and target API 36 with the approved Jetpack Compose and Material 3 UI after migration.
 4. OAuth uses mandatory PKCE S256 and contains no client secret.
 5. Invalid state, redirect, verifier, replayed code, and wrong-user callbacks
    are rejected.
@@ -241,7 +242,12 @@ The Android MVP is accepted only when:
 
 | Item | Phase 0 position |
 | --- | --- |
-| Gradle baseline | Hard blocker. Task 1A must obtain explicit approval for the smallest compatible dependency correction or `compileSdk 37`; it must not change `minSdk 23` or `targetSdk 36` merely to satisfy metadata. |
+| Gradle baseline | Resolved by verified Tasks 1A/1B. Future Compose dependencies must remain compatible with compile SDK 36.1, `minSdk 23`, and `targetSdk 36`, and must pass the full debug/release gate before migration completion. |
+| Compose migration order | Task 2 transport must complete before the separately approved Compose foundation replaces the Task 1B XML/ViewBinding shell. |
+| Dashboard and reports | Current v1 endpoints do not provide complete aggregate analytics or complete low-stock alerts. Populated designs remain debug previews until an approved contract exists; release runtime must show honest unavailable or partial scoped states. |
+| Discount editing | Unsupported until a versioned contract supplies an approved input and authoritative validation flow. Server-returned discounts remain display-only. |
+| Theme and accent | Non-sensitive theme mode and accent may use application-private `SharedPreferences`; no persistence framework is required. |
+| UI reference | `jipraks/kasirgratisan` commit `25c244027d7b9723f1b53a71649630e020e63413` is a visual and interaction reference only. Its database, auth, business, offline, and branding implementation is excluded. |
 | Redirect URI | Hard blocker. Require a verified HTTPS App Link; a custom scheme needs separate explicit approval. Implementation waits for one exact approved URI and signing association. |
 | Site configuration | Hard blocker. Base URL, client ID, authorization and token paths, scope, test-cashier provisioning, and the non-cashier-editable configuration provisioning method require approval. |
 | Payment modes | Hard blocker. Backend must expose the allowed opening and sale payment modes. |
