@@ -897,11 +897,12 @@ external provisioning evidence is absent. Android does not provision the OAuth
 client or cashier. Production remains a separate Final gate.
 
 `docs/mobile-pos/task-3-gate-record.md` holds those recorded values and their
-evidence. As of 2026-07-31 twelve of thirteen items are recorded and verified
-against a public HTTPS origin. Item 13, the attempt lifetime, is unapproved, so
-the gate is not yet passed. The origin is an ephemeral `trycloudflare.com`
-hostname: restarting the tunnel invalidates items 1, 6, and 9, and that record's
-"Restoring the origin after a restart" section is the recovery procedure.
+evidence. As of 2026-07-31 all thirteen items are recorded and verified against a
+public HTTPS origin, and the 10-minute attempt lifetime is approved, so this gate
+is passed. Explicit approval to begin Task 3 remains separate and is not given.
+The origin is an ephemeral `trycloudflare.com` hostname: restarting the tunnel
+invalidates items 1, 6, and 9, and that record's "Restoring the origin after a
+restart" section is the recovery procedure.
 
 - [ ] **Step 2: Write failing OAuth and Keystore tests**
 

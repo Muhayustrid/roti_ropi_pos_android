@@ -5,10 +5,13 @@ The plan states "Stop when any value or external provisioning evidence is
 absent", and `authentication.md` lists eleven required items per environment.
 This file is the single place those values are recorded and re-verified.
 
-**Gate status: ONE ITEM OUTSTANDING.** Twelve of thirteen items are recorded and
-verified. Item 13, the OAuth attempt lifetime, is a decision that has not been
-made. Task 3 implementation must not start until item 13 is approved and
-explicit approval to begin Task 3 is given — the two are separate approvals.
+**Gate status: PASSED.** All thirteen items are recorded and verified. The
+10-minute OAuth attempt lifetime was approved by the user on 2026-07-31, closing
+item 13.
+
+Passing this gate does not authorize Task 3. Explicit approval to begin Task 3 is
+a separate approval, per `AGENTS.md` and this plan's Step 1. The user has
+deferred Task 3 to a new session.
 
 Provisioning was performed on 2026-07-31 with the user's explicit permission to
 run `bench` commands in `frappe-bench` and to choose the tunnel technology. No
@@ -34,7 +37,7 @@ Public origin: `https://seemed-contacting-society-grounds.trycloudflare.com`
 | 10 | `assetlinks.json` association | Served at `https://<origin>/.well-known/assetlinks.json`, confirmed by Google's Digital Asset Links API | Recorded — device-side verification deferred to Task 3 Step 6 |
 | 11 | Non-production test cashier | `task9.cashier@rotiropi.test` | Recorded |
 | 12 | Configuration provisioning method | `bench --site task9-staging.localhost set-config host_name <origin>` | Recorded |
-| 13 | Approved attempt lifetime | — | **BLOCKED** — 10-minute proposal still not approved |
+| 13 | Approved attempt lifetime | 10 minutes | Recorded — approved by the user on 2026-07-31 |
 
 ## The origin is ephemeral
 
@@ -233,10 +236,14 @@ curl -sS https://<host>/.well-known/assetlinks.json
 curl -sS "https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://<host>&relation=delegate_permission/common.handle_all_urls"
 ```
 
+Item 13: the user approved 10 minutes on 2026-07-31, which is the value the plan
+proposed at `implementation-plan.md:911` and `authentication.md:97`. Task 3 Step 2
+tests the lifetime against this figure; nothing else in this record depends on it.
+
 ## Remaining actions
 
-1. Approve an OAuth attempt lifetime (item 13). The plan proposes 10 minutes at
-   `implementation-plan.md:911` and `authentication.md:97`, and both mark it
-   unapproved. Nothing else blocks the gate.
-2. Grant explicit approval to start Task 3. Item 13 being approved does not
-   authorize it, and neither does Task 2E passing.
+1. Grant explicit approval to start Task 3. The gate passing does not authorize
+   it, and neither does Task 2E passing.
+2. Before device work spans more than one sitting, replace the quick tunnel with
+   a named Cloudflare tunnel on a domain the user controls. See "The origin is
+   ephemeral".
