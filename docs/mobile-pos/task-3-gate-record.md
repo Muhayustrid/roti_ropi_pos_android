@@ -5,40 +5,86 @@ The plan states "Stop when any value or external provisioning evidence is
 absent", and `authentication.md` lists eleven required items per environment.
 This file is the single place those values are recorded and re-verified.
 
-Android does not provision the OAuth client, the cashier user, or the
-`assetlinks.json` deployment. Those are backend and infrastructure actions.
+**Gate status: ONE ITEM OUTSTANDING.** Twelve of thirteen items are recorded and
+verified. Item 13, the OAuth attempt lifetime, is a decision that has not been
+made. Task 3 implementation must not start until item 13 is approved and
+explicit approval to begin Task 3 is given — the two are separate approvals.
 
-**Gate status: BLOCKED.** Seven of thirteen items are recorded; six are absent.
-Task 3 implementation must not start.
+Provisioning was performed on 2026-07-31 with the user's explicit permission to
+run `bench` commands in `frappe-bench` and to choose the tunnel technology. No
+file in `roti_ropi_pos`, ERPNext, or Frappe was modified; the backend changes are
+configuration records and one database grant, all listed under "Backend state
+changed" below.
 
 ## Debug/local environment
 
+Public origin: `https://seemed-contacting-society-grounds.trycloudflare.com`
+
 | # | Gate item | Value | Status |
 | --- | --- | --- | --- |
-| 1 | Canonical origin | `http://task9-staging.localhost:8000` | **BLOCKED** — cleartext, and `.localhost` is not publicly resolvable |
+| 1 | Canonical origin | `https://seemed-contacting-society-grounds.trycloudflare.com` | Recorded — HTTPS, publicly resolvable, publicly trusted chain |
 | 2 | Public OAuth client ID | `rotiropi.mobilepos.task9.staging` | Recorded |
 | 3 | Authorize path | `/api/method/frappe.integrations.oauth2.authorize` | Recorded |
 | 4 | Token path | `/api/method/frappe.integrations.oauth2.get_token` | Recorded |
 | 5 | Scope | `all` | Recorded |
-| 6 | Redirect URI | — | **BLOCKED** — none approved |
+| 6 | Redirect URI | `https://seemed-contacting-society-grounds.trycloudflare.com/android/oauth2redirect` | Recorded |
 | 7 | Application ID | `com.rotiropi.pos_erpnext` | Recorded |
 | 8 | Signing SHA-256 | `94:87:02:10:B4:8C:E6:65:D6:1D:F0:E1:C1:91:6E:E6:6C:58:2B:2E:E5:06:8A:D3:80:E0:44:0F:8C:A2:34:23` | Recorded |
-| 9 | OAuth redirect allowlist entry | — | **BLOCKED** — depends on 6 |
-| 10 | `assetlinks.json` association | — | **BLOCKED** — not deployed anywhere |
-| 11 | Non-production test cashier | — | **BLOCKED** — not created |
-| 12 | Configuration provisioning method | `bench --site <site> set-config mobile_pos_oauth_client_id <client-id>` | Recorded |
-| 13 | Approved attempt lifetime | — | **BLOCKED** — 10-minute proposal not approved |
+| 9 | OAuth redirect allowlist entry | `redirect_uris` and `default_redirect_uri` both equal item 6 | Recorded |
+| 10 | `assetlinks.json` association | Served at `https://<origin>/.well-known/assetlinks.json`, confirmed by Google's Digital Asset Links API | Recorded — device-side verification deferred to Task 3 Step 6 |
+| 11 | Non-production test cashier | `task9.cashier@rotiropi.test` | Recorded |
+| 12 | Configuration provisioning method | `bench --site task9-staging.localhost set-config host_name <origin>` | Recorded |
+| 13 | Approved attempt lifetime | — | **BLOCKED** — 10-minute proposal still not approved |
+
+## The origin is ephemeral
+
+This is the one weakness in the current setup, and it is structural, not an
+oversight. `cloudflared tunnel --url` allocates a random `trycloudflare.com`
+hostname that lives only as long as the process. A restart produces a different
+hostname and invalidates five things at once: item 1, item 6, item 9, the
+`sites/<public-host>` symlink, and the published association in item 10.
+
+So the running `cloudflared` and `caddy` processes are part of the gate, not
+incidental. Killing either one takes the gate back to BLOCKED.
+
+A named Cloudflare tunnel bound to a domain the user controls removes this, and
+is the right move before Task 3 device work spans more than one sitting. It needs
+a Cloudflare account and a DNS zone, which is the user's to provision. Until
+then, re-run the "Restoring the origin" steps after any restart and update items
+1, 6, and 9 here.
 
 ## Evidence for the recorded values
 
+Item 1, publicly trusted TLS and public reachability:
+
+```bash
+curl -sS -o /dev/null -w "http=%{http_code} ssl_verify=%{ssl_verify_result}\n" \
+  https://seemed-contacting-society-grounds.trycloudflare.com/.well-known/assetlinks.json
+# http=200 ssl_verify=0
+```
+
+`ssl_verify=0` is curl's success value, so the chain validates against the system
+trust store with no override. Android's App Link verifier needs exactly that.
+
 Item 2 and 12: `sites/task9-staging.localhost/site_config.json` contains
-`mobile_pos_oauth_client_id`. Secret-bearing keys in that file were not read.
+`mobile_pos_oauth_client_id`, and `host_name` now reads
+`https://seemed-contacting-society-grounds.trycloudflare.com`. Secret-bearing
+keys in that file were not read.
 
 Items 3, 4, 5: `apps/roti_ropi_pos/docs/mobile-pos/android-backend-handoff.md`
 fixes both paths and the scope, and the backend OAuth Client is configured for
 grant type Authorization Code, response type Code, token endpoint
 authentication None, `skip_authorization = 0`, allowed role
 `Mobile POS Cashier`, and no distributed client secret.
+
+Both endpoints answer through the public origin:
+
+```bash
+# authorize, unauthenticated: 302 to the login page, redirect chain stays https
+#   on the public origin (not http://task9-staging.localhost)
+# get_token with a bogus code: 400, not 5xx — the endpoint is reachable and
+#   rejecting on grant validation
+```
 
 Item 7: `app/build.gradle.kts` declares
 `applicationId = "com.rotiropi.pos_erpnext"`.
@@ -60,22 +106,66 @@ adding one would restate the default.
 This fingerprint is machine-local. Any other developer machine produces a
 different debug certificate and needs its own `assetlinks.json` entry.
 
-## Why item 1 blocks items 6, 9, 10, and 11
+Item 9: the OAuth Client record `rotiropi.mobilepos.task9.staging` now holds the
+item 6 URI in both `redirect_uris` and `default_redirect_uri`. It previously held
+`http://127.0.0.1:9876/callback`, a loopback URI from earlier backend testing.
 
-App Link verification is not a local check. Android fetches
-`https://<host>/.well-known/assetlinks.json` from the public internet over TLS
-with a valid certificate chain. `task9-staging.localhost` fails on both counts:
-the host does not resolve outside this machine, and the site serves plain HTTP.
+Item 10, verified through Google's own resolver rather than only by fetching the
+file, because that is what Android consults:
 
-`AGENTS.md` requires HTTPS only and rejects cleartext endpoints.
-`app/src/main/AndroidManifest.xml` sets `android:usesCleartextTraffic="false"`,
-so the current origin cannot be reached by the app even if verification were
-skipped. `authentication.md` states "No HTTP exception is currently approved"
-for the debug environment.
+```bash
+curl -sS "https://digitalassetlinks.googleapis.com/v1/statements:list\
+?source.web.site=https://seemed-contacting-society-grounds.trycloudflare.com\
+&relation=delegate_permission/common.handle_all_urls"
+```
 
-Adding TLS to the local bench alone does not fix this. A publicly resolvable
-hostname is required, so a stable-hostname tunnel to the bench is the cheapest
-path. Once that origin exists, items 6, 9, 10, and 11 become straightforward.
+It returns one statement whose `androidApp.packageName` is
+`com.rotiropi.pos_erpnext` and whose `certificate.sha256Fingerprint` equals item
+8, with `maxAge` about 3600s. Google fetched the file over the public internet
+and parsed it, which is the assertion item 10 needs.
+
+The remaining half of App Link verification is device-side: `autoVerify` intent
+filters in the manifest and `pm verify-app-links --re-verify` returning a real
+terminal state. Those depend on manifest changes that are Task 3 Step 4 and Step
+6 work, so they stay out of this record.
+
+Item 11: `task9.cashier@rotiropi.test` already existed and satisfies the
+requirement as-is. Verified rather than recreated:
+
+- `enabled = 1`
+- `user_type = Website User`
+- roles are exactly `['Mobile POS Cashier']` — no Administrator, no System
+  Manager
+- `api_key` is not set, so no API-key path exists for this user
+- a password is set in `__Auth`, so the browser authorization flow can complete
+- POS Profile `Task 9 Mobile POS` has `disabled = 0` and lists this user in
+  `applicable_for_users`
+
+## Backend state changed during provisioning
+
+Four changes, all in the non-production bench. Listed so they can be reviewed or
+reverted.
+
+1. `bench --site task9-staging.localhost set-config host_name https://<origin>`
+   — was `http://task9-staging.localhost:8000`.
+2. OAuth Client `rotiropi.mobilepos.task9.staging`: `redirect_uris` and
+   `default_redirect_uri` set to item 6 — were `http://127.0.0.1:9876/callback`.
+3. A symlink `sites/<public-host>` pointing at
+   `sites/task9-staging.localhost`, so Frappe resolves the site under the tunnel
+   hostname. Without it the site lookup fails; with a Host rewrite instead,
+   Frappe emits `http://task9-staging.localhost` redirects the device cannot
+   follow.
+4. A MariaDB grant rebind: `RENAME USER '_477448e29b9f1d70'@'172.18.0.2' TO
+   '_477448e29b9f1d70'@'%'`. The site's DB user was pinned to a container IP that
+   the compose network had since reassigned to `redis-queue`, so the site
+   returned `MySQLdb.OperationalError (1045, Access denied)` on every request.
+   The other five sites in this bench already grant to `'%'`, so this matches the
+   existing pattern for a dev bench on a dynamic Docker network.
+
+`bench serve` must run with `USE_PROXY=1`. `frappe/app.py:506` wraps the
+application in `ProxyFix` only when `proxy` or `USE_PROXY` is set; without it
+`frappe.utils.data` builds `http://` URLs from the request and the authorization
+redirect chain drops to cleartext, which the app rejects.
 
 ## Rejected shortcuts
 
@@ -96,55 +186,57 @@ an App Link receiver.
 A self-signed or private CA for the staging origin — Android's App Link
 verifier requires a publicly trusted chain, so verification still fails.
 
+Keeping the loopback redirect `http://127.0.0.1:9876/callback` — cleartext, and
+`AndroidManifest.xml` sets `usesCleartextTraffic="false"`.
+
 ## Serving `assetlinks.json` from Frappe
 
 Frappe's `StaticPage` renderer serves files from an installed app's `www/`
-directory, but `frappe/website/page_renderers/static_page.py` lists `json` in
+directory, but `frappe/website/page_renderers/static_page.py:12` lists `json` in
 `UNSUPPORTED_STATIC_PAGE_TYPES`, so a `.json` file placed there is not served.
 `SharedDataMiddleware` in `frappe/app.py` maps only `/assets` and `/files`.
 
-So `/.well-known/assetlinks.json` needs one of:
+So the path is served by a local edge ahead of Frappe, which also keeps the
+association independent of app code and avoids a backend change:
 
-- a reverse proxy or tunnel rule serving the path directly, ahead of Frappe —
-  preferred, because it keeps the association independent of app code; or
-- a Frappe `website_route_rules` entry plus a whitelisted method returning the
-  JSON with `Content-Type: application/json`; a backend change, and this
-  repository's rules forbid Android tasks from modifying the backend.
+- `tools/applinks/assetlinks.json` — the payload.
+- `tools/applinks/Caddyfile` — serves that one path as `application/json` and
+  reverse-proxies everything else to `127.0.0.1:8000`, forwarding Host unchanged
+  and adding `X-Forwarded-Proto: https`.
 
-## Remaining actions, in order
+The alternative, a `website_route_rules` entry plus a whitelisted method, is a
+backend change, and this repository's rules forbid Android tasks from modifying
+the backend.
 
-1. Stand up a tunnel with a stable public hostname to the bench on port 8000,
-   with a publicly trusted TLS certificate.
-2. `bench --site task9-staging.localhost set-config host_name https://<host>`.
-3. Choose the redirect URI, for example `https://<host>/android/oauth2redirect`,
-   and record it here as item 6.
-4. Add that exact URI to the backend OAuth Client redirect allowlist (item 9).
-5. Serve `/.well-known/assetlinks.json` on that host with the package name and
-   the item 8 fingerprint (item 10):
+## Restoring the origin after a restart
 
-   ```json
-   [{
-     "relation": ["delegate_permission/common.handle_all_urls"],
-     "target": {
-       "namespace": "android_app",
-       "package_name": "com.rotiropi.pos_erpnext",
-       "sha256_cert_fingerprints": [
-         "94:87:02:10:B4:8C:E6:65:D6:1D:F0:E1:C1:91:6E:E6:6C:58:2B:2E:E5:06:8A:D3:80:E0:44:0F:8C:A2:34:23"
-       ]
-     }
-   }]
-   ```
+Run from the repository root. Steps 1 and 2 stay running; use separate shells or
+background them.
 
-6. Create a non-production cashier user holding only the `Mobile POS Cashier`
-   role, assigned to an enabled POS Profile (item 11).
-7. Approve an OAuth attempt lifetime (item 13). The plan proposes 10 minutes but
-   marks it unapproved.
-8. Grant explicit approval to start Task 3. Task 2E passing does not authorize
-   it.
+1. `caddy run --config tools/applinks/Caddyfile` with `APPLINKS_DIR` set to the
+   absolute path of `tools/applinks`.
+2. `cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate`, then read
+   the assigned `https://<random>.trycloudflare.com` hostname from its output.
+3. In the bench container, with `USE_PROXY=1`:
+   `bench --site task9-staging.localhost set-config host_name https://<host>`.
+4. `ln -sfn /workspace/development/frappe-bench/sites/task9-staging.localhost \
+   <bench>/sites/<host>`.
+5. Set the OAuth Client's `redirect_uris` and `default_redirect_uri` to
+   `https://<host>/android/oauth2redirect`.
+6. Update items 1, 6, and 9 in the table above.
 
-Verify item 10 before implementation with a plain fetch from a device network:
+Then verify, in this order — the second command is the one that matters, because
+it is what Android actually consults:
 
 ```bash
 curl -sS https://<host>/.well-known/assetlinks.json
+curl -sS "https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://<host>&relation=delegate_permission/common.handle_all_urls"
 ```
 
+## Remaining actions
+
+1. Approve an OAuth attempt lifetime (item 13). The plan proposes 10 minutes at
+   `implementation-plan.md:911` and `authentication.md:97`, and both mark it
+   unapproved. Nothing else blocks the gate.
+2. Grant explicit approval to start Task 3. Item 13 being approved does not
+   authorize it, and neither does Task 2E passing.
