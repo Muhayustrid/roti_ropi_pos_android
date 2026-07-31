@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
@@ -106,6 +107,26 @@ class ComposeShellTest {
         composeRule.onNodeWithText("Appearance").assertIsDisplayed()
         composeRule.onAllNodesWithText("Unavailable").assertCountEquals(2)
         composeRule.onAllNodesWithText("Not supported").assertCountEquals(2)
+    }
+
+    @Test
+    fun debug_demo_toggle_populates_destinations_and_stays_off_by_default() {
+        composeRule.onNodeWithTag("root-more").performClick()
+        composeRule.onNodeWithTag("more-demo-data").performScrollTo().assertIsNotSelected()
+
+        composeRule.onNodeWithTag("more-demo-data").performClick().assertIsSelected()
+
+        composeRule.onNodeWithTag("root-home").performClick()
+        composeRule.onNodeWithText("Outlet Menteng").assertIsDisplayed()
+        composeRule.onNodeWithText("Demo data").assertIsDisplayed()
+
+        composeRule.onNodeWithTag("root-reports").performClick()
+        composeRule.onNodeWithTag("reports-chart").performScrollTo().assertIsDisplayed()
+
+        composeRule.onNodeWithTag("root-more").performClick()
+        composeRule.onNodeWithTag("more-demo-data").performScrollTo().performClick()
+        composeRule.onNodeWithTag("root-home").performClick()
+        composeRule.onNodeWithText("Complete dashboard metrics unavailable").assertIsDisplayed()
     }
 
     @Test
