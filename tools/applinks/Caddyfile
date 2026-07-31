@@ -1,0 +1,39 @@
+# Local edge in front of the bench, for Android App Links verification.
+#
+# Two jobs:
+#   1. Serve /.well-known/assetlinks.json as application/json. Frappe cannot do
+#      this: frappe/website/page_renderers/static_page.py lists "json" in
+#      UNSUPPORTED_STATIC_PAGE_TYPES, and app.py maps SharedDataMiddleware only
+#      to /assets and /files.
+#   2. Forward the public Host unchanged so Frappe resolves the site by the
+#      tunnel hostname and builds absolute URLs on the public origin. This needs
+#      a sites/<public-host> symlink pointing at the real site directory;
+#      rewriting Host to the bench site name instead makes Frappe emit
+#      http://task9-staging.localhost redirects the device cannot follow.
+#
+# TLS is terminated at the Cloudflare edge, so this listener is plain HTTP on
+# loopback only. Nothing outside this machine can reach it directly.
+#
+# Usage:
+#   caddy run --config tools/applinks/Caddyfile
+#   cloudflared tunnel --url http://127.0.0.1:8080
+{
+	auto_https off
+	admin off
+}
+
+:8080 {
+	@assetlinks path /.well-known/assetlinks.json
+	handle @assetlinks {
+		root * {$APPLINKS_DIR}
+		rewrite * /assetlinks.json
+		header Content-Type application/json
+		file_server
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:8000 {
+			header_up X-Forwarded-Proto https
+		}
+	}
+}

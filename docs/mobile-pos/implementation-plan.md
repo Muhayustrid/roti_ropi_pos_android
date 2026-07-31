@@ -863,7 +863,7 @@ ID, App Link association, and OAuth Client provisioning.
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/MobilePosApiClient.kt`
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/auth/SignInScreen.kt`
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/auth/SignInViewModel.kt`
-- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosNavHost.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosShell.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/auth/OAuthCoordinatorTest.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/data/api/AuthenticatedMobilePosApiClientTest.kt`
 - Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/auth/AuthRedirectSecurityTest.kt`
@@ -895,6 +895,14 @@ application ID, signing-certificate fingerprint, OAuth allowlist,
 provisioning method, and approved attempt lifetime. Stop when any value or
 external provisioning evidence is absent. Android does not provision the OAuth
 client or cashier. Production remains a separate Final gate.
+
+`docs/mobile-pos/task-3-gate-record.md` holds those recorded values and their
+evidence. As of 2026-07-31 all thirteen items are recorded and verified against a
+public HTTPS origin, and the 10-minute attempt lifetime is approved, so this gate
+is passed. Explicit approval to begin Task 3 remains separate and is not given.
+The origin is an ephemeral `trycloudflare.com` hostname: restarting the tunnel
+invalidates items 1, 6, and 9, and that record's "Restoring the origin after a
+restart" section is the recovery procedure.
 
 - [ ] **Step 2: Write failing OAuth and Keystore tests**
 
@@ -1034,7 +1042,7 @@ Report `feat: add secure OAuth PKCE authentication` and wait for approval.
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/AppViewModel.kt`
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/profile/ProfileSelectionScreen.kt`
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/profile/ProfileSelectionViewModel.kt`
-- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosNavHost.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosShell.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/dashboard/DashboardScreen.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/dashboard/DashboardUiState.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/settings/MoreScreen.kt`
@@ -1136,7 +1144,7 @@ Report `feat: add scoped mobile POS bootstrap` and wait for approval.
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/recovery/RetryPendingMutationWorker.kt`
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/recovery/RecoveryScreen.kt`
 - Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/recovery/RecoveryViewModel.kt`
-- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosNavHost.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosShell.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/recovery/RecoveryCoordinatorTest.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/data/ConnectivityStatusTest.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/recovery/PendingMutationSerializationTest.kt`
@@ -1260,7 +1268,7 @@ decimal-input contract, and externally owned lost-response procedure.
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/SessionDtos.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/MobilePosRepository.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
-- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosNavHost.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosShell.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/opening/OpeningViewModelTest.kt`
 - Create: `app/src/test/resources/api/v1/session-current.json`
 - Create: `app/src/test/resources/api/v1/session-opened.json`
@@ -1350,7 +1358,7 @@ wait for approval.
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/CustomerDtos.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/MobilePosRepository.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
-- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosNavHost.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosShell.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/customer/CustomerSearchViewModelTest.kt`
 - Create: `app/src/test/resources/api/v1/customer-page.json`
 
@@ -1423,7 +1431,7 @@ quote and decimal quantity syntax decisions.
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/MobilePosRepository.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/CatalogDtos.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
-- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosNavHost.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosShell.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/cashier/CashierViewModelTest.kt`
 - Create: `app/src/androidTest/java/com/rotiropi/pos_erpnext/ui/cashier/CatalogAccessibilityTest.kt`
 - Create: `app/src/test/resources/api/v1/catalog-page.json`
@@ -1513,7 +1521,7 @@ and externally owned lost-response procedure.
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/MobilePosRepository.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/SalesDtos.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
-- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosNavHost.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosShell.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/payment/PaymentViewModelTest.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/receipt/ReceiptViewModelTest.kt`
 - Create: `app/src/test/resources/api/v1/sale-success.json`
@@ -1618,7 +1626,7 @@ approved decimal rules, and externally owned lost-response procedure.
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/MobilePosRepository.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/SalesDtos.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
-- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosNavHost.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosShell.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/history/HistoryViewModelTest.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/returning/ReturnViewModelTest.kt`
 - Create: `app/src/test/resources/api/v1/sale-history.json`
@@ -1719,7 +1727,7 @@ staging procedure.
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/MobilePosRepository.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/data/api/ClosingDtos.kt`
 - Modify: `app/src/main/java/com/rotiropi/pos_erpnext/session/LogoutCoordinator.kt`
-- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosNavHost.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/ui/navigation/PosShell.kt`
 - Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/closing/ClosingViewModelTest.kt`
 - Create: `app/src/test/resources/api/v1/closing-preview.json`
 - Create: `app/src/test/resources/api/v1/closing-draft.json`
