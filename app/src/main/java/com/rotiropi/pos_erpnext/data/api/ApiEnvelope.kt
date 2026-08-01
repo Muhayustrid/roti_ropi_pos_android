@@ -34,20 +34,20 @@ data class ApiErrorData(
     val retryable: Boolean
 )
 
-data class MobilePosRequest(
+data class MobilePosRequest internal constructor(
     val endpoint: MobilePosEndpoint,
     val query: Map<String, String>,
     val bodyBytes: ByteArray?,
-    val bearerToken: String,
+    internal val bearerToken: String?,
     val idempotencyKey: String?
 ) {
     companion object {
         private val LOWERCASE_UUID = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
 
-        fun get(endpoint: MobilePosEndpoint, query: Map<String, String>, bearerToken: String): MobilePosRequest {
+        fun get(endpoint: MobilePosEndpoint, query: Map<String, String>): MobilePosRequest {
             require(endpoint.method == HttpMethod.GET)
             validateFields(endpoint, query.keys)
-            return MobilePosRequest(endpoint, query, null, requireToken(bearerToken), null)
+            return MobilePosRequest(endpoint, query, null, null, null)
         }
 
         fun <T> post(
@@ -55,7 +55,6 @@ data class MobilePosRequest(
             body: T,
             serializer: SerializationStrategy<T>,
             json: kotlinx.serialization.json.Json,
-            bearerToken: String,
             idempotencyKey: String? = null
         ): MobilePosRequest {
             require(endpoint.method == HttpMethod.POST)
@@ -68,10 +67,14 @@ data class MobilePosRequest(
                 endpoint = endpoint,
                 query = emptyMap(),
                 bodyBytes = json.encodeToString(serializer, body).encodeToByteArray(),
-                bearerToken = requireToken(bearerToken),
+                bearerToken = null,
                 idempotencyKey = idempotencyKey
             )
         }
+
+        internal fun withBearer(request: MobilePosRequest, token: String): MobilePosRequest =
+            request.copy(bearerToken = token.also { require(it.isNotBlank()) })
+
 
         private fun validateFields(endpoint: MobilePosEndpoint, fields: Set<String>) {
             require(fields.containsAll(endpoint.requiredRequestFields))
@@ -86,7 +89,6 @@ data class MobilePosRequest(
             }
         }
 
-        private fun requireToken(token: String): String = token.also { require(it.isNotBlank()) }
     }
 }
 

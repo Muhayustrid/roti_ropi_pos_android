@@ -840,8 +840,9 @@ accessibility. Report `feat: add Reports and More UI` and wait before Task 3.
 
 ### Task 3: Implement OAuth PKCE and Token Storage
 
-**Status:** Not Started. External environment/provisioning gates below remain
-unapproved or unverified.
+**Status:** Completed on 2026-08-01. Stable staging OAuth, trusted App Links,
+real browser Authorization Code + PKCE, restart/logout/stale-callback behavior,
+and final API 23/API 36 regression gates passed. Evidence: `task-3-gate-record.md`.
 
 **Depends on:** Approved and passing Task 2E.
 
@@ -886,7 +887,7 @@ ID, App Link association, and OAuth Client provisioning.
   canonical origin, refreshes an eligible read once, and never automatically
   replays a mutation.
 
-- [ ] **Step 1: Confirm the hard gate**
+- [x] **Step 1: Confirm the hard gate**
 
 For the debug or staging variant being exercised, record its exact canonical
 origin, public client ID, fixed authorize/token paths, scope `all`, redirect URI,
@@ -904,7 +905,7 @@ The origin is an ephemeral `trycloudflare.com` hostname: restarting the tunnel
 invalidates items 1, 6, and 9, and that record's "Restoring the origin after a
 restart" section is the recovery procedure.
 
-- [ ] **Step 2: Write failing OAuth and Keystore tests**
+- [x] **Step 2: Write failing OAuth and Keystore tests**
 
 Test mandatory S256, no client secret, exact redirect/state validation,
 single-use code, cold/warm completion, forged explicit Intent, duplicate
@@ -934,7 +935,7 @@ Accept authorization only at the fixed canonical-origin authorize path with
 scope `all`; reject discovery, dynamic endpoints, nested URLs, redirects, and
 cashier-editable endpoint values.
 
-- [ ] **Step 3: Run the red tests**
+- [x] **Step 3: Run the red tests**
 
 ```bash
 ./gradlew testDebugUnitTest --tests "com.rotiropi.pos_erpnext.auth.*"
@@ -945,7 +946,7 @@ cashier-editable endpoint values.
 
 Expected: FAIL because authentication components do not exist.
 
-- [ ] **Step 4: Implement with AppAuth and Android Keystore**
+- [x] **Step 4: Implement with AppAuth and Android Keystore**
 
 Use AppAuth for browser/Custom Tab authorization and PKCE. Declare only
 AppAuth's `RedirectUriReceiverActivity` as the exact exported BROWSABLE App Link
@@ -975,7 +976,7 @@ durably to `auth_required`. Exchange and refresh only at
 `<canonical-origin>/api/method/frappe.integrations.oauth2.get_token` with
 redirects disabled.
 
-- [ ] **Step 5: Run OAuth process-death recovery**
+- [x] **Step 5: Run OAuth process-death recovery**
 
 ```bash
 ./tools/oauth-process-death.sh api23
@@ -987,7 +988,7 @@ the attempt, a test-only exchanger succeeds once, and terminal state deletes the
 attempt. Run additional injected boundaries after consumed persistence and after
 token persistence; both must prove no second exchange.
 
-- [ ] **Step 6: Verify App Links for the exercised environment**
+- [x] **Step 6: Verify App Links for the exercised environment**
 
 Use `adb -s <serial> shell pm verify-app-links --re-verify <application-id>` on
 API 36, then poll
@@ -996,7 +997,7 @@ with a bounded timeout. Expected: only the exact approved host verifies for that
 installed package and certificate. Preserve commands and output. Debug or
 staging evidence does not satisfy production.
 
-- [ ] **Step 7: Verify and inspect secrets**
+- [x] **Step 7: Verify and inspect secrets**
 
 ```bash
 ./gradlew testDebugUnitTest
@@ -1021,7 +1022,7 @@ PKCE, callback, process-death, token-store, exact-origin transport, App Link,
 secret-inspection, API 23, and API 36 gates; host-only tests cannot run in the
 broad suite; production identity is not implied.
 
-- [ ] **Step 8: Review and stop**
+- [x] **Step 8: Review and stop**
 
 Report `feat: add secure OAuth PKCE authentication` and wait for approval.
 

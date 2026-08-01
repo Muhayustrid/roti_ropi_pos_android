@@ -31,6 +31,7 @@ class MainActivity : ComponentActivity() {
 
             PosTheme(darkTheme = darkTheme, accent = selection.accent) {
                 PosShell(
+                    authenticationOwner = (application as MobilePosApplication).authenticationOwner,
                     themeMode = selection.mode,
                     accent = selection.accent,
                     onThemeModeSelected = { mode ->

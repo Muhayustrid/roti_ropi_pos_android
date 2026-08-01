@@ -13,7 +13,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
-class MobilePosApiClient(
+internal class MobilePosApiClient(
     private val origin: CanonicalBackendOrigin,
     private val client: OkHttpClient = defaultClient(),
     private val json: Json = Json { ignoreUnknownKeys = true },
@@ -72,10 +72,11 @@ class MobilePosApiClient(
             .build()
         require(url.scheme == "https" && url.host == origin.serialized.toHttpUrlBuilder().build().host)
 
+        val bearerToken = requireNotNull(request.bearerToken)
         return Request.Builder()
             .url(url)
             .header("Accept", "application/json")
-            .header("Authorization", "Bearer ${request.bearerToken}")
+            .header("Authorization", "Bearer $bearerToken")
             .apply {
                 when (request.endpoint.method) {
                     HttpMethod.GET -> get()

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -32,9 +33,11 @@ fun MoreScreen(
     layoutMode: PosLayoutMode,
     modifier: Modifier = Modifier,
     demoToggleVisible: Boolean = false,
+    logoutVisible: Boolean = false,
     onThemeModeSelected: (PosThemeMode) -> Unit = {},
     onAccentSelected: (PosAccent) -> Unit = {},
     onDemoDataToggled: (Boolean) -> Unit = {},
+    onLogout: () -> Unit = {},
 ) {
     val rootTag = if (layoutMode == PosLayoutMode.EXPANDED) "more-expanded" else "more-compact"
     Column(
@@ -57,6 +60,9 @@ fun MoreScreen(
                 ) {
                     OutletGroup(state.outletLabel)
                     UserSessionGroup(state.userSessionLabel)
+                    if (logoutVisible) {
+                        LogoutGroup(onLogout)
+                    }
                     AppearanceGroup(
                         themeMode = state.themeMode,
                         accent = state.accent,
@@ -78,6 +84,9 @@ fun MoreScreen(
         } else {
             OutletGroup(state.outletLabel)
             UserSessionGroup(state.userSessionLabel)
+            if (logoutVisible) {
+                LogoutGroup(onLogout)
+            }
             AppearanceGroup(
                 themeMode = state.themeMode,
                 accent = state.accent,
@@ -176,6 +185,22 @@ private fun UserSessionGroup(userSessionLabel: String?) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
             )
+        }
+    }
+}
+
+@Composable
+private fun LogoutGroup(onLogout: () -> Unit) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Button(
+            onClick = onLogout,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .heightIn(min = PosDimensions.touchTarget)
+                .testTag("more-logout"),
+        ) {
+            Text("Sign out")
         }
     }
 }

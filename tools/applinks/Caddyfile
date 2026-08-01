@@ -5,18 +5,16 @@
 #      this: frappe/website/page_renderers/static_page.py lists "json" in
 #      UNSUPPORTED_STATIC_PAGE_TYPES, and app.py maps SharedDataMiddleware only
 #      to /assets and /files.
-#   2. Forward the public Host unchanged so Frappe resolves the site by the
-#      tunnel hostname and builds absolute URLs on the public origin. This needs
-#      a sites/<public-host> symlink pointing at the real site directory;
-#      rewriting Host to the bench site name instead makes Frappe emit
-#      http://task9-staging.localhost redirects the device cannot follow.
+#   2. Proxy application traffic to Frappe with its site Host while preserving
+#      HTTPS as the external scheme. Frappe's host_name remains the stable public
+#      origin, so generated absolute URLs stay on oauth-staging.rotiropi.web.id.
 #
 # TLS is terminated at the Cloudflare edge, so this listener is plain HTTP on
 # loopback only. Nothing outside this machine can reach it directly.
 #
 # Usage:
-#   caddy run --config tools/applinks/Caddyfile
-#   cloudflared tunnel --url http://127.0.0.1:8080
+#   APPLINKS_DIR="$PWD/tools/applinks" caddy run --config tools/applinks/Caddyfile
+#   cloudflared tunnel run rotiropi-pos-staging
 {
 	auto_https off
 	admin off
@@ -33,6 +31,8 @@
 
 	handle {
 		reverse_proxy 127.0.0.1:8000 {
+			header_up Host development.localhost
+			header_up X-Forwarded-Host oauth-staging.rotiropi.web.id
 			header_up X-Forwarded-Proto https
 		}
 	}
