@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -20,6 +21,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.rotiropi.pos_erpnext.auth.AuthenticationOwner
+import com.rotiropi.pos_erpnext.auth.AuthenticationState
+import com.rotiropi.pos_erpnext.ui.auth.SignInScreen
 import com.rotiropi.pos_erpnext.ui.cashier.CashierScreen
 import com.rotiropi.pos_erpnext.ui.cashier.CashierUiState
 import com.rotiropi.pos_erpnext.ui.components.RootNavigationBar
@@ -43,14 +47,45 @@ fun PosShell(
     onThemeModeSelected: (PosThemeMode) -> Unit = {},
     onAccentSelected: (PosAccent) -> Unit = {},
     modifier: Modifier = Modifier,
+    authenticationOwner: AuthenticationOwner? = null,
+) {
+    val authState = authenticationOwner?.state?.collectAsState()?.value
+    if (authenticationOwner != null && authState != AuthenticationState.Authenticated) {
+        SignInScreen(
+            onSignInClick = authenticationOwner::beginAuthorization,
+            modifier = modifier,
+            errorMessage = (authState as? AuthenticationState.Error)?.reason?.name,
+            signingIn = authState == AuthenticationState.Authorizing,
+        )
+        return
+    }
+
+    AuthenticatedPosShell(
+        themeMode = themeMode,
+        accent = accent,
+        onThemeModeSelected = onThemeModeSelected,
+        onAccentSelected = onAccentSelected,
+        onLogout = authenticationOwner?.let { owner -> owner::logout } ?: {},
+        logoutVisible = authenticationOwner != null,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun AuthenticatedPosShell(
+    themeMode: PosThemeMode,
+    accent: PosAccent,
+    onThemeModeSelected: (PosThemeMode) -> Unit,
+    onAccentSelected: (PosAccent) -> Unit,
+    onLogout: () -> Unit,
+    logoutVisible: Boolean,
+    modifier: Modifier,
 ) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val selectedDestination = PosDestination.entries.firstOrNull {
         it.route == backStackEntry?.destination?.route
     } ?: PosDestination.HOME
-    // Debug-only synthetic layouts. Off by default; the release source set reports
-    // `supported = false` so the toggle never renders and no fixture is packaged.
     var demoData by rememberSaveable { mutableStateOf(false) }
     val demoActive = PosDemoStates.supported && demoData
 
@@ -95,44 +130,28 @@ fun PosShell(
                 ) {
                     composable(PosDestination.HOME.route) {
                         DashboardScreen(
-                            state = if (demoActive) {
-                                PosDemoStates.dashboard
-                            } else {
-                                DashboardUiState.Unavailable
-                            },
+                            state = if (demoActive) PosDemoStates.dashboard else DashboardUiState.Unavailable,
                             layoutMode = layoutMode,
                             modifier = Modifier.testTag("destination-content-home"),
                         )
                     }
                     composable(PosDestination.PRODUCTS.route) {
                         ProductsScreen(
-                            state = if (demoActive) {
-                                PosDemoStates.products
-                            } else {
-                                ProductsUiState.Unavailable
-                            },
+                            state = if (demoActive) PosDemoStates.products else ProductsUiState.Unavailable,
                             layoutMode = layoutMode,
                             modifier = Modifier.testTag("destination-content-products"),
                         )
                     }
                     composable(PosDestination.CASHIER.route) {
                         CashierScreen(
-                            state = if (demoActive) {
-                                PosDemoStates.cashier
-                            } else {
-                                CashierUiState.Unavailable
-                            },
+                            state = if (demoActive) PosDemoStates.cashier else CashierUiState.Unavailable,
                             layoutMode = layoutMode,
                             modifier = Modifier.testTag("destination-content-cashier"),
                         )
                     }
                     composable(PosDestination.REPORTS.route) {
                         ReportsScreen(
-                            state = if (demoActive) {
-                                PosDemoStates.reports
-                            } else {
-                                ReportsUiState.Unavailable
-                            },
+                            state = if (demoActive) PosDemoStates.reports else ReportsUiState.Unavailable,
                             layoutMode = layoutMode,
                             modifier = Modifier.testTag("destination-content-reports"),
                         )
@@ -141,11 +160,7 @@ fun PosShell(
                         MoreScreen(
                             state = MoreUiState(
                                 outletLabel = if (demoActive) PosDemoStates.outletLabel else null,
-                                userSessionLabel = if (demoActive) {
-                                    PosDemoStates.userSessionLabel
-                                } else {
-                                    null
-                                },
+                                userSessionLabel = if (demoActive) PosDemoStates.userSessionLabel else null,
                                 themeMode = themeMode,
                                 accent = accent,
                                 demoData = demoActive,
@@ -153,9 +168,11 @@ fun PosShell(
                             layoutMode = layoutMode,
                             modifier = Modifier.testTag("destination-content-more"),
                             demoToggleVisible = PosDemoStates.supported,
+                            logoutVisible = logoutVisible,
                             onThemeModeSelected = onThemeModeSelected,
                             onAccentSelected = onAccentSelected,
                             onDemoDataToggled = { demoData = it },
+                            onLogout = onLogout,
                         )
                     }
                 }

@@ -1,5 +1,9 @@
 # Session Handoff: Task 3 Starting Point
 
+> Historical handoff: this file records the 2026-07-31 pre-implementation state
+> and dead quick-tunnel recovery procedure. Active Task 3 origin is
+> `https://oauth-staging.rotiropi.web.id`; see `task-3-gate-record.md`.
+
 Written 2026-07-31 at the end of the session that provisioned the Task 3 external
 gate. Read this together with `task-3-gate-record.md`; this file covers session
 and environment state, that file is the gate evidence itself.

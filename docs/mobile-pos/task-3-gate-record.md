@@ -1,5 +1,51 @@
 # Task 3 External Gate Record
 
+## Stable staging migration — 2026-08-01
+
+Active Task 3 identity now uses stable named-tunnel origin
+`https://oauth-staging.rotiropi.web.id` and exact redirect URI
+`https://oauth-staging.rotiropi.web.id/android/oauth2redirect`.
+
+Verified non-secret backend OAuth Client fields:
+
+- document/client ID: `rotiropi.mobilepos.task9.staging`
+- app name: `Roti Ropi Mobile POS Staging`
+- grant type: `Authorization Code`
+- response type: `Code`
+- redirect and default redirect: exact URI above
+- scope: `all`
+- token endpoint authentication method: `None` (public PKCE client)
+- allowed role: `Mobile POS Cashier`
+
+Stable origin checks passed without insecure TLS overrides: DNS resolves, TLS
+certificate verification returns `Verify return code: 0 (ok)`, public root and
+`/api/method/ping` return HTTP 200, and public
+`/.well-known/assetlinks.json` returns HTTP 200 `application/json`.
+
+Final Task 3 verification passed on 2026-08-01:
+
+- API 36 domain state: `oauth-staging.rotiropi.web.id: verified`; exact callback
+  resolved through AppAuth to the app, while unrelated host/path had no app match.
+- API 23 install-time verifier reported `Success:true`; exact callback resolved
+  directly to AppAuth, while unrelated host/path had no app match.
+- Real Chrome/AppAuth Authorization Code + PKCE flow used the stable hostname,
+  returned through the exact HTTPS callback, consumed one code, persisted the
+  token, restored authentication after restart, and completed one authorized
+  `bootstrap.get` read.
+- Logout cleared local token/attempt state; restart stayed unauthenticated; a
+  stale callback could not authenticate.
+- Unit tests: 108 passed, 0 failed. API 23 and API 36 broad matrices: 75/75 each.
+  Process-death matrices: 8/8 each. Debug/release lint, assembly, exact merged
+  manifest assertions, 10 negative manifest fixtures, APK signer/fingerprint,
+  APK credential-marker scan, and `git diff --check` passed.
+- Long sanitized evidence: `/tmp/task3-stable-origin-final/`.
+
+Task 3 status: **Completed**. Task 4 remains Not Started pending explicit user
+approval.
+
+The sections below preserve 2026-07-31 ephemeral-origin provisioning history;
+those TryCloudflare values are historical evidence, not active configuration.
+
 Records the values Task 3 Step 1 requires before OAuth implementation starts.
 The plan states "Stop when any value or external provisioning evidence is
 absent", and `authentication.md` lists eleven required items per environment.
@@ -7,11 +53,12 @@ This file is the single place those values are recorded and re-verified.
 
 **Gate status: PASSED.** All thirteen items are recorded and verified. The
 10-minute OAuth attempt lifetime was approved by the user on 2026-07-31, closing
-item 13.
+item 13. The ephemeral origin was restored and all thirteen items were
+re-verified immediately before Task 3 implementation on 2026-07-31.
 
 Passing this gate does not authorize Task 3. Explicit approval to begin Task 3 is
-a separate approval, per `AGENTS.md` and this plan's Step 1. The user has
-deferred Task 3 to a new session.
+a separate approval, per `AGENTS.md` and this plan's Step 1. The user granted
+that approval on 2026-07-31.
 
 Provisioning was performed on 2026-07-31 with the user's explicit permission to
 run `bench` commands in `frappe-bench` and to choose the tunnel technology. No
@@ -19,18 +66,18 @@ file in `roti_ropi_pos`, ERPNext, or Frappe was modified; the backend changes ar
 configuration records and one database grant, all listed under "Backend state
 changed" below.
 
-## Debug/local environment
+## Historical debug/local environment — 2026-07-31
 
-Public origin: `https://seemed-contacting-society-grounds.trycloudflare.com`
+Public origin: `https://combines-ministers-determination-remind.trycloudflare.com`
 
 | # | Gate item | Value | Status |
 | --- | --- | --- | --- |
-| 1 | Canonical origin | `https://seemed-contacting-society-grounds.trycloudflare.com` | Recorded — HTTPS, publicly resolvable, publicly trusted chain |
+| 1 | Canonical origin | `https://combines-ministers-determination-remind.trycloudflare.com` | Recorded — HTTPS, publicly resolvable, publicly trusted chain |
 | 2 | Public OAuth client ID | `rotiropi.mobilepos.task9.staging` | Recorded |
 | 3 | Authorize path | `/api/method/frappe.integrations.oauth2.authorize` | Recorded |
 | 4 | Token path | `/api/method/frappe.integrations.oauth2.get_token` | Recorded |
 | 5 | Scope | `all` | Recorded |
-| 6 | Redirect URI | `https://seemed-contacting-society-grounds.trycloudflare.com/android/oauth2redirect` | Recorded |
+| 6 | Redirect URI | `https://combines-ministers-determination-remind.trycloudflare.com/android/oauth2redirect` | Recorded |
 | 7 | Application ID | `com.rotiropi.pos_erpnext` | Recorded |
 | 8 | Signing SHA-256 | `94:87:02:10:B4:8C:E6:65:D6:1D:F0:E1:C1:91:6E:E6:6C:58:2B:2E:E5:06:8A:D3:80:E0:44:0F:8C:A2:34:23` | Recorded |
 | 9 | OAuth redirect allowlist entry | `redirect_uris` and `default_redirect_uri` both equal item 6 | Recorded |
@@ -62,7 +109,7 @@ Item 1, publicly trusted TLS and public reachability:
 
 ```bash
 curl -sS -o /dev/null -w "http=%{http_code} ssl_verify=%{ssl_verify_result}\n" \
-  https://seemed-contacting-society-grounds.trycloudflare.com/.well-known/assetlinks.json
+  https://combines-ministers-determination-remind.trycloudflare.com/.well-known/assetlinks.json
 # http=200 ssl_verify=0
 ```
 
@@ -71,7 +118,7 @@ trust store with no override. Android's App Link verifier needs exactly that.
 
 Item 2 and 12: `sites/task9-staging.localhost/site_config.json` contains
 `mobile_pos_oauth_client_id`, and `host_name` now reads
-`https://seemed-contacting-society-grounds.trycloudflare.com`. Secret-bearing
+`https://combines-ministers-determination-remind.trycloudflare.com`. Secret-bearing
 keys in that file were not read.
 
 Items 3, 4, 5: `apps/roti_ropi_pos/docs/mobile-pos/android-backend-handoff.md`
@@ -118,7 +165,7 @@ file, because that is what Android consults:
 
 ```bash
 curl -sS "https://digitalassetlinks.googleapis.com/v1/statements:list\
-?source.web.site=https://seemed-contacting-society-grounds.trycloudflare.com\
+?source.web.site=https://combines-ministers-determination-remind.trycloudflare.com\
 &relation=delegate_permission/common.handle_all_urls"
 ```
 
@@ -240,10 +287,19 @@ Item 13: the user approved 10 minutes on 2026-07-31, which is the value the plan
 proposed at `implementation-plan.md:911` and `authentication.md:97`. Task 3 Step 2
 tests the lifetime against this figure; nothing else in this record depends on it.
 
+The 2026-07-31 re-verification returned HTTP 200 with a publicly trusted TLS
+chain for `assetlinks.json` and `/api/method/ping`, HTTP 302 to an HTTPS login
+URL for authorization, HTTP 400 for a bogus token code, one matching statement
+from Google's Digital Asset Links resolver, the installed debug APK certificate
+fingerprint from item 8, the expected OAuth client fields and cashier role, and
+no API key on the test cashier. During restoration, a generic Frappe setter
+printed the non-production OAuth Client document, including its otherwise unused
+server-side secret. The secret was immediately rotated entirely server-side;
+no old or replacement value was written to this repository, and the client
+remains configured with `token_endpoint_auth_method = None`.
+
 ## Remaining actions
 
-1. Grant explicit approval to start Task 3. The gate passing does not authorize
-   it, and neither does Task 2E passing.
-2. Before device work spans more than one sitting, replace the quick tunnel with
+1. Before device work spans more than one sitting, replace the quick tunnel with
    a named Cloudflare tunnel on a domain the user controls. See "The origin is
    ephemeral".

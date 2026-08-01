@@ -24,6 +24,11 @@ import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.rotiropi.pos_erpnext.MainActivity
+import com.rotiropi.pos_erpnext.MobilePosApplication
+import com.rotiropi.pos_erpnext.auth.OAuthTokens
+import com.rotiropi.pos_erpnext.auth.TokenStore
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,8 +36,55 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class ComposeShellTest {
 
+    private val tokenStore: TokenStore by lazy {
+        TokenStore(composeRule.activity.applicationContext)
+    }
+
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
+
+    @Before
+    fun authenticateShellFixture() {
+        tokenStore.write(
+            OAuthTokens(
+                accessToken = "compose-shell-fixture",
+                refreshToken = null,
+                expiresAt = Long.MAX_VALUE,
+                canonicalOrigin = MobilePosApplication.CANONICAL_ORIGIN,
+                clientId = MobilePosApplication.CLIENT_ID,
+            )
+        )
+        composeRule.activityRule.scenario.onActivity { activity ->
+            (activity.application as MobilePosApplication).authenticationOwner.restoreAuthenticationState()
+        }
+    }
+
+    @After
+    fun clearShellFixture() {
+        composeRule.activityRule.scenario.onActivity { activity ->
+            (activity.application as MobilePosApplication).authenticationOwner.logout()
+        }
+    }
+
+    @Test
+    fun production_launch_without_valid_token_shows_sign_in() {
+        tokenStore.clear()
+        composeRule.activityRule.scenario.onActivity { activity ->
+            (activity.application as MobilePosApplication).authenticationOwner.restoreAuthenticationState()
+        }
+
+        composeRule.onNodeWithTag("sign-in-button").assertIsDisplayed()
+        composeRule.onNodeWithTag("root-home").assertDoesNotExist()
+    }
+
+    @Test
+    fun authenticated_fixture_exposes_shell_and_logout_returns_to_sign_in() {
+        composeRule.onNodeWithTag("root-more").performClick()
+        composeRule.onNodeWithTag("more-logout").performScrollTo().performClick()
+
+        composeRule.onNodeWithTag("sign-in-button").assertIsDisplayed()
+        composeRule.onNodeWithTag("root-more").assertDoesNotExist()
+    }
 
     @Test
     fun launch_displays_compose_home_destination() {

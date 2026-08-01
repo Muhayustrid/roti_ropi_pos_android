@@ -34,7 +34,7 @@ class MobilePosApiClientTest {
     )
 
     private lateinit var server: MockWebServer
-    private lateinit var client: MobilePosApiClient
+    private lateinit var client: AuthenticatedMobilePosApiClient
     private lateinit var events: MutableList<ApiTransportEvent>
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -48,8 +48,9 @@ class MobilePosApiClientTest {
         server.start()
         events = mutableListOf()
         val origin = CanonicalBackendOrigin.parse(server.url("/").toString())
-        client = MobilePosApiClient(
+        client = AuthenticatedMobilePosApiClient(
             origin,
+            StaticTokenProvider,
             OkHttpClient.Builder()
                 .sslSocketFactory(clientCertificates.sslSocketFactory(), clientCertificates.trustManager)
                 .followRedirects(false)
@@ -69,8 +70,7 @@ class MobilePosApiClientTest {
         server.enqueue(stableSuccess("precise-123.4500"))
         val request = MobilePosRequest.get(
             MobilePosEndpoint.CATALOG_SEARCH,
-            mapOf("pos_profile" to "Outlet 01", "q" to "croissant & coffee"),
-            "token-secret"
+            mapOf("pos_profile" to "Outlet 01", "q" to "croissant & coffee")
         )
 
         val result = client.execute(request, ResponseData.serializer())
@@ -96,8 +96,7 @@ class MobilePosApiClientTest {
             val request = when (endpoint.method) {
                 HttpMethod.GET -> MobilePosRequest.get(
                     endpoint,
-                    endpoint.requiredRequestFields.associateWith { sampleQueryValue(it) },
-                    "token-secret"
+                    endpoint.requiredRequestFields.associateWith { sampleQueryValue(it) }
                 )
                 HttpMethod.POST -> samplePostRequest(endpoint)
             }
@@ -120,7 +119,6 @@ class MobilePosApiClientTest {
             body,
             SaleBody.serializer(),
             json,
-            "token-secret",
             "123e4567-e89b-12d3-a456-426614174000"
         )
         client.execute(request, ResponseData.serializer())
@@ -140,7 +138,6 @@ class MobilePosApiClientTest {
                 body,
                 ScanBody.serializer(),
                 json,
-                "token",
                 "123e4567-e89b-12d3-a456-426614174000"
             )
         }
@@ -230,7 +227,7 @@ class MobilePosApiClientTest {
         }
     }
 
-    private fun bootstrapRequest() = MobilePosRequest.get(MobilePosEndpoint.BOOTSTRAP_GET, emptyMap(), "token-secret")
+    private fun bootstrapRequest() = MobilePosRequest.get(MobilePosEndpoint.BOOTSTRAP_GET, emptyMap())
 
     private fun samplePostRequest(endpoint: MobilePosEndpoint): MobilePosRequest {
         val fields = endpoint.requiredRequestFields.associateWith { field ->
@@ -241,7 +238,13 @@ class MobilePosApiClientTest {
         }
         val serializer = kotlinx.serialization.json.JsonObject.serializer()
         val key = if (endpoint.requiresIdempotency) "123e4567-e89b-12d3-a456-426614174000" else null
-        return MobilePosRequest.post(endpoint, kotlinx.serialization.json.JsonObject(fields), serializer, json, "token-secret", key)
+        return MobilePosRequest.post(endpoint, kotlinx.serialization.json.JsonObject(fields), serializer, json, key)
+    }
+
+    private object StaticTokenProvider : AuthTokenProvider {
+        override fun currentAccessToken(): String = "token-secret"
+        override fun refreshAccessToken(): String? = null
+        override fun currentTokens() = null
     }
 
     private fun sampleQueryValue(field: String): String = when (field) {

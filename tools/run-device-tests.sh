@@ -673,8 +673,10 @@ if [ $INSTALL_TEST_RC -ne 0 ]; then
 fi
 
 echo "Running instrumentation tests on $RUNNING_SERIAL..."
+# Host-script-only setup/verification methods are annotated @SpecialHarnessOnly and
+# excluded from the broad suite; tools/oauth-process-death.sh invokes them by name.
 INSTR_RC=0
-run_cmd_bounded 120 "$ADB" -s "$RUNNING_SERIAL" shell am instrument -w -r com.rotiropi.pos_erpnext.test/androidx.test.runner.AndroidJUnitRunner > "$INSTRUMENTATION_FILE" 2>&1 || INSTR_RC=$?
+run_cmd_bounded 120 "$ADB" -s "$RUNNING_SERIAL" shell am instrument -w -r -e notAnnotation com.rotiropi.pos_erpnext.test.SpecialHarnessOnly com.rotiropi.pos_erpnext.test/androidx.test.runner.AndroidJUnitRunner > "$INSTRUMENTATION_FILE" 2>&1 || INSTR_RC=$?
 
 cat "$INSTRUMENTATION_FILE"
 
