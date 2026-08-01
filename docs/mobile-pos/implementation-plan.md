@@ -37,7 +37,7 @@ Task status, not unchecked execution-step boxes below, records current completio
 | 2C | Completed | Commit `3801d03`, merged via `3352ddd`. Dashboard/Products states, adaptive layouts, honest unavailable release wiring, debug previews, and unit/Compose UI tests exist. Cumulative fresh verification through Task 2E passes the full Gradle and API 23/API 36 gates. Complete live aggregates remain unavailable. |
 | 2D | Completed | Commit `ee56e73`, merged via `ef491fd`. Cashier/cart/checkout/receipt states, bounded rows, manual/HID barcode input, adaptive cart layouts, honest disabled payment confirmation, server-receipt display, debug previews, and unit/Compose UI tests exist. Cumulative fresh verification through Task 2E passes the full Gradle and API 23/API 36 gates. |
 | 2E | Completed | Candidate `a391411` plus a test-only API 23 visibility fix, a chart slot alignment fix, and a debug-only `Demo layout` shell toggle. Reports/More states, application-private theme persistence, shell wiring, debug previews, and unit/Compose UI tests exist. Clean Gradle gate passed 100 tasks; API 23 and API 36 each passed 41 tests. Complete live reports remain unavailable; the populated shell is debug-only, defaults off, and is absent from release. |
-| 3 | Not Started | OAuth, encrypted attempt/token storage, redirect components, tests, and harness are absent. |
+| 3 | Completed | Commit `7a0aa51` implements OAuth Authorization Code + PKCE, encrypted attempt/token storage, App Link redirect handling, restart/logout/stale-callback behavior, and authenticated bootstrap. Final stable-origin verification passed on 2026-08-01; see `task-3-gate-record.md`. |
 | 4 | Not Started | Repository, bootstrap/profile routing, logout coordinator, UI, tests, and fixtures are absent. |
 | 5 | Not Started | Connectivity, pending mutation storage, recovery coordinator/worker, UI, tests, and process-death harness are absent. |
 | 6 | Not Started | Opening UI/repository behavior, tests, and fixtures are absent. |
@@ -48,9 +48,8 @@ Task status, not unchecked execution-step boxes below, records current completio
 | 11 | Not Started | Closing UI/repository behavior, tests, and fixtures are absent. |
 | 12 | Not Started | Final lifecycle, performance, accessibility, release-inspection tests and harnesses are absent. |
 
-The next incomplete Android task is Task 3. Completion of Task 2E does not
-authorize Task 3; it requires separate explicit approval and the external OAuth
-environment/provisioning gates documented below.
+The next incomplete Android task is Task 4. Completion of Task 3 does not
+authorize Task 4; it requires separate explicit approval.
 
 ## Global Constraints
 
@@ -898,12 +897,11 @@ external provisioning evidence is absent. Android does not provision the OAuth
 client or cashier. Production remains a separate Final gate.
 
 `docs/mobile-pos/task-3-gate-record.md` holds those recorded values and their
-evidence. As of 2026-07-31 all thirteen items are recorded and verified against a
-public HTTPS origin, and the 10-minute attempt lifetime is approved, so this gate
-is passed. Explicit approval to begin Task 3 remains separate and is not given.
-The origin is an ephemeral `trycloudflare.com` hostname: restarting the tunnel
-invalidates items 1, 6, and 9, and that record's "Restoring the origin after a
-restart" section is the recovery procedure.
+evidence. Explicit approval to begin Task 3 was given on 2026-07-31. As of
+2026-08-01 all thirteen items are recorded and verified against the stable named-
+tunnel public HTTPS origin, the 10-minute attempt lifetime is approved, and the
+final Task 3 gate has passed. Task 3 completed on 2026-08-01. The record preserves
+the earlier ephemeral-origin provisioning history separately.
 
 - [x] **Step 2: Write failing OAuth and Keystore tests**
 
