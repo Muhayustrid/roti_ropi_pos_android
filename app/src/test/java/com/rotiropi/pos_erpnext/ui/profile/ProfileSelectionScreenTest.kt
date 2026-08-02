@@ -8,6 +8,11 @@ import org.robolectric.RuntimeEnvironment
 import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.data.PosCapabilities
 import com.rotiropi.pos_erpnext.data.PosProfile
+import com.rotiropi.pos_erpnext.recovery.PendingMutationState
+import com.rotiropi.pos_erpnext.recovery.RecoveryIdentity
+import com.rotiropi.pos_erpnext.recovery.RecoveryScreenState
+import com.rotiropi.pos_erpnext.recovery.RecoveryTerminalResult
+import com.rotiropi.pos_erpnext.recovery.TerminalReadToken
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -75,6 +80,26 @@ class ProfileSelectionScreenTest {
 
         assertEquals(1, retries)
         assertEquals(1, logouts)
+    }
+
+    @Test
+    fun blockedLogoutShowsRecoveryDirectionAndAcknowledgesExactTerminal() {
+        var acknowledged: String? = null
+        val terminal = RecoveryScreenState.Terminal(
+            identity = RecoveryIdentity("cashier-1", "https://example.test", "client"),
+            generation = 1,
+            transactionId = "123e4567-e89b-42d3-a456-426614174000",
+            result = RecoveryTerminalResult.Rejected("INVALID", "Review action", "REQ-1"),
+            token = TerminalReadToken("123e4567-e89b-42d3-a456-426614174000", 1),
+        )
+        val screen = ProfileSelectionScreen(context, onAcknowledgeRecovery = { acknowledged = it })
+
+        screen.render(state(logoutBlockedMessage = "Sign out blocked: cashier-1 has rejected recovery.", recovery = terminal))
+
+        assertEquals(android.view.View.VISIBLE, screen.findViewById<TextView>(R.id.profile_selection_recovery).visibility)
+        assertTrue(screen.findViewById<TextView>(R.id.profile_selection_recovery).text.contains("cashier-1"))
+        screen.findViewById<Button>(R.id.profile_selection_acknowledge_recovery).performClick()
+        assertEquals(terminal.transactionId, acknowledged)
     }
 
     @Test
@@ -164,6 +189,8 @@ class ProfileSelectionScreenTest {
         retryRequired: Boolean = false,
         selectedProfileName: String? = null,
         profiles: List<PosProfile> = this.profiles,
+        logoutBlockedMessage: String? = null,
+        recovery: RecoveryScreenState = RecoveryScreenState.Hidden,
     ) = ProfileSelectionUiState(
         profiles = profiles,
         selectedProfileName = selectedProfileName,
@@ -172,6 +199,8 @@ class ProfileSelectionScreenTest {
         error = error,
         retryRequired = retryRequired,
         anyActionEnabled = PosCapabilities.DISABLED.any,
+        logoutBlockedMessage = logoutBlockedMessage,
+        recovery = recovery,
     )
 
     private fun profile(name: String) = PosProfile(
