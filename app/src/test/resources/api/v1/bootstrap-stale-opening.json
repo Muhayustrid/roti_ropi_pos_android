@@ -1,0 +1,55 @@
+{
+  "user": {"name": "cashier@example.com", "full_name": "Cashier One"},
+  "profiles": [
+    {
+      "name": "OUTLET-01",
+      "company": "Roti Ropi",
+      "warehouse": "Outlet 01 - RR",
+      "currency": "IDR",
+      "selling_price_list": "PG-Outlet 01",
+      "customer": "Walk In Customer",
+      "allow_partial_payment": false,
+      "invoice_mode": "POS Invoice"
+    }
+  ],
+  "selected_profile": {
+    "name": "OUTLET-01",
+    "company": "Roti Ropi",
+    "warehouse": "Outlet 01 - RR",
+    "currency": "IDR",
+    "selling_price_list": "PG-Outlet 01",
+    "customer": "Walk In Customer",
+    "allow_partial_payment": false,
+    "invoice_mode": "POS Invoice"
+  },
+  "opening_session": {
+    "name": "POS-OPE-2026-00001",
+    "pos_profile": "OUTLET-01",
+    "company": "Roti Ropi",
+    "user": "cashier@example.com",
+    "status": "open",
+    "posting_date": "2026-07-22",
+    "period_start_date": "2026-07-22T08:00:00+07:00",
+    "opening_balances": [
+      {"mode_of_payment": "Cash", "opening_amount": "500000"}
+    ],
+    "warnings": [
+      {
+        "code": "STALE_OPENING",
+        "message": "The current POS opening started on an earlier calendar day.",
+        "details": {
+          "opening_date": "2026-07-22",
+          "server_date": "2026-07-23"
+        }
+      }
+    ]
+  },
+  "capabilities": {
+    "open_session": false,
+    "submit_sale": true,
+    "create_return": true,
+    "cancel_sale": false,
+    "close_session": true
+  },
+  "pos_mode": "POS Invoice"
+}

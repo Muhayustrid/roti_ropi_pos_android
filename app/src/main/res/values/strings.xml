@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">POS-ERPNext</string>
+    <string name="profile_selection_title">Select POS profile</string>
+    <string name="profile_selection_loading">Loading profiles</string>
+    <string name="profile_selection_retry">Retry</string>
+    <string name="profile_selection_logout">Sign out</string>
+    <string name="profile_selection_error">Profile selection error</string>
+    <string name="profile_selection_previous">Previous</string>
+    <string name="profile_selection_next">Next</string>
+    <string name="profile_selection_page">Page %1$d of %2$d</string>
+    <string name="task4_change_profile">Change profile</string>
 </resources>

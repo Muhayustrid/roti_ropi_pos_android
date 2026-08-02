@@ -38,7 +38,7 @@ Task status, not unchecked execution-step boxes below, records current completio
 | 2D | Completed | Commit `ee56e73`, merged via `ef491fd`. Cashier/cart/checkout/receipt states, bounded rows, manual/HID barcode input, adaptive cart layouts, honest disabled payment confirmation, server-receipt display, debug previews, and unit/Compose UI tests exist. Cumulative fresh verification through Task 2E passes the full Gradle and API 23/API 36 gates. |
 | 2E | Completed | Candidate `a391411` plus a test-only API 23 visibility fix, a chart slot alignment fix, and a debug-only `Demo layout` shell toggle. Reports/More states, application-private theme persistence, shell wiring, debug previews, and unit/Compose UI tests exist. Clean Gradle gate passed 100 tasks; API 23 and API 36 each passed 41 tests. Complete live reports remain unavailable; the populated shell is debug-only, defaults off, and is absent from release. |
 | 3 | Completed | Commit `7a0aa51` implements OAuth Authorization Code + PKCE, encrypted attempt/token storage, App Link redirect handling, restart/logout/stale-callback behavior, and authenticated bootstrap. Final stable-origin verification passed on 2026-08-01; see `task-3-gate-record.md`. |
-| 4 | Not Started | Repository, bootstrap/profile routing, logout coordinator, UI, tests, and fixtures are absent. |
+| 4 | Completed | Uncommitted implementation adds bootstrap/profile routing, coalesced capability ownership, ordered logout cleanup, XML/ViewBinding profile/root UI, fixtures, and tests. Final API 23/API 36 gates and corrected AGP 9 release unit-test gate passed on 2026-08-02; see `session-handoff-task-4.md`. |
 | 5 | Not Started | Connectivity, pending mutation storage, recovery coordinator/worker, UI, tests, and process-death harness are absent. |
 | 6 | Not Started | Opening UI/repository behavior, tests, and fixtures are absent. |
 | 7 | Not Started | Customer selection UI/repository behavior, tests, and fixture are absent. |
@@ -48,8 +48,8 @@ Task status, not unchecked execution-step boxes below, records current completio
 | 11 | Not Started | Closing UI/repository behavior, tests, and fixtures are absent. |
 | 12 | Not Started | Final lifecycle, performance, accessibility, release-inspection tests and harnesses are absent. |
 
-The next incomplete Android task is Task 4. Completion of Task 3 does not
-authorize Task 4; it requires separate explicit approval.
+The next incomplete Android task is Task 5. Completion of Task 4 does not
+authorize Task 5; it requires separate explicit approval.
 
 ## Global Constraints
 
@@ -1026,7 +1026,7 @@ Report `feat: add secure OAuth PKCE authentication` and wait for approval.
 
 ### Task 4: Implement Bootstrap and Profile Selection
 
-**Status:** Not Started.
+**Status:** Completed on 2026-08-02. Implementation, review, and verification are complete. The initial exact-once gate passed seven of eight commands and exposed the missing `testReleaseUnitTest` task; a separately approved follow-up enabled release unit tests under AGP 9.2.1, then passed 187/187. Changes remain uncommitted pending explicit approval.
 
 **Depends on:** Approved and passing Task 3.
 
@@ -1063,7 +1063,7 @@ Report `feat: add secure OAuth PKCE authentication` and wait for approval.
 - Profile and opening domain models.
 - Capability-driven initial routing.
 
-- [ ] **Step 1: Write failing bootstrap tests**
+- [x] **Step 1: Write failing bootstrap tests**
 
 Cover no profile, one profile, multiple profiles, selected profile, all
 capabilities false without selection, stale opening warning, unknown fields,
@@ -1075,7 +1075,7 @@ bootstrap completion, capability observation, rendering, or refresh failure.
 Verify logout clears authentication, bootstrap, and repository memory before
 routing to sign in.
 
-- [ ] **Step 2: Run the red tests**
+- [x] **Step 2: Run the red tests**
 
 ```bash
 ./gradlew testDebugUnitTest --tests "*Bootstrap*" --tests "*ProfileSelection*"
@@ -1083,7 +1083,7 @@ routing to sign in.
 
 Expected: FAIL on missing repository, routing, and ViewModels.
 
-- [ ] **Step 3: Implement bootstrap and routing**
+- [x] **Step 3: Implement bootstrap and routing**
 
 Map DTOs to domain models, select a single profile automatically, require
 selection for multiple profiles, expose `STALE_OPENING`, and use capabilities
@@ -1092,7 +1092,7 @@ capability owner. Start every process with mutations disabled and refresh only
 after the authoritative events listed in `api-integration.md`; failed required
 refresh leaves mutations disabled until explicit Retry.
 
-- [ ] **Step 4: Verify Phase 2**
+- [x] **Step 4: Verify Phase 2**
 
 ```bash
 ./gradlew testDebugUnitTest
@@ -1108,12 +1108,32 @@ refresh leaves mutations disabled until explicit Retry.
 Expected: PASS on API 23 and API 36. An unavailable required device or image
 blocks Task 4 completion.
 
+Final gate evidence from 2026-08-02 (each command executed exactly once):
+
+- `./gradlew testDebugUnitTest`: PASS, 187 tests, 0 failures, 0 errors, 0 skipped.
+- `./gradlew testReleaseUnitTest`: FAIL, exit 1; not rerun under the exact-once gate policy.
+- `./gradlew lintDebug`: PASS.
+- `./gradlew lintRelease`: PASS.
+- `./gradlew assembleDebug`: PASS.
+- `./gradlew assembleRelease`: PASS.
+- `./tools/run-device-tests.sh api23`: PASS, 75/75 tests.
+- `./tools/run-device-tests.sh api36`: PASS, 75/75 tests.
+
+Separately approved follow-up evidence from 2026-08-02:
+
+- Root cause: AGP 9 changed `android.onlyEnableUnitTestForTheTestedBuildType` from `false` to `true`, so only the tested debug unit-test component existed and `testReleaseUnitTest` was absent.
+- Fix: `gradle.properties` now sets `android.onlyEnableUnitTestForTheTestedBuildType=false`, preserving the plan's debug and release unit-test gates.
+- Corrected `./gradlew testReleaseUnitTest`: PASS, 187 tests, 0 failures, 0 errors, 0 skipped.
+- Scoped independent review: APPROVE, no P0/P1 or lower-severity findings.
+
+No commit, push, merge, deploy, or Task 5 work was performed.
+
 **Acceptance criteria:** Bootstrap/profile routing, stale-opening display,
 capability ownership, exact refresh triggers, coalescing, failure-disablement,
 initial logout cleanup, and API 23/API 36 UI behavior pass with reviewed Backend
 Phase 3 fixtures.
 
-- [ ] **Step 5: Review and stop**
+- [x] **Step 5: Review and stop**
 
 Report `feat: add scoped mobile POS bootstrap` and wait for approval.
 

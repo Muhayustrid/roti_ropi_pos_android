@@ -48,6 +48,7 @@ fun PosShell(
     onAccentSelected: (PosAccent) -> Unit = {},
     modifier: Modifier = Modifier,
     authenticationOwner: AuthenticationOwner? = null,
+    onLogout: (() -> Unit)? = null,
 ) {
     val authState = authenticationOwner?.state?.collectAsState()?.value
     if (authenticationOwner != null && authState != AuthenticationState.Authenticated) {
@@ -65,7 +66,7 @@ fun PosShell(
         accent = accent,
         onThemeModeSelected = onThemeModeSelected,
         onAccentSelected = onAccentSelected,
-        onLogout = authenticationOwner?.let { owner -> owner::logout } ?: {},
+        onLogout = onLogout ?: authenticationOwner?.let { owner -> owner::logout } ?: {},
         logoutVisible = authenticationOwner != null,
         modifier = modifier,
     )
