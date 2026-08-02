@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Read `AGENTS.md` before changing code. It is authoritative for security, API boundaries, change control, testing, and Android stack decisions. Communicate with the user in Indonesian; keep repository Markdown, code comments, test names, and commit messages in English. Do not commit, push, publish, deploy, or start a later implementation phase without explicit user approval.
 
+When `.codegraph/` exists, use CodeGraph before broad repository searches or direct code reads. Query affected symbols and their callers before editing; use targeted reads or broad search only when CodeGraph cannot answer.
+
 ## Commands
 
 Run commands from the repository root. Gradle uses the wrapper; Android Studio's bundled JBR supplies the expected Java toolchain when `JAVA_HOME` is unset.

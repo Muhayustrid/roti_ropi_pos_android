@@ -73,13 +73,8 @@ Read this file before changing the Android repository. These rules apply to the 
 ## Skills and Navigation
 
 - Use `brainstorming` before new user-visible behavior, `writing-plans` for approved multi-step work, `test-driven-development` during implementation, `systematic-debugging` for failures, `requesting-code-review` before completion, and `verification-before-completion` before success claims.
-- Use `graphify` only as a navigation aid. Source, Gradle configuration, Android documentation, and executable tests are authoritative.
-- Graphify skill: `/Users/rotiropi/.config/opencode/skills/graphify/SKILL.md`.
-- Run Android Graphify from `/Users/rotiropi/DockerERPNext/POSERPNext/`; its expected output directory is `/Users/rotiropi/DockerERPNext/POSERPNext/graphify-out/`.
+- When `.codegraph/` exists, use CodeGraph before broad repository searches or direct code reads. Query affected symbols and callers before editing; fall back to targeted reads or broad search only when CodeGraph cannot answer.
 - Backend plan and contracts: `/Users/rotiropi/DockerERPNext/frappe_docker/development/frappe-bench/apps/roti_ropi_pos/docs/mobile-pos/`.
-- At the time of this reorganization, this repository had no commits and every scaffold, configuration, source, instruction, and Graphify path was untracked. Recheck Git status before work and do not infer a historical baseline from the current files.
-- The Android Graphify output currently contains only `.graphify_python`; no `.graphify_root`, `graph.json`, `GRAPH_REPORT.md`, or `graph.html` exists, so generation is incomplete and Graphify queries are unavailable.
-- Graphify output is local generated tooling data and must remain untracked. The repository root `.gitignore` does not currently exclude `/graphify-out/`; this documentation-only task does not change `.gitignore`.
 
 ## Android Skill Selection
 
