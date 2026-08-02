@@ -1,0 +1,34 @@
+{
+  "user": {"name": "cashier@example.com", "full_name": "Cashier One"},
+  "profiles": [
+    {
+      "name": "OUTLET-01",
+      "company": "Roti Ropi",
+      "warehouse": "Outlet 01 - RR",
+      "currency": "IDR",
+      "selling_price_list": "PG-Outlet 01",
+      "customer": "Walk In Customer",
+      "allow_partial_payment": false,
+      "invoice_mode": "POS Invoice"
+    }
+  ],
+  "selected_profile": {
+    "name": "OUTLET-01",
+    "company": "Roti Ropi",
+    "warehouse": "Outlet 01 - RR",
+    "currency": "IDR",
+    "selling_price_list": "PG-Outlet 01",
+    "customer": "Walk In Customer",
+    "allow_partial_payment": false,
+    "invoice_mode": "POS Invoice"
+  },
+  "opening_session": null,
+  "capabilities": {
+    "open_session": true,
+    "submit_sale": false,
+    "create_return": false,
+    "cancel_sale": false,
+    "close_session": false
+  },
+  "pos_mode": "POS Invoice"
+}

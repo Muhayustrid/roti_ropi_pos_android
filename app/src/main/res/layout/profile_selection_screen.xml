@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/profile_selection_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/profile_selection_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/profile_selection_title"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:accessibilityHeading="true" />
+
+    <TextView
+        android:id="@+id/profile_selection_loading"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/profile_selection_loading"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/profile_selection_error"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:textColor="?attr/colorError"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/profile_selection_retry"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:layout_marginTop="8dp"
+        android:text="@string/profile_selection_retry"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/profile_selection_rows"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="16dp"
+        android:orientation="vertical" />
+
+    <TextView
+        android:id="@+id/profile_selection_page"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="@string/profile_selection_page"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/profile_selection_paging"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <Button
+            android:id="@+id/profile_selection_previous"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minHeight="48dp"
+            android:text="@string/profile_selection_previous" />
+
+        <Button
+            android:id="@+id/profile_selection_next"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minHeight="48dp"
+            android:text="@string/profile_selection_next" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/profile_selection_logout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:text="@string/profile_selection_logout" />
+</LinearLayout>

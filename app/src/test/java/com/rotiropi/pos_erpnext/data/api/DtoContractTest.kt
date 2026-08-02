@@ -70,13 +70,51 @@ class DtoContractTest {
             "native-401.json", "native-403.json", "native-404.json", "native-429.json",
             "native-500.json", "native-503.json", "malformed-response.json",
             "incompatible-api-version.json", "additive-fields.json", "unknown-enum.json",
-            "dto-contract-examples.json"
+            "dto-contract-examples.json",
+            "bootstrap-one-profile.json", "bootstrap-multiple-profiles.json",
+            "bootstrap-stale-opening.json"
         )
         assertEquals(expected, declared)
     }
 
+    @Test
+    fun bootstrap_one_profile_selects_single_profile() {
+        val bootstrap = decodeFixture<BootstrapResponseDto>("bootstrap-one-profile.json")
+        assertEquals(1, bootstrap.profiles.size)
+        assertEquals("OUTLET-01", bootstrap.selected_profile?.name)
+        assertEquals(null, bootstrap.opening_session)
+        assertTrue(bootstrap.capabilities.open_session)
+        assertFalse(bootstrap.capabilities.submit_sale)
+        assertFalse(bootstrap.capabilities.create_return)
+        assertFalse(bootstrap.capabilities.cancel_sale)
+        assertFalse(bootstrap.capabilities.close_session)
+    }
+
+    @Test
+    fun bootstrap_multiple_profiles_leave_selection_pending() {
+        val bootstrap = decodeFixture<BootstrapResponseDto>("bootstrap-multiple-profiles.json")
+        assertEquals(2, bootstrap.profiles.size)
+        assertEquals(null, bootstrap.selected_profile)
+        assertFalse(bootstrap.capabilities.open_session)
+        assertFalse(bootstrap.capabilities.submit_sale)
+        assertFalse(bootstrap.capabilities.create_return)
+        assertFalse(bootstrap.capabilities.cancel_sale)
+        assertFalse(bootstrap.capabilities.close_session)
+    }
+
+    @Test
+    fun bootstrap_stale_opening_reports_stale_warning_code() {
+        val bootstrap = decodeFixture<BootstrapResponseDto>("bootstrap-stale-opening.json")
+        assertEquals(OpeningStatus.OPEN, bootstrap.opening_session?.status)
+        assertEquals("STALE_OPENING", bootstrap.opening_session?.warnings?.single()?.code)
+        assertTrue(bootstrap.capabilities.submit_sale)
+    }
+
     private inline fun <reified T> decode(key: String): T =
         json.decodeFromJsonElement(kotlinx.serialization.serializer<T>(), examples.getValue(key))
+
+    private inline fun <reified T> decodeFixture(file: String): T =
+        json.decodeFromString(kotlinx.serialization.serializer<T>(), resource(file))
 
     private fun resource(name: String) =
         javaClass.getResourceAsStream("/api/v1/$name")!!.bufferedReader().readText()

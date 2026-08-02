@@ -6,7 +6,11 @@ import com.rotiropi.pos_erpnext.auth.OAuthAttemptStore
 import com.rotiropi.pos_erpnext.auth.OAuthConfiguration
 import com.rotiropi.pos_erpnext.auth.OAuthCoordinator
 import com.rotiropi.pos_erpnext.auth.TokenStore
+import com.rotiropi.pos_erpnext.data.MobilePosRepository
 import com.rotiropi.pos_erpnext.data.api.AuthenticatedMobilePosApiClient
+import com.rotiropi.pos_erpnext.session.LogoutCoordinator
+import com.rotiropi.pos_erpnext.ui.AppViewModel
+import com.rotiropi.pos_erpnext.ui.profile.ProfileSelectionViewModel
 import com.rotiropi.pos_erpnext.data.api.CanonicalBackendOrigin
 import com.rotiropi.pos_erpnext.data.api.CoordinatorAuthTokenProvider
 import okhttp3.OkHttpClient
@@ -22,6 +26,14 @@ class MobilePosApplication : Application() {
     lateinit var authTokenProvider: CoordinatorAuthTokenProvider
         private set
     lateinit var mobilePosApiClient: AuthenticatedMobilePosApiClient
+        private set
+    lateinit var mobilePosRepository: MobilePosRepository
+        private set
+    lateinit var logoutCoordinator: LogoutCoordinator
+        private set
+    lateinit var appViewModel: AppViewModel
+        private set
+    lateinit var profileSelectionViewModel: ProfileSelectionViewModel
         private set
 
     override fun onCreate() {
@@ -48,6 +60,14 @@ class MobilePosApplication : Application() {
             CanonicalBackendOrigin.parse(CANONICAL_ORIGIN),
             authTokenProvider,
             OkHttpClient()
+        )
+        mobilePosRepository = MobilePosRepository(mobilePosApiClient)
+        appViewModel = AppViewModel(mobilePosRepository)
+        profileSelectionViewModel = ProfileSelectionViewModel(mobilePosRepository)
+        logoutCoordinator = LogoutCoordinator(
+            mobilePosRepository,
+            profileSelectionViewModel,
+            authenticationOwner
         )
     }
 
