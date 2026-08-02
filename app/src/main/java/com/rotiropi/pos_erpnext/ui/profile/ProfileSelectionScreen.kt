@@ -10,6 +10,7 @@ import android.widget.LinearLayout
 import androidx.core.view.isVisible
 import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.data.PosProfile
+import com.rotiropi.pos_erpnext.recovery.RecoveryScreenState
 import com.rotiropi.pos_erpnext.databinding.ProfileSelectionScreenBinding
 
 class ProfileSelectionScreen @JvmOverloads constructor(
@@ -19,11 +20,15 @@ class ProfileSelectionScreen @JvmOverloads constructor(
     onProfileSelected: (String) -> Unit = {},
     onRetry: () -> Unit = {},
     onLogout: () -> Unit = {},
+    onAcknowledgeRecovery: (String) -> Unit = {},
 ) : FrameLayout(context, attrs, defStyleAttr) {
     private val binding = ProfileSelectionScreenBinding.inflate(LayoutInflater.from(context), this, true)
     private var profileSelected = onProfileSelected
     private var retry = onRetry
     private var logout = onLogout
+    private var acknowledgeRecovery = onAcknowledgeRecovery
+    private var reauthenticateRecovery: () -> Unit = {}
+    private var recovery: RecoveryScreenState = RecoveryScreenState.Hidden
     private var profiles: List<PosProfile> = emptyList()
     private var selectedProfileName: String? = null
     private var page = 0
@@ -32,6 +37,10 @@ class ProfileSelectionScreen @JvmOverloads constructor(
     init {
         binding.profileSelectionRetry.setOnClickListener { retry() }
         binding.profileSelectionLogout.setOnClickListener { logout() }
+        binding.profileSelectionAcknowledgeRecovery.setOnClickListener {
+            (recovery as? RecoveryScreenState.Terminal)?.transactionId?.let(acknowledgeRecovery)
+        }
+        binding.profileSelectionReauthenticateRecovery.setOnClickListener { reauthenticateRecovery() }
         binding.profileSelectionPrevious.setOnClickListener {
             if (page > 0) {
                 page--
@@ -59,16 +68,41 @@ class ProfileSelectionScreen @JvmOverloads constructor(
         logout = listener
     }
 
+    fun setOnAcknowledgeRecovery(listener: (String) -> Unit) {
+        acknowledgeRecovery = listener
+    }
+
+    fun setOnReauthenticateRecovery(listener: () -> Unit) {
+        reauthenticateRecovery = listener
+    }
+
     fun render(state: ProfileSelectionUiState) {
         if (profiles.map { it.name } != state.profiles.map { it.name }) page = 0
         profiles = state.profiles
         selectedProfileName = state.selectedProfileName
+        recovery = state.recovery
         actionsEnabled = !state.refreshing
         page = page.coerceAtMost(lastPage())
         binding.profileSelectionLoading.isVisible = state.refreshing
         binding.profileSelectionError.isVisible = !state.refreshing && state.error != null
         binding.profileSelectionRetry.isVisible = !state.refreshing && state.retryRequired
         binding.profileSelectionError.text = state.error.orEmpty()
+        val recoveryMessage = when (val item = state.recovery) {
+            RecoveryScreenState.Hidden -> null
+            is RecoveryScreenState.AuthenticationRequired -> "Sign in again to continue this recovery action."
+            is RecoveryScreenState.RetrySchedulingFailed -> "Recovery retry could not be scheduled. Keep the app open and try again later."
+            is RecoveryScreenState.ManualRecovery -> item.message
+            is RecoveryScreenState.Terminal -> when (val result = item.result) {
+                is com.rotiropi.pos_erpnext.recovery.RecoveryTerminalResult.Completed ->
+                    "${result.operation} ${result.reference} completed with status ${result.status}."
+                is com.rotiropi.pos_erpnext.recovery.RecoveryTerminalResult.Rejected ->
+                    "${result.code}: ${result.message}"
+            }
+        }
+        binding.profileSelectionRecovery.isVisible = state.logoutBlockedMessage != null || recoveryMessage != null
+        binding.profileSelectionRecovery.text = state.logoutBlockedMessage ?: recoveryMessage.orEmpty()
+        binding.profileSelectionAcknowledgeRecovery.isVisible = state.recovery is RecoveryScreenState.Terminal
+        binding.profileSelectionReauthenticateRecovery.isVisible = state.recovery is RecoveryScreenState.AuthenticationRequired
         val showProfiles = !state.refreshing && state.error == null && !state.retryRequired
         binding.profileSelectionRows.isVisible = showProfiles
         binding.profileSelectionPaging.isVisible = showProfiles && profiles.size > PAGE_SIZE

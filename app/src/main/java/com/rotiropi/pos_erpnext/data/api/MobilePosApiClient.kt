@@ -120,11 +120,11 @@ internal class MobilePosApiClient(
                 } catch (_: IllegalArgumentException) {
                     return ApiResult.ProtocolFailure("Response data does not match contract")
                 }
-                return ApiResult.Success(data, envelope.meta)
+                return ApiResult.Success(data, envelope.meta, body.encodeToByteArray())
             }
             val error = envelope.error ?: return ApiResult.ProtocolFailure("Failure response missing error")
             if (envelope.data != null) return ApiResult.ProtocolFailure("Failure response contains data")
-            return ApiResult.ExpectedFailure(error, envelope.meta)
+            return ApiResult.ExpectedFailure(error, envelope.meta, body.encodeToByteArray(), RetryAfter.parse(retryAfter), statusCode)
         }
 
         return when (statusCode) {

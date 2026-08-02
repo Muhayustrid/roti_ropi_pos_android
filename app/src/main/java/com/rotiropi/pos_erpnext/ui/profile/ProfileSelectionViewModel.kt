@@ -5,6 +5,9 @@ import com.rotiropi.pos_erpnext.data.BootstrapRefreshTrigger
 import com.rotiropi.pos_erpnext.data.MobilePosRepository
 import com.rotiropi.pos_erpnext.data.PosProfile
 import com.rotiropi.pos_erpnext.data.RepositoryResult
+import com.rotiropi.pos_erpnext.recovery.RecoveryScreenState
+import com.rotiropi.pos_erpnext.recovery.RecoveryUiState
+import com.rotiropi.pos_erpnext.session.LogoutResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,7 +25,9 @@ data class ProfileSelectionUiState(
     val refreshing: Boolean,
     val error: String?,
     val retryRequired: Boolean,
-    val anyActionEnabled: Boolean
+    val anyActionEnabled: Boolean,
+    val logoutBlockedMessage: String? = null,
+    val recovery: RecoveryScreenState = RecoveryScreenState.Hidden,
 )
 
 /**
@@ -51,6 +56,8 @@ class ProfileSelectionViewModel(
     private var retryRequired = false
     private var actionInFlight = false
     private var actionEpoch = 0L
+    private var logoutBlockedMessage: String? = null
+    private var recovery: RecoveryScreenState = RecoveryScreenState.Hidden
     private val _state = MutableStateFlow(renderLocked())
     val state: StateFlow<ProfileSelectionUiState> = _state.asStateFlow()
 
@@ -97,6 +104,22 @@ class ProfileSelectionViewModel(
         }
         finishAction(action, repository.refreshCapabilities(action.trigger))
     }
+
+    fun setRecoveryState(logoutResult: LogoutResult?, recoveryUi: RecoveryScreenState) {
+        synchronized(lock) {
+            val blockedMessage = (logoutResult as? LogoutResult.Blocked)?.let {
+                "Sign out blocked: ${it.cashier} has ${it.state.name.lowercase()} recovery."
+            }
+            if (logoutBlockedMessage == blockedMessage && recovery == recoveryUi) return
+            logoutBlockedMessage = blockedMessage
+            recovery = recoveryUi
+            publishLocked()
+        }
+    }
+
+    fun setRecoveryState(logoutResult: LogoutResult?, recovery: RecoveryUiState) =
+        setRecoveryState(logoutResult, recovery.retrySchedulingFailedTransactionId?.let(RecoveryScreenState::RetrySchedulingFailed)
+            ?: RecoveryScreenState.Hidden)
 
     fun synchronizeFromRepository() {
         synchronized(lock) {
@@ -149,7 +172,9 @@ class ProfileSelectionViewModel(
             refreshing = refreshing,
             error = actionError,
             retryRequired = retryRequired,
-            anyActionEnabled = state.capabilities.hasEnabled
+            anyActionEnabled = state.capabilities.hasEnabled,
+            logoutBlockedMessage = logoutBlockedMessage,
+            recovery = recovery,
         )
     }
 

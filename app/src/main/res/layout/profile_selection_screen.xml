@@ -79,6 +79,30 @@
             android:text="@string/profile_selection_next" />
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/profile_selection_recovery"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:accessibilityLiveRegion="polite"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/profile_selection_acknowledge_recovery"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:text="Acknowledge recovery result"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/profile_selection_reauthenticate_recovery"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:text="Sign in again"
+        android:visibility="gone" />
+
     <Button
         android:id="@+id/profile_selection_logout"
         android:layout_width="match_parent"

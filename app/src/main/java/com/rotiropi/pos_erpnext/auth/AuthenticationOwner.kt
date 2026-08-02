@@ -14,6 +14,11 @@ sealed interface AuthenticationState {
     data class Error(val reason: OAuthCompletionResult.Reason) : AuthenticationState
 }
 
+data class AuthenticationSnapshot(
+    val generation: Long,
+    val state: AuthenticationState,
+)
+
 /** Application-scoped owner for authentication state and terminal cleanup. */
 class AuthenticationOwner(
     internal val coordinator: OAuthCoordinator,
@@ -21,8 +26,13 @@ class AuthenticationOwner(
 ) {
     private val ownerLock = Any()
     private var generation = 0L
+    private var successfulAuthorizationGeneration = 0L
+    private var consumedRecoveryGeneration = 0L
     private val mutableState = MutableStateFlow<AuthenticationState>(AuthenticationState.Unauthenticated)
     val state: StateFlow<AuthenticationState> = mutableState.asStateFlow()
+
+    val snapshot: AuthenticationSnapshot
+        get() = synchronized(ownerLock) { AuthenticationSnapshot(generation, mutableState.value) }
 
     val isAuthenticated: Boolean
         get() = mutableState.value == AuthenticationState.Authenticated
@@ -40,6 +50,7 @@ class AuthenticationOwner(
     }
 
     fun beginAuthorization() = synchronized(ownerLock) {
+        generation++
         mutableState.value = AuthenticationState.Authorizing
         try {
             coordinator.beginAuthorization()
@@ -65,6 +76,7 @@ class AuthenticationOwner(
                     OAuthCompletionResult.Reason.ATTEMPT_CONSUMED
                 )
             }
+            val priorState = mutableState.value
             mutableState.value = when (result) {
                 OAuthCompletionResult.Success -> if (coordinator.hasValidStoredTokens()) {
                     AuthenticationState.Authenticated
@@ -73,7 +85,19 @@ class AuthenticationOwner(
                 }
                 is OAuthCompletionResult.Failed -> AuthenticationState.Error(result.reason)
             }
+            if (priorState == AuthenticationState.Authorizing &&
+                mutableState.value == AuthenticationState.Authenticated
+            ) {
+                successfulAuthorizationGeneration++
+            }
             result
+        }
+    }
+
+    fun consumeSuccessfulAuthorization(): Boolean = synchronized(ownerLock) {
+        if (successfulAuthorizationGeneration == consumedRecoveryGeneration) false else {
+            consumedRecoveryGeneration = successfulAuthorizationGeneration
+            true
         }
     }
 

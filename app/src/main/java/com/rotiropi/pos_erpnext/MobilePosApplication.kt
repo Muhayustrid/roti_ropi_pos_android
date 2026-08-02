@@ -7,8 +7,19 @@ import com.rotiropi.pos_erpnext.auth.OAuthConfiguration
 import com.rotiropi.pos_erpnext.auth.OAuthCoordinator
 import com.rotiropi.pos_erpnext.auth.TokenStore
 import com.rotiropi.pos_erpnext.data.MobilePosRepository
+import com.rotiropi.pos_erpnext.data.RepositoryResult
 import com.rotiropi.pos_erpnext.data.api.AuthenticatedMobilePosApiClient
 import com.rotiropi.pos_erpnext.session.LogoutCoordinator
+import com.rotiropi.pos_erpnext.data.AndroidConnectivityStatusProvider
+import com.rotiropi.pos_erpnext.recovery.RecoveryCoordinator
+import com.rotiropi.pos_erpnext.recovery.RecoveryIdentity
+import com.rotiropi.pos_erpnext.recovery.RecoveryTransport
+import com.rotiropi.pos_erpnext.recovery.SqlitePendingMutationStore
+import com.rotiropi.pos_erpnext.recovery.RetryPendingMutationWorker
+import com.rotiropi.pos_erpnext.recovery.RetryScheduler
+import com.rotiropi.pos_erpnext.recovery.ColdRecovery
+import kotlinx.serialization.DeserializationStrategy
+import com.rotiropi.pos_erpnext.recovery.PendingMutation
 import com.rotiropi.pos_erpnext.ui.AppViewModel
 import com.rotiropi.pos_erpnext.ui.profile.ProfileSelectionViewModel
 import com.rotiropi.pos_erpnext.data.api.CanonicalBackendOrigin
@@ -31,6 +42,60 @@ class MobilePosApplication : Application() {
         private set
     lateinit var logoutCoordinator: LogoutCoordinator
         private set
+    private val pendingMutations by lazy { SqlitePendingMutationStore(this) }
+    val recoveryCoordinator: RecoveryCoordinator by lazy {
+        RecoveryCoordinator(
+            store = pendingMutations,
+            transport = object : RecoveryTransport {
+                override fun <T> execute(request: PendingMutation, deserializer: DeserializationStrategy<T>) =
+                    mobilePosApiClient.execute(
+                        com.rotiropi.pos_erpnext.data.api.MobilePosRequest.replayPost(
+                            request.endpoint,
+                            request.body,
+                            request.transactionId,
+                        ),
+                        deserializer,
+                    )
+            },
+            connectivity = AndroidConnectivityStatusProvider(this)::current,
+            identity = {
+                mobilePosRepository.state.bootstrap?.user?.name?.let {
+                    RecoveryIdentity(it, CANONICAL_ORIGIN, CLIENT_ID)
+                }
+            },
+            scheduler = object : RetryScheduler {
+                override fun schedule(
+                    transactionId: String,
+                    nextEligibleAtMillis: Long,
+                    completion: (Throwable?) -> Unit,
+                ) = RetryPendingMutationWorker.schedule(this@MobilePosApplication, transactionId, nextEligibleAtMillis, completion)
+            },
+        )
+    }
+    fun currentRecoveryIdentity(): RecoveryIdentity? =
+        mobilePosRepository.state.bootstrap?.user?.name?.let { RecoveryIdentity(it, CANONICAL_ORIGIN, CLIENT_ID) }
+
+    /** Called only after bootstrap publishes authenticated cashier identity. */
+    fun recoverPendingMutationsAfterBootstrap(allowReauthenticationResume: Boolean = true) {
+        recoveryCoordinator.recoverAtAuthenticatedStartup()
+        if (allowReauthenticationResume && authenticationOwner.consumeSuccessfulAuthorization()) {
+            recoveryCoordinator.resumeAfterSuccessfulReauthentication()
+        }
+    }
+
+    /** WorkManager cold-process boundary. Never derives identity from persisted mutation evidence. */
+    fun retryPendingMutationAfterColdBootstrap(transactionId: String) = ColdRecovery(
+        hasStoredAuth = { authenticationOwner.isAuthenticated },
+        currentBootstrapIdentity = {
+            mobilePosRepository.state.bootstrap?.user?.name?.let {
+                RecoveryIdentity(it, CANONICAL_ORIGIN, CLIENT_ID)
+            }
+        },
+        bootstrap = { mobilePosRepository.bootstrap(null) is RepositoryResult.Success },
+        recoverStaleSending = recoveryCoordinator::recoverStaleSending,
+        retryAction = recoveryCoordinator::retry,
+    ).retry(transactionId)
+
     lateinit var appViewModel: AppViewModel
         private set
     lateinit var profileSelectionViewModel: ProfileSelectionViewModel
@@ -67,7 +132,8 @@ class MobilePosApplication : Application() {
         logoutCoordinator = LogoutCoordinator(
             mobilePosRepository,
             profileSelectionViewModel,
-            authenticationOwner
+            authenticationOwner,
+            pendingMutations,
         )
     }
 

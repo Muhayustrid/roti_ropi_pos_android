@@ -9,14 +9,17 @@ import com.rotiropi.pos_erpnext.ui.profile.ProfileSelectionUiState
 class Task4RootController(
     private val binding: Task4RootBinding,
     onRetry: () -> Unit = {},
-    onLogout: () -> Unit = {},
+    onLogout: () -> com.rotiropi.pos_erpnext.session.LogoutResult = {
+        com.rotiropi.pos_erpnext.session.LogoutResult.LoggedOut
+    },
+    private val onLogoutResult: (com.rotiropi.pos_erpnext.session.LogoutResult) -> Unit = {},
 ) {
     private var profileChangeRequested = false
     private var latestProfileState: ProfileSelectionUiState? = null
 
     init {
         binding.task4Retry.setOnClickListener { onRetry() }
-        binding.task4Logout.setOnClickListener { onLogout() }
+        binding.task4Logout.setOnClickListener { onLogoutResult(onLogout()) }
         binding.task4ChangeProfile.setOnClickListener {
             profileChangeRequested = true
             showProfileChooser()

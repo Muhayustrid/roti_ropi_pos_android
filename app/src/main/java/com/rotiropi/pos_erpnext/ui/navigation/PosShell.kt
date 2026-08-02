@@ -23,6 +23,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.rotiropi.pos_erpnext.auth.AuthenticationOwner
 import com.rotiropi.pos_erpnext.auth.AuthenticationState
+import com.rotiropi.pos_erpnext.session.LogoutResult
 import com.rotiropi.pos_erpnext.ui.auth.SignInScreen
 import com.rotiropi.pos_erpnext.ui.cashier.CashierScreen
 import com.rotiropi.pos_erpnext.ui.cashier.CashierUiState
@@ -48,7 +49,11 @@ fun PosShell(
     onAccentSelected: (PosAccent) -> Unit = {},
     modifier: Modifier = Modifier,
     authenticationOwner: AuthenticationOwner? = null,
-    onLogout: (() -> Unit)? = null,
+    onLogout: (() -> LogoutResult)? = null,
+    logoutResult: LogoutResult? = null,
+    recoveryState: com.rotiropi.pos_erpnext.recovery.RecoveryScreenState = com.rotiropi.pos_erpnext.recovery.RecoveryScreenState.Hidden,
+    onAcknowledgeRecovery: (String) -> Unit = {},
+    onReauthenticateRecovery: () -> Unit = {},
 ) {
     val authState = authenticationOwner?.state?.collectAsState()?.value
     if (authenticationOwner != null && authState != AuthenticationState.Authenticated) {
@@ -66,7 +71,13 @@ fun PosShell(
         accent = accent,
         onThemeModeSelected = onThemeModeSelected,
         onAccentSelected = onAccentSelected,
-        onLogout = onLogout ?: authenticationOwner?.let { owner -> owner::logout } ?: {},
+        onLogout = onLogout ?: authenticationOwner?.let { owner ->
+            { owner.logout(); LogoutResult.LoggedOut }
+        } ?: { LogoutResult.LoggedOut },
+        logoutResult = logoutResult,
+        recoveryState = recoveryState,
+        onAcknowledgeRecovery = onAcknowledgeRecovery,
+        onReauthenticateRecovery = onReauthenticateRecovery,
         logoutVisible = authenticationOwner != null,
         modifier = modifier,
     )
@@ -78,7 +89,11 @@ private fun AuthenticatedPosShell(
     accent: PosAccent,
     onThemeModeSelected: (PosThemeMode) -> Unit,
     onAccentSelected: (PosAccent) -> Unit,
-    onLogout: () -> Unit,
+    onLogout: () -> LogoutResult,
+    logoutResult: LogoutResult?,
+    recoveryState: com.rotiropi.pos_erpnext.recovery.RecoveryScreenState,
+    onAcknowledgeRecovery: (String) -> Unit,
+    onReauthenticateRecovery: () -> Unit,
     logoutVisible: Boolean,
     modifier: Modifier,
 ) {
@@ -165,6 +180,10 @@ private fun AuthenticatedPosShell(
                                 themeMode = themeMode,
                                 accent = accent,
                                 demoData = demoActive,
+                                logoutMessage = (logoutResult as? LogoutResult.Blocked)?.let {
+                                    "Sign out blocked: ${it.cashier} has ${it.state.name.lowercase()} recovery."
+                                },
+                                recovery = recoveryState,
                             ),
                             layoutMode = layoutMode,
                             modifier = Modifier.testTag("destination-content-more"),
@@ -173,7 +192,9 @@ private fun AuthenticatedPosShell(
                             onThemeModeSelected = onThemeModeSelected,
                             onAccentSelected = onAccentSelected,
                             onDemoDataToggled = { demoData = it },
-                            onLogout = onLogout,
+                            onLogout = { onLogout() },
+                            onAcknowledgeRecovery = onAcknowledgeRecovery,
+                            onReauthenticateRecovery = onReauthenticateRecovery,
                         )
                     }
                 }

@@ -85,6 +85,25 @@ class Task4RootControllerTest {
     }
 
     @Test
+    fun native_logout_preserves_blocked_result_for_host_rendering() {
+        var rendered: com.rotiropi.pos_erpnext.session.LogoutResult? = null
+        val blocked = com.rotiropi.pos_erpnext.session.LogoutResult.Blocked(
+            "cashier-1",
+            com.rotiropi.pos_erpnext.recovery.PendingMutationState.AUTH_REQUIRED,
+        )
+        val binding = Task4RootBinding.inflate(LayoutInflater.from(context))
+        val controller = Task4RootController(
+            binding = binding,
+            onLogout = { blocked },
+            onLogoutResult = { rendered = it },
+        )
+
+        binding.task4Logout.performClick()
+
+        assertEquals(blocked, rendered)
+    }
+
+    @Test
     fun stale_warning_retry_change_profile_and_logout_are_native_actions() {
         var retries = 0
         var logouts = 0
@@ -92,7 +111,10 @@ class Task4RootControllerTest {
         val controller = Task4RootController(
             binding = binding,
             onRetry = { retries++ },
-            onLogout = { logouts++ },
+            onLogout = {
+                logouts++
+                com.rotiropi.pos_erpnext.session.LogoutResult.LoggedOut
+            },
         )
         val state = repositoryState(profileCount = 2, selected = true, stale = true)
         val selectedProfile = profileState(profiles = profiles(2), selected = "PROFILE-1")

@@ -252,12 +252,18 @@ reference.
 HTTP 401 does not mean logout. It pauses the pending request and starts
 credential recovery.
 
-Normal logout is blocked for `prepared`, `sending`, `waiting_retry`,
-`auth_required`, `request_in_progress`, `closing_queued`, and
-`manual_recovery`. A `completed` or `rejected` result must first be explicitly
-acknowledged. Logout then removes tokens, active OAuth attempts, opening input,
+Normal logout checks durable mutation metadata before any cleanup. It is blocked
+for every persisted state: `prepared`, `sending`, `waiting_retry`,
+`auth_required`, `request_in_progress`, `closing_queued`, `manual_recovery`,
+`completed`, and `rejected`. The blocked result names owning cashier and state
+without decrypting evidence. A `completed` or `rejected` result stays visible
+across restart and must be explicitly acknowledged by same cashier before its
+terminal bytes can be deleted. Failed or wrong-identity acknowledgement preserves
+record. No mutation record permits normal logout. Only after guard passes does
+logout remove tokens, active OAuth attempts, opening input,
 customer/catalog/history caches, cart, receipt, return and closing input/status,
-navigation state, in-memory responses, and encrypted terminal bodies.
+navigation state, in-memory responses, and encrypted terminal bodies. This order
+prevents token removal while recovery still requires authenticated cashier identity.
 
 If Keystore data becomes unreadable while a transaction is unresolved, the app
 enters manual recovery and displays non-sensitive support identifiers. It does

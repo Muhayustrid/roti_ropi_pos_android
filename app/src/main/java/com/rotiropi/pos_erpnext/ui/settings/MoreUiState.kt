@@ -1,5 +1,6 @@
 package com.rotiropi.pos_erpnext.ui.settings
 
+import com.rotiropi.pos_erpnext.recovery.RecoveryScreenState
 import com.rotiropi.pos_erpnext.ui.theme.PosAccent
 
 enum class PosThemeMode(val label: String) {
@@ -19,4 +20,6 @@ data class MoreUiState(
     val themeMode: PosThemeMode,
     val accent: PosAccent,
     val demoData: Boolean,
+    val logoutMessage: String? = null,
+    val recovery: RecoveryScreenState = RecoveryScreenState.Hidden,
 )

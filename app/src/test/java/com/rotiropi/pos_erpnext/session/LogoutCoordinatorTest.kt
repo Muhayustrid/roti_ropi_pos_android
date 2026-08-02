@@ -125,9 +125,9 @@ class LogoutCoordinatorTest {
         assertTrue(auth.owner.isAuthenticated)
 
         LogoutCoordinator(
-            repository,
-            com.rotiropi.pos_erpnext.ui.profile.ProfileSelectionViewModel(repository),
-            auth.owner
+            clearRepository = repository::clear,
+            clearProfileUi = com.rotiropi.pos_erpnext.ui.profile.ProfileSelectionViewModel(repository)::clear,
+            clearAuthentication = auth.owner::logout,
         ).logout()
 
         assertRepositoryCleared(repository)

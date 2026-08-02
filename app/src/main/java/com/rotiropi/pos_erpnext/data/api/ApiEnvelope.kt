@@ -58,18 +58,52 @@ data class MobilePosRequest internal constructor(
             idempotencyKey: String? = null
         ): MobilePosRequest {
             require(endpoint.method == HttpMethod.POST)
-            val element = json.encodeToJsonElement(serializer, body)
-            val fields = (element as? kotlinx.serialization.json.JsonObject)?.keys
-                ?: throw IllegalArgumentException("JSON request body must be an object")
-            validateFields(endpoint, fields)
-            validateIdempotency(endpoint, idempotencyKey)
+            val bytes = json.encodeToString(serializer, body).encodeToByteArray()
+            if (endpoint.requiresIdempotency) {
+                validatePostBytes(endpoint, bytes, requireNotNull(idempotencyKey), json)
+            } else {
+                val fields = (json.parseToJsonElement(bytes.decodeToString()) as? kotlinx.serialization.json.JsonObject)?.keys
+                    ?: throw IllegalArgumentException("JSON request body must be an object")
+                validateFields(endpoint, fields)
+                validateIdempotency(endpoint, idempotencyKey)
+            }
             return MobilePosRequest(
                 endpoint = endpoint,
                 query = emptyMap(),
-                bodyBytes = json.encodeToString(serializer, body).encodeToByteArray(),
+                bodyBytes = bytes,
                 bearerToken = null,
                 idempotencyKey = idempotencyKey
             )
+        }
+
+        /** Reuses previously validated, persisted bytes. It never serializes a retry body. */
+        fun replayPost(endpoint: MobilePosEndpoint, bodyBytes: ByteArray, idempotencyKey: String): MobilePosRequest {
+            require(endpoint.method == HttpMethod.POST && endpoint.requiresIdempotency)
+            require(bodyBytes.isNotEmpty())
+            validateIdempotency(endpoint, idempotencyKey)
+            return MobilePosRequest(endpoint, emptyMap(), bodyBytes, null, idempotencyKey)
+        }
+
+        /** Validates serialized JSON once, before it becomes durable mutation evidence. */
+        internal fun validatePostBytes(
+            endpoint: MobilePosEndpoint,
+            bodyBytes: ByteArray,
+            idempotencyKey: String,
+            json: kotlinx.serialization.json.Json,
+        ) {
+            validatePostBodyBytes(endpoint, bodyBytes, json)
+            validateIdempotency(endpoint, idempotencyKey)
+        }
+
+        internal fun validatePostBodyBytes(
+            endpoint: MobilePosEndpoint,
+            bodyBytes: ByteArray,
+            json: kotlinx.serialization.json.Json,
+        ) {
+            require(endpoint.method == HttpMethod.POST && endpoint.requiresIdempotency)
+            val fields = (json.parseToJsonElement(bodyBytes.decodeToString()) as? kotlinx.serialization.json.JsonObject)?.keys
+                ?: throw IllegalArgumentException("JSON request body must be an object")
+            validateFields(endpoint, fields)
         }
 
         internal fun withBearer(request: MobilePosRequest, token: String): MobilePosRequest =
@@ -117,8 +151,20 @@ value class RetryAfter private constructor(val raw: String) {
 }
 
 sealed class ApiResult<out T> {
-    data class Success<out T>(val data: T, val meta: ApiMeta) : ApiResult<T>()
-    data class ExpectedFailure(val error: ApiErrorData, val meta: ApiMeta) : ApiResult<Nothing>()
+    data class Success<out T>(
+        val data: T,
+        val meta: ApiMeta,
+        /** Exact UTF-8 response bytes retained only for durable terminal persistence. */
+        val rawResponse: ByteArray? = null,
+    ) : ApiResult<T>()
+    data class ExpectedFailure(
+        val error: ApiErrorData,
+        val meta: ApiMeta,
+        /** Exact UTF-8 response bytes retained only for durable terminal persistence. */
+        val rawResponse: ByteArray? = null,
+        val retryAfter: RetryAfter? = null,
+        val statusCode: Int? = null,
+    ) : ApiResult<Nothing>()
     data class TransportFailure(
         val kind: TransportFailureKind,
         val statusCode: Int? = null,

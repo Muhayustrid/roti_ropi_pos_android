@@ -24,6 +24,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.rotiropi.pos_erpnext.ui.navigation.PosLayoutMode
+import com.rotiropi.pos_erpnext.ui.recovery.RecoveryScreen
 import com.rotiropi.pos_erpnext.ui.theme.PosAccent
 import com.rotiropi.pos_erpnext.ui.theme.PosDimensions
 
@@ -38,6 +39,8 @@ fun MoreScreen(
     onAccentSelected: (PosAccent) -> Unit = {},
     onDemoDataToggled: (Boolean) -> Unit = {},
     onLogout: () -> Unit = {},
+    onAcknowledgeRecovery: (String) -> Unit = {},
+    onReauthenticateRecovery: () -> Unit = {},
 ) {
     val rootTag = if (layoutMode == PosLayoutMode.EXPANDED) "more-expanded" else "more-compact"
     Column(
@@ -61,7 +64,7 @@ fun MoreScreen(
                     OutletGroup(state.outletLabel)
                     UserSessionGroup(state.userSessionLabel)
                     if (logoutVisible) {
-                        LogoutGroup(onLogout)
+                        LogoutGroup(state.logoutMessage, state.recovery, onLogout, onAcknowledgeRecovery, onReauthenticateRecovery)
                     }
                     AppearanceGroup(
                         themeMode = state.themeMode,
@@ -85,7 +88,7 @@ fun MoreScreen(
             OutletGroup(state.outletLabel)
             UserSessionGroup(state.userSessionLabel)
             if (logoutVisible) {
-                LogoutGroup(onLogout)
+                LogoutGroup(state.logoutMessage, state.recovery, onLogout, onAcknowledgeRecovery, onReauthenticateRecovery)
             }
             AppearanceGroup(
                 themeMode = state.themeMode,
@@ -190,17 +193,36 @@ private fun UserSessionGroup(userSessionLabel: String?) {
 }
 
 @Composable
-private fun LogoutGroup(onLogout: () -> Unit) {
+private fun LogoutGroup(
+    message: String?,
+    recovery: com.rotiropi.pos_erpnext.recovery.RecoveryScreenState,
+    onLogout: () -> Unit,
+    onAcknowledgeRecovery: (String) -> Unit,
+    onReauthenticateRecovery: () -> Unit,
+) {
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Button(
-            onClick = onLogout,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .heightIn(min = PosDimensions.touchTarget)
-                .testTag("more-logout"),
-        ) {
-            Text("Sign out")
+        Column(modifier = Modifier.padding(16.dp)) {
+            Button(
+                onClick = onLogout,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = PosDimensions.touchTarget)
+                    .testTag("more-logout"),
+            ) {
+                Text("Sign out")
+            }
+            if (message != null) {
+                Text(message, modifier = Modifier.testTag("more-logout-blocked"))
+            }
+            RecoveryScreen(
+                state = recovery,
+                onAcknowledge = {
+                    (recovery as? com.rotiropi.pos_erpnext.recovery.RecoveryScreenState.Terminal)
+                        ?.transactionId
+                        ?.let(onAcknowledgeRecovery)
+                },
+                onReauthenticate = onReauthenticateRecovery,
+            )
         }
     }
 }
