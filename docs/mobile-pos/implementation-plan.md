@@ -39,7 +39,7 @@ Task status, not unchecked execution-step boxes below, records current completio
 | 2E | Completed | Candidate `a391411` plus a test-only API 23 visibility fix, a chart slot alignment fix, and a debug-only `Demo layout` shell toggle. Reports/More states, application-private theme persistence, shell wiring, debug previews, and unit/Compose UI tests exist. Clean Gradle gate passed 100 tasks; API 23 and API 36 each passed 41 tests. Complete live reports remain unavailable; the populated shell is debug-only, defaults off, and is absent from release. |
 | 3 | Completed | Commit `7a0aa51` implements OAuth Authorization Code + PKCE, encrypted attempt/token storage, App Link redirect handling, restart/logout/stale-callback behavior, and authenticated bootstrap. Final stable-origin verification passed on 2026-08-01; see `task-3-gate-record.md`. |
 | 4 | Completed | Uncommitted implementation adds bootstrap/profile routing, coalesced capability ownership, ordered logout cleanup, XML/ViewBinding profile/root UI, fixtures, and tests. Final API 23/API 36 gates and corrected AGP 9 release unit-test gate passed on 2026-08-02; see `session-handoff-task-4.md`. |
-| 5 | Completed | Commit `aa9d897`, PR #11, merged as `da28b57874e7f1840eab20af201379ff95c76148`. Accepted unit, lint, build, API 23/API 36, and two-process recovery evidence is recorded in PR #11 and its retained reports. `testReleaseUnitTest was not part of the accepted Task 5 verification record at the time PR #11 was completed. No release-unit PASS is claimed for Task 5.` |
+| 5 | Completed | Commit `aa9d897`, PR #11, merged as `da28b57874e7f1840eab20af201379ff95c76148`. Accepted evidence: `./gradlew testDebugUnitTest`, `./gradlew lintDebug`, `./gradlew lintRelease`, `./gradlew assembleDebug`, `./gradlew assembleRelease`, API 23 device suite (98 tests passed), API 36 device suite (98 tests passed), API 23 two-process recovery harness (PASS), and `git diff --check`. |
 | 6 | Not Started | Opening UI/repository behavior, tests, and fixtures are absent. |
 | 7 | Not Started | Customer selection UI/repository behavior, tests, and fixture are absent. |
 | 8 | Not Started | Catalog/cart UI/repository behavior, tests, fixtures, and accessibility harness are absent. |
@@ -1143,7 +1143,7 @@ Report `feat: add scoped mobile POS bootstrap` and wait for approval.
 
 ### Task 5: Implement Durable Mutation Recovery
 
-**Status:** Completed — commit `aa9d897`, PR #11, merged as `da28b57874e7f1840eab20af201379ff95c76148`. Accepted unit, lint, build, API 23/API 36, and two-process recovery evidence is recorded in PR #11 and its retained reports.
+**Status:** Completed — commit `aa9d897`, PR #11, merged as `da28b57874e7f1840eab20af201379ff95c76148`. Accepted evidence: `./gradlew testDebugUnitTest`, `./gradlew lintDebug`, `./gradlew lintRelease`, `./gradlew assembleDebug`, `./gradlew assembleRelease`, API 23 device suite (98 tests passed), API 36 device suite (98 tests passed), API 23 two-process recovery harness (PASS), and `git diff --check`.
 
 `testReleaseUnitTest was not part of the accepted Task 5 verification record at the time PR #11 was completed. No release-unit PASS is claimed for Task 5.`
 
