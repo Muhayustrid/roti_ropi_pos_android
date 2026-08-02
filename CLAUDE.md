@@ -39,6 +39,13 @@ The main Fable agent acts as the orchestrator. It classifies each task, delegate
 - Verify load-bearing graph findings against actual source code and tests.
 - Do not recursively scan or read unrelated files.
 
+## Sequential Execution Policy
+
+- Run all work sequentially in the current main agent; do not use `superpowers:subagent-driven-development`, `superpowers:dispatching-parallel-agents`, background or foreground Task subagents, agent teams, parallel agents, reviewer subagents, or overlapping independent audits.
+- Superpowers may still be used in the main session for brainstorming, planning, TDD, systematic debugging, verification before completion, and finishing a development branch.
+- If a skill requires spawning subagents, skip that skill and continue sequentially; if sequential execution is impossible, stop and ask the user.
+- Require exactly one scoped final review by the current main agent.
+
 ## Commands
 
 Run commands from the repository root. Gradle uses the wrapper; Android Studio's bundled JBR supplies the expected Java toolchain when `JAVA_HOME` is unset.
