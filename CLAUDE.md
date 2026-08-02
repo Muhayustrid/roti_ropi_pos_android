@@ -6,7 +6,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Read `AGENTS.md` before changing code. It is authoritative for security, API boundaries, change control, testing, and Android stack decisions. Communicate with the user in Indonesian; keep repository Markdown, code comments, test names, and commit messages in English. Do not commit, push, publish, deploy, or start a later implementation phase without explicit user approval.
 
-When `.codegraph/` exists, use CodeGraph before broad repository searches or direct code reads. Query affected symbols and their callers before editing; use targeted reads or broad search only when CodeGraph cannot answer.
+When `.codegraph/` exists, use CodeGraph before broad repository searches or direct code reads. Query affected symbols and their callers before editing; use targeted reads or broad search only when CodeGraph cannot answer. CodeGraph is navigation only; source code, tests, Git state, and actual verification results remain authoritative.
+
+## Model delegation policy
+
+The main Fable agent acts as the orchestrator. It classifies each task, delegates to the minimum capable project agent, reviews delegated findings, and checks actual verification results before declaring completion.
+
+### Routing
+
+- Use `quick-explorer` for fast, narrow, read-only discovery.
+- Use `routine-worker` as the default worker for approved routine implementation with clear scope and acceptance criteria.
+- Use `complex-worker` for difficult, ambiguous, architectural, security, concurrency, data-consistency, recovery, contract, or other high-risk work.
+
+### Escalation
+
+- When scope is unknown, start with `quick-explorer`.
+- When scope and acceptance criteria are clear, use `routine-worker`.
+- Escalate to `complex-worker` when architectural ambiguity, security concerns, concurrency, unclear invariants, broad cross-layer impact, contract uncertainty, or repeated failure appears.
+- Do not use Opus for simple exploration or mechanical edits.
+- Do not allow Haiku to edit files or make high-impact decisions.
+- The orchestrator remains responsible for synthesis, scope control, and completion claims.
+
+### Efficiency
+
+- Do not run Haiku, Sonnet, and Opus sequentially for every task; select only the minimum model necessary.
+- Use parallel delegation only for independent read-only investigations or clearly separated workstreams.
+- Avoid duplicate exploration by multiple agents or by the orchestrator after delegation.
+
+### CodeGraph navigation
+
+- Use CodeGraph before broad repository exploration to locate symbols, callers, callees, dependencies, execution paths, and affected tests.
+- Verify load-bearing graph findings against actual source code and tests.
+- Do not recursively scan or read unrelated files.
 
 ## Commands
 
