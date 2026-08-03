@@ -55,4 +55,10 @@ class OpeningAmountCanonicalizerTest {
 
         assertEquals(OpeningAmountResult.Valid("$large.00"), canonicalizeOpeningAmount(large, policy))
     }
+
+    @Test
+    fun `display input remains separate from canonical submit value`() {
+        assertEquals(OpeningAmountResult.Valid("10000.50"), canonicalizeOpeningAmount("10000,5", policy))
+        assertEquals(OpeningAmountResult.Valid("10000.50"), canonicalizeOpeningAmount("10000,50", policy))
+    }
 }

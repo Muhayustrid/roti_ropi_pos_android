@@ -60,6 +60,36 @@ class OpeningViewModelTest {
     }
 
     @Test
+    fun `grouped presentation input submits as canonical decimal dot without grouping`() {
+        var request: OpenSessionRequestDto? = null
+        val viewModel = OpeningViewModel("cashier@example.test", profile(), submit = {
+            request = it
+            RecoveryExecution.WaitingRetry("123e4567-e89b-42d3-a456-426614174000")
+        })
+
+        viewModel.updateAmount("Mode B", "10000,50")
+        viewModel.submit()
+
+        assertEquals("10000.50", request!!.opening_balances[0].amount)
+        assertFalse(request!!.opening_balances[0].amount.contains("10.000"))
+    }
+
+    @Test
+    fun `large presentation input stays exact in canonical request`() {
+        val large = "9".repeat(200)
+        var request: OpenSessionRequestDto? = null
+        val viewModel = OpeningViewModel("cashier@example.test", profile(), submit = {
+            request = it
+            RecoveryExecution.WaitingRetry("123e4567-e89b-42d3-a456-426614174000")
+        })
+
+        viewModel.updateAmount("Mode B", large)
+        viewModel.submit()
+
+        assertEquals("$large.00", request!!.opening_balances[0].amount)
+    }
+
+    @Test
     fun `invalid input cannot submit and immutable row ignores edits`() {
         var calls = 0
         val viewModel = OpeningViewModel("cashier@example.test", profile(), submit = { calls++; RecoveryExecution.BlockedIdentity })
