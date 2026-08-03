@@ -5,6 +5,8 @@ import com.rotiropi.pos_erpnext.data.api.AuthTokenProvider
 import com.rotiropi.pos_erpnext.data.api.AuthenticatedMobilePosApiClient
 import com.rotiropi.pos_erpnext.data.api.CanonicalBackendOrigin
 import com.rotiropi.pos_erpnext.data.api.MobilePosEndpoint
+import com.rotiropi.pos_erpnext.data.api.OpeningPaymentModeDto
+import com.rotiropi.pos_erpnext.data.api.ProfileDto
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
@@ -113,9 +115,82 @@ class BootstrapRepositoryTest {
         assertEquals("Walk In Customer", profile.customer)
         assertFalse(profile.allowPartialPayment)
         assertEquals("POS Invoice", profile.invoiceMode)
+        assertEquals(listOf("Cash", "Bank"), profile.openingPaymentModes.map { it.modeOfPayment })
+        assertEquals("200000.00", profile.openingPaymentModes[0].suggestedOpeningAmount)
+        assertTrue(profile.openingPaymentModes[0].amountEditable)
+        assertEquals("IDR", profile.openingAmountPolicy?.currency)
+        assertEquals(2, profile.openingAmountPolicy?.decimalPlaces)
+        assertEquals("0.00", profile.openingAmountPolicy?.minimum)
+        assertEquals("ascii_decimal_dot", profile.openingAmountPolicy?.apiSyntax)
+        assertEquals("reject", profile.openingAmountPolicy?.rounding)
+        assertEquals("opening-amount/v1", profile.openingAmountPolicy?.policyVersion)
         assertEquals("cashier@example.com", state.bootstrap?.user?.name)
         assertEquals(1, state.profiles.size)
         assertNotNull(state.bootstrap?.posMode)
+    }
+
+    @Test
+    fun `legacy profile without opening contract maps to empty modes and null policy`() {
+        val legacyProfile = """
+            {
+              "name": "OUTLET-LEGACY",
+              "company": "Legacy Company",
+              "warehouse": "Legacy Warehouse",
+              "currency": "IDR",
+              "selling_price_list": "Legacy Price List",
+              "customer": "Walk In Customer",
+              "allow_partial_payment": false,
+              "invoice_mode": "POS Invoice"
+            }
+        """.trimIndent()
+        val original = json.parseToJsonElement(fixture("bootstrap-one-profile.json")) as JsonObject
+        val legacyProfileJson = json.parseToJsonElement(legacyProfile) as JsonObject
+        val body = original.toMutableMap().apply {
+            this["profiles"] = JsonArray(listOf(legacyProfileJson))
+            this["selected_profile"] = legacyProfileJson
+        }.let { json.encodeToString(JsonObject.serializer(), JsonObject(it)) }
+        server.enqueue(response(body))
+        val repo = repository()
+
+        repo.bootstrap("OUTLET-LEGACY")
+
+        val profile = requireNotNull(repo.state.selectedProfile)
+        assertTrue(profile.openingPaymentModes.isEmpty())
+        assertNull(profile.openingAmountPolicy)
+    }
+
+    @Test
+    fun `domain mapping does not retain dto payment-mode list`() {
+        val dtoModes = mutableListOf(
+            OpeningPaymentModeDto(
+                mode_of_payment = "Fixture Mode",
+                suggested_opening_amount = "10.00",
+                amount_editable = true,
+            )
+        )
+        val dto = ProfileDto(
+            name = "OUTLET-IMMUTABLE",
+            company = "Example Company",
+            warehouse = "Example Warehouse",
+            currency = "IDR",
+            selling_price_list = "Example Price List",
+            customer = "Walk In Customer",
+            allow_partial_payment = false,
+            invoice_mode = "POS Invoice",
+            opening_payment_modes = dtoModes,
+            opening_amount_policy = null,
+        )
+
+        val mapped = dto.toDomain()
+        dtoModes[0] = OpeningPaymentModeDto(
+            mode_of_payment = "Mutated Mode",
+            suggested_opening_amount = "99.99",
+            amount_editable = false,
+        )
+
+        assertEquals("Fixture Mode", mapped.openingPaymentModes.single().modeOfPayment)
+        assertEquals("10.00", mapped.openingPaymentModes.single().suggestedOpeningAmount)
+        assertTrue(mapped.openingPaymentModes.single().amountEditable)
     }
 
     @Test

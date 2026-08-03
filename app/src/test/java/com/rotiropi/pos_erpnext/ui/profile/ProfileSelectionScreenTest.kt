@@ -212,6 +212,8 @@ class ProfileSelectionScreenTest {
         customer = "Customer",
         allowPartialPayment = true,
         invoiceMode = "POS",
+        openingPaymentModes = emptyList(),
+        openingAmountPolicy = null,
     )
 
     private fun dp(value: Int): Int = (value * context.resources.displayMetrics.density).toInt()

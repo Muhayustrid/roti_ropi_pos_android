@@ -1,7 +1,8 @@
 {
-  "backend_sha": "b2a09d2",
+  "backend_sha": "40d2f2b56c6aa92b363485487e58ccb3a62e334c",
   "source_type": "contract_example",
-  "review_reference": "docs/mobile-pos/backend/api-contract.md",
+  "backend_contract_path": "docs/mobile-pos/api-contract.md",
+  "review_reference": "docs/mobile-pos/api-contract.md",
   "contains_credentials": false,
   "contains_production_pii": false,
   "runtime_integration_evidence": false,

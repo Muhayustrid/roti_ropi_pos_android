@@ -402,7 +402,9 @@ class AppViewModelTest {
             sellingPriceList = "Standard",
             customer = "Customer",
             allowPartialPayment = true,
-            invoiceMode = "POS"
+            invoiceMode = "POS",
+            openingPaymentModes = emptyList(),
+            openingAmountPolicy = null
         )
     }
 }
