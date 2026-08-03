@@ -1274,13 +1274,83 @@ Report `feat: add durable mobile POS recovery` and wait for approval.
 
 ### Task 6: Implement Opening
 
-**Status:** Not Started. Opening payment-mode, decimal-input, and external
-lost-response gates remain active.
+**Status:** Not Started. Opening payment-mode and decimal-input gates remain
+active. The lost-response procedure below is approved before Task 6
+implementation, but its runtime execution remains pending until the opening flow
+exists. This approval does not authorize Task 6 implementation.
 
 **Depends on:** Approved and passing Task 5.
 
 **Backend gate:** Backend Phase 4 plus approved opening payment-mode projection,
-decimal-input contract, and externally owned lost-response procedure.
+decimal-input contract, and the approved externally owned lost-response procedure
+below.
+
+#### Approved Task 6 Lost-Response Staging Procedure
+
+- **Protocol identifier:** `mobile-pos-response-drop/v1`
+- **Approval:** Approved before Task 6 implementation. Runtime execution is
+  **PENDING** until the opening flow exists; no runtime evidence is claimed here.
+- **Procedure owner:** `Mobile POS staging operator / repository maintainer`
+- **Evidence location:** `docs/mobile-pos/evidence/mobile-pos-response-drop/`
+- **Evidence record path:**
+  `docs/mobile-pos/evidence/mobile-pos-response-drop/<operator-evidence-id>.md`
+- **Android authority:** `7479ab5c9fd02281a919a82f1e48036074b322ab`
+- **Backend runtime authority:** `40d2f2b56c6aa92b363485487e58ccb3a62e334c`
+- **Backend documentation/main authority:**
+  `38728df32394aac1fc5c49387b2ea6e0f3b5c15b`
+
+The owner performs this staging-only procedure after the Task 6 opening flow
+exists:
+
+1. Confirm the Android and backend checkouts match the authority SHAs above,
+   choose a non-production test cashier and POS Profile, assign an operator
+   evidence ID, and confirm no unrelated fault rule is active.
+2. Capture the persisted `sessions.open` request UUID and a hash of its persisted
+   request body before transmission. Arm one ingress fault for that request only.
+   The fault is one-shot: it must not match or drop any later request.
+3. Send the original request normally. Drop only its delivery to Android, and only
+   after the backend has completed and committed the opening request. The fault
+   must not change the request, including its UUID or body, or change the backend
+   response status, headers, or body; it only prevents that completed response
+   from reaching Android.
+4. Remove the fault rule immediately after the one response drop and confirm it is
+   absent before replay. Stop if removal cannot be confirmed.
+5. Replay through the normal Android recovery path using the exact same
+   idempotency UUID and exact persisted request body. Do not reconstruct or edit
+   either value.
+6. Record the replay result and the resulting POS Opening Entry identifier. Run a
+   database or approved versioned-API query scoped to this operation and preserve
+   sanitized output proving the result is exactly one POS Opening Entry.
+7. Perform the backend-owned staging cleanup approved for the selected test
+   cashier and POS Profile. Verify the fault rule remains absent, the staging
+   profile has returned to its agreed pre-test state, and no test opening remains
+   active. Record cleanup confirmation and a final `PASS` only when every check
+   above succeeds; otherwise record `FAIL` with the failed step.
+
+Each evidence record must contain:
+
+- Protocol identifier.
+- Operator evidence ID.
+- Timestamp.
+- Operator.
+- Android commit SHA.
+- Backend runtime SHA.
+- Backend documentation/main SHA.
+- Original request UUID.
+- Replay request UUID.
+- Persisted request-body hash.
+- Resulting POS Opening Entry identifier.
+- Database/API query and sanitized result proving exactly one entry.
+- Original attempt result.
+- Replay result.
+- Cleanup confirmation.
+- Final `PASS` or `FAIL` conclusion.
+
+Evidence must contain no production data, credentials, tokens, cookies, or
+customer PII. Store only the sanitized record under the evidence location above;
+do not store request or response bodies. A `PASS` requires matching original and
+replay UUIDs, the same persisted request-body hash, confirmed post-commit response
+drop, confirmed rule removal, exactly one POS Opening Entry, and completed cleanup.
 
 **Files:**
 
@@ -1303,9 +1373,10 @@ decimal-input contract, and externally owned lost-response procedure.
 - [ ] **Step 1: Confirm payment-mode metadata**
 
 Stop if the backend cannot enumerate the modes needed by opening balances.
-Also stop if locale syntax, precision, scale, bounds, no-rounding behavior,
-fixture provenance, or the external post-completion response-drop protocol is
-unapproved. Do not finalize DTO fields before this gate.
+Also stop if locale syntax, precision, scale, bounds, no-rounding behavior, or
+fixture provenance is unapproved, or if runtime execution of the approved
+post-completion response-drop procedure cannot be performed after the opening
+flow exists. Do not finalize DTO fields before this gate.
 
 - [ ] **Step 2: Write failing opening tests**
 
