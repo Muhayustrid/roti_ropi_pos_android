@@ -74,7 +74,7 @@ class DtoContractTest {
             "incompatible-api-version.json", "additive-fields.json", "unknown-enum.json",
             "dto-contract-examples.json",
             "bootstrap-one-profile.json", "bootstrap-multiple-profiles.json",
-            "bootstrap-stale-opening.json"
+            "bootstrap-stale-opening.json", "session-current.json", "session-opened.json"
         )
         assertEquals(expected, declared)
     }

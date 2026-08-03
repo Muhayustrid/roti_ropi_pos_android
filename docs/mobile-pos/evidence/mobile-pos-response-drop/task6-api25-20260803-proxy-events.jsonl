@@ -1,0 +1,5 @@
+{"event":"harness_started","expected_api":"25","expected_device":"emulator-5554/mobile-pos-api25","fault_active":false,"timestamp":"2026-08-03T06:27:02+00:00"}
+{"body_sha256":"2c16822acd73c1d7fc0a19110a8bcf34f2bb5e53d445c2fc09cfca9fc514bc9a","event":"original_captured_before_upstream","timestamp":"2026-08-03T06:27:33+00:00","uuid":"f2f81c02-f622-459e-beaf-64c51dfa662b"}
+{"body_sha256":"2c16822acd73c1d7fc0a19110a8bcf34f2bb5e53d445c2fc09cfca9fc514bc9a","event":"fault_armed","fault_active":true,"timestamp":"2026-08-03T06:27:47+00:00","uuid":"f2f81c02-f622-459e-beaf-64c51dfa662b"}
+{"event":"backend_commit_confirmed_and_fault_disarmed","fault_active":false,"opening_count":1,"opening_entry":"POS-OPE-2026-00007","timestamp":"2026-08-03T06:27:48+00:00","upstream_status":200}
+{"event":"original_response_dropped","fault_active":false,"timestamp":"2026-08-03T06:28:05+00:00","uuid":"f2f81c02-f622-459e-beaf-64c51dfa662b"}

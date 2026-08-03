@@ -1,0 +1,10 @@
+{"event":"harness_started","expected_api":"25","expected_device":"emulator-5554/mobile-pos-api25","fault_active":false,"timestamp":"2026-08-03T07:47:51+00:00"}
+{"event":"session_bound","timestamp":"2026-08-03T07:56:55+00:00"}
+{"body_sha256":"032e64554d5fbba44a96ce6a0ab95e1e7e1a0fa42fbc7e7954a445b081f57478","event":"original_captured_before_upstream","timestamp":"2026-08-03T07:59:11+00:00","uuid":"f462fe32-fe43-4912-8722-16bee4762c42"}
+{"body_sha256":"032e64554d5fbba44a96ce6a0ab95e1e7e1a0fa42fbc7e7954a445b081f57478","event":"fault_armed","fault_active":true,"timestamp":"2026-08-03T07:59:11+00:00","uuid":"f462fe32-fe43-4912-8722-16bee4762c42"}
+{"event":"backend_commit_confirmed_and_fault_disarmed","fault_active":false,"opening_count":1,"opening_entry":"POS-OPE-2026-00007","timestamp":"2026-08-03T07:59:12+00:00","upstream_status":201}
+{"body_hash_match":true,"body_sha256":"032e64554d5fbba44a96ce6a0ab95e1e7e1a0fa42fbc7e7954a445b081f57478","event":"replay_observed","fault_active":false,"timestamp":"2026-08-03T07:59:22+00:00","uuid":"f462fe32-fe43-4912-8722-16bee4762c42","uuid_match":true}
+{"event":"replay_response_relayed","fault_active":false,"timestamp":"2026-08-03T07:59:23+00:00","upstream_status":200}
+{"count":1,"event":"sessions_current_after_replay","timestamp":"2026-08-03T07:59:23+00:00"}
+{"count":1,"event":"capability_refresh_after_replay","timestamp":"2026-08-03T07:59:23+00:00"}
+{"event":"original_response_dropped","fault_active":false,"timestamp":"2026-08-03T07:59:29+00:00","uuid":"f462fe32-fe43-4912-8722-16bee4762c42"}

@@ -148,6 +148,21 @@ class AppViewModelTest {
     }
 
     @Test
+    fun openingCompletionRefreshesThroughAppStateAndPublishesFailure() {
+        val harness = Harness()
+        val viewModel = harness.viewModel
+        viewModel.onAuthenticationStateChanged(AuthenticationState.Authenticated)
+        harness.triggers.clear()
+        harness.result = RepositoryResult.Failure(BootstrapFailure.Unavailable)
+
+        viewModel.refreshAfterOpeningCompletion()
+
+        assertEquals(listOf(BootstrapRefreshTrigger.OPENING_COMPLETED), harness.triggers)
+        assertTrue(viewModel.uiState.retryRequired)
+        assertEquals("Bootstrap unavailable", viewModel.uiState.error)
+    }
+
+    @Test
     fun stateReadsDoNotRefresh() {
         val harness = Harness()
         val viewModel = harness.viewModel

@@ -8,6 +8,7 @@ import com.rotiropi.pos_erpnext.auth.OAuthCoordinator
 import com.rotiropi.pos_erpnext.auth.TokenStore
 import com.rotiropi.pos_erpnext.data.MobilePosRepository
 import com.rotiropi.pos_erpnext.data.RepositoryResult
+import com.rotiropi.pos_erpnext.data.openingRecoverySpec
 import com.rotiropi.pos_erpnext.data.api.AuthenticatedMobilePosApiClient
 import com.rotiropi.pos_erpnext.session.LogoutCoordinator
 import com.rotiropi.pos_erpnext.data.AndroidConnectivityStatusProvider
@@ -19,6 +20,7 @@ import com.rotiropi.pos_erpnext.recovery.RetryPendingMutationWorker
 import com.rotiropi.pos_erpnext.recovery.RetryScheduler
 import com.rotiropi.pos_erpnext.recovery.ColdRecovery
 import kotlinx.serialization.DeserializationStrategy
+import kotlinx.serialization.json.Json
 import com.rotiropi.pos_erpnext.recovery.PendingMutation
 import com.rotiropi.pos_erpnext.ui.AppViewModel
 import com.rotiropi.pos_erpnext.ui.profile.ProfileSelectionViewModel
@@ -126,7 +128,10 @@ class MobilePosApplication : Application() {
             authTokenProvider,
             OkHttpClient()
         )
-        mobilePosRepository = MobilePosRepository(mobilePosApiClient)
+        mobilePosRepository = MobilePosRepository(
+            mobilePosApiClient,
+            openSession = { request -> recoveryCoordinator.execute(openingRecoverySpec(request, Json)) },
+        )
         appViewModel = AppViewModel(mobilePosRepository)
         profileSelectionViewModel = ProfileSelectionViewModel(mobilePosRepository)
         logoutCoordinator = LogoutCoordinator(
