@@ -113,6 +113,25 @@ class OpeningViewModelTest {
     }
 
     @Test
+    fun `reconciliation failure keeps recovery pending and exposes retry error`() {
+        val viewModel = OpeningViewModel(
+            "cashier@example.test",
+            profile(),
+            submit = { RecoveryExecution.WaitingRetry("transaction-1") },
+        )
+        viewModel.submit()
+
+        viewModel.reconciliationFailed()
+
+        assertTrue(viewModel.state.value.recoveryPending)
+        assertFalse(viewModel.state.value.canSubmit)
+        assertEquals(
+            "Opening recovery could not verify the current session. Please retry.",
+            viewModel.state.value.error,
+        )
+    }
+
+    @Test
     fun `opening input belongs only to its cashier and profile identity`() {
         val viewModel = OpeningViewModel("cashier-a@example.test", profile(), submit = { RecoveryExecution.AuthRequired })
 

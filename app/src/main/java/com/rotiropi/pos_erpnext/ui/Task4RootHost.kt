@@ -16,7 +16,10 @@ import com.rotiropi.pos_erpnext.databinding.Task4RootBinding
 import com.rotiropi.pos_erpnext.ui.navigation.PosShell
 import com.rotiropi.pos_erpnext.ui.opening.OpeningDestination
 import com.rotiropi.pos_erpnext.ui.opening.OpeningFlowCoordinator
+import com.rotiropi.pos_erpnext.ui.opening.OpeningFlowResult
+import com.rotiropi.pos_erpnext.ui.opening.OpeningReconciliationRunner
 import com.rotiropi.pos_erpnext.ui.opening.OpeningViewModel
+import com.rotiropi.pos_erpnext.ui.opening.RecoveredOpeningTerminal
 import com.rotiropi.pos_erpnext.ui.profile.ProfileSelectionUiState
 import com.rotiropi.pos_erpnext.ui.settings.PosThemeMode
 import com.rotiropi.pos_erpnext.ui.settings.ThemePreferences
@@ -37,6 +40,7 @@ class Task4RootHost(
     private val openingState = MutableStateFlow<com.rotiropi.pos_erpnext.ui.opening.OpeningUiState?>(null)
     private var openingViewModel: OpeningViewModel? = null
     private var openingFlow: OpeningFlowCoordinator? = null
+    private var openingReconciliation: OpeningReconciliationRunner? = null
     private var handledOpeningTerminal: String? = null
     private val recoveryViewModel = com.rotiropi.pos_erpnext.recovery.RecoveryViewModel(
         authenticationSnapshot = { application.authenticationOwner.snapshot },
@@ -59,6 +63,7 @@ class Task4RootHost(
             openingViewModel?.clear()
             openingViewModel = null
             openingFlow = null
+            openingReconciliation = null
             openingState.value = null
             handledOpeningTerminal = null
             application.recoveryCoordinator.clearUiState()
@@ -205,6 +210,12 @@ class Task4RootHost(
                 submitOpening = application.mobilePosRepository::openSession,
                 refreshCapabilities = { application.appViewModel.refreshAfterOpeningCompletion() },
             )
+            openingReconciliation = OpeningReconciliationRunner(
+                flow = requireNotNull(openingFlow),
+                dispatch = ::applicationScopeIo,
+                isCurrent = ::isCurrentOpeningTerminal,
+                onResult = ::completeOpeningReconciliation,
+            )
         }
         openingState.value = if (repository.opening == null && repository.capabilities.openSession) {
             openingViewModel?.state?.value
@@ -217,29 +228,46 @@ class Task4RootHost(
         applicationScopeIo {
             val execution = openingViewModel?.submit() ?: return@applicationScopeIo
             openingState.value = openingViewModel?.state?.value
-            val result = openingFlow?.handleExecution(execution)
-            if (result?.destination == OpeningDestination.SHELL) {
-                openingState.value = null
-                application.appViewModel.synchronizeRouteFromRepository()
-            }
+            openingReconciliation?.immediate(execution)
         }
     }
 
     private fun synchronizeRecoveredOpening(state: com.rotiropi.pos_erpnext.recovery.RecoveryScreenState) {
         val terminal = state as? com.rotiropi.pos_erpnext.recovery.RecoveryScreenState.Terminal ?: return
         if (terminal.transactionId == handledOpeningTerminal) return
-        val result = when (val terminalResult = terminal.result) {
+        val recovered = when (val result = terminal.result) {
             is com.rotiropi.pos_erpnext.recovery.RecoveryTerminalResult.Completed -> {
-                if (terminalResult.operation != "Opening") return
-                openingFlow?.onRecoveredOpening(terminal.transactionId)
+                if (result.operation != "Opening") return
+                RecoveredOpeningTerminal.Completed(terminal.identity, terminal.generation, terminal.transactionId)
             }
             is com.rotiropi.pos_erpnext.recovery.RecoveryTerminalResult.Rejected ->
-                openingFlow?.onRecoveredRejection(terminal.transactionId, terminalResult.code)
+                RecoveredOpeningTerminal.Rejected(
+                    terminal.identity,
+                    terminal.generation,
+                    terminal.transactionId,
+                    result.code,
+                )
         }
-        if (result?.destination == OpeningDestination.SHELL) {
-            handledOpeningTerminal = terminal.transactionId
+        openingReconciliation?.recovered(recovered)
+    }
+
+    private fun isCurrentOpeningTerminal(terminal: RecoveredOpeningTerminal): Boolean {
+        val snapshot = application.authenticationOwner.snapshot
+        return snapshot.state == AuthenticationState.Authenticated &&
+            snapshot.generation == terminal.generation &&
+            application.currentRecoveryIdentity() == terminal.identity
+    }
+
+    private fun completeOpeningReconciliation(transactionId: String, result: OpeningFlowResult) {
+        if (result.destination == OpeningDestination.SHELL) {
+            handledOpeningTerminal = transactionId
             openingState.value = null
             application.appViewModel.synchronizeRouteFromRepository()
+            return
+        }
+        if (result.failure != null) {
+            openingViewModel?.reconciliationFailed()
+            openingState.value = openingViewModel?.state?.value
         }
     }
 

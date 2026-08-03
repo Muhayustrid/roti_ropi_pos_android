@@ -97,6 +97,16 @@ class OpeningViewModel(
         )
     }
 
+    fun reconciliationFailed() {
+        mutableState.value = mutableState.value.copy(
+            submitting = false,
+            recoveryPending = true,
+            authenticationRequired = false,
+            canSubmit = false,
+            error = "Opening recovery could not verify the current session. Please retry.",
+        )
+    }
+
     fun clear() {
         mutableState.value = OpeningUiState(unavailable = true)
     }
