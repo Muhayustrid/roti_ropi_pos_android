@@ -5,8 +5,14 @@ import com.rotiropi.pos_erpnext.data.api.AuthenticatedMobilePosApiClient
 import com.rotiropi.pos_erpnext.data.api.BootstrapResponseDto
 import com.rotiropi.pos_erpnext.data.api.MobilePosEndpoint
 import com.rotiropi.pos_erpnext.data.api.MobilePosRequest
+import com.rotiropi.pos_erpnext.data.api.OpenSessionRequestDto
+import com.rotiropi.pos_erpnext.data.api.OpenSessionResponseDto
+import com.rotiropi.pos_erpnext.data.api.SessionCurrentResponseDto
 import com.rotiropi.pos_erpnext.data.api.TransportFailureKind
+import com.rotiropi.pos_erpnext.recovery.RecoveryExecution
+import com.rotiropi.pos_erpnext.recovery.RecoverySpec
 import java.util.concurrent.CountDownLatch
+import kotlinx.serialization.json.Json
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.serialization.json.JsonElement
@@ -187,7 +193,14 @@ enum class BootstrapRefreshTrigger {
     AUTH_SUCCESS,
     PROFILE_SELECTED,
     PROFILE_CHANGED,
+    OPENING_COMPLETED,
     RETRY
+}
+
+sealed interface CurrentSessionResult {
+    data class Success(val opening: OpeningSession?) : CurrentSessionResult
+    data class Failure(val reason: BootstrapFailure) : CurrentSessionResult
+    data object Discarded : CurrentSessionResult
 }
 
 sealed interface RepositoryResult {
@@ -195,6 +208,17 @@ sealed interface RepositoryResult {
     data class Failure(val reason: BootstrapFailure) : RepositoryResult
     data object Discarded : RepositoryResult
 }
+
+internal fun openingRecoverySpec(
+    request: OpenSessionRequestDto,
+    json: Json,
+) = RecoverySpec(
+    endpoint = MobilePosEndpoint.SESSIONS_OPEN,
+    body = request,
+    bodySerializer = OpenSessionRequestDto.serializer(),
+    responseDeserializer = OpenSessionResponseDto.serializer(),
+    json = json,
+)
 
 /**
  * Sole in-memory owner of bootstrap, profile, opening, and capability state.
@@ -211,7 +235,10 @@ sealed interface RepositoryResult {
  *   failure never recursively trigger a refresh.
  */
 class MobilePosRepository(
-    private val client: AuthenticatedMobilePosApiClient
+    private val client: AuthenticatedMobilePosApiClient,
+    private val openSession: (OpenSessionRequestDto) -> RecoveryExecution = {
+        error("Opening recovery is not configured.")
+    },
 ) {
     private val lock = Any()
     @Volatile
@@ -230,6 +257,35 @@ class MobilePosRepository(
         val query = if (profileName != null) mapOf("pos_profile" to profileName) else emptyMap()
         val requestEpoch = synchronized(lock) { epoch }
         return executeBootstrap(query, requestEpoch)
+    }
+
+    fun openSession(request: OpenSessionRequestDto): RecoveryExecution = openSession.invoke(request)
+
+    fun currentSession(profileName: String): CurrentSessionResult {
+        val requestEpoch = synchronized(lock) { epoch }
+        val request = MobilePosRequest.get(
+            MobilePosEndpoint.SESSIONS_CURRENT,
+            mapOf("pos_profile" to profileName),
+        )
+        return when (val result = client.execute(request, SessionCurrentResponseDto.serializer())) {
+            is ApiResult.Success -> synchronized(lock) {
+                if (epoch != requestEpoch) return@synchronized CurrentSessionResult.Discarded
+                val opening = result.data.opening_session?.toDomain()
+                currentState = currentState.copy(
+                    bootstrap = currentState.bootstrap?.copy(opening = opening),
+                )
+                CurrentSessionResult.Success(opening)
+            }
+            is ApiResult.TransportFailure -> CurrentSessionResult.Failure(
+                if (result.kind == TransportFailureKind.AUTHENTICATION_REQUIRED) {
+                    BootstrapFailure.AuthRequired
+                } else {
+                    BootstrapFailure.Unavailable
+                }
+            )
+            is ApiResult.ExpectedFailure -> CurrentSessionResult.Failure(BootstrapFailure.Unavailable)
+            is ApiResult.ProtocolFailure -> CurrentSessionResult.Failure(BootstrapFailure.Protocol(result.reason))
+        }
     }
 
     /**

@@ -31,6 +31,8 @@ import com.rotiropi.pos_erpnext.ui.components.RootNavigationBar
 import com.rotiropi.pos_erpnext.ui.dashboard.DashboardScreen
 import com.rotiropi.pos_erpnext.ui.dashboard.DashboardUiState
 import com.rotiropi.pos_erpnext.ui.demo.PosDemoStates
+import com.rotiropi.pos_erpnext.ui.opening.OpeningScreen
+import com.rotiropi.pos_erpnext.ui.opening.OpeningUiState
 import com.rotiropi.pos_erpnext.ui.products.ProductsScreen
 import com.rotiropi.pos_erpnext.ui.products.ProductsUiState
 import com.rotiropi.pos_erpnext.ui.reports.ReportsScreen
@@ -54,6 +56,9 @@ fun PosShell(
     recoveryState: com.rotiropi.pos_erpnext.recovery.RecoveryScreenState = com.rotiropi.pos_erpnext.recovery.RecoveryScreenState.Hidden,
     onAcknowledgeRecovery: (String) -> Unit = {},
     onReauthenticateRecovery: () -> Unit = {},
+    openingState: OpeningUiState? = null,
+    onOpeningAmountChanged: (String, String) -> Unit = { _, _ -> },
+    onOpenSession: () -> Unit = {},
 ) {
     val authState = authenticationOwner?.state?.collectAsState()?.value
     if (authenticationOwner != null && authState != AuthenticationState.Authenticated) {
@@ -62,6 +67,23 @@ fun PosShell(
             modifier = modifier,
             errorMessage = (authState as? AuthenticationState.Error)?.reason?.name,
             signingIn = authState == AuthenticationState.Authorizing,
+        )
+        return
+    }
+
+    if (openingState != null) {
+        OpeningScreen(
+            state = openingState,
+            onAmountChanged = onOpeningAmountChanged,
+            onSubmit = onOpenSession,
+            modifier = modifier,
+            recoveryState = recoveryState,
+            onAcknowledgeRecovery = {
+                (recoveryState as? com.rotiropi.pos_erpnext.recovery.RecoveryScreenState.Terminal)
+                    ?.transactionId
+                    ?.let(onAcknowledgeRecovery)
+            },
+            onReauthenticateRecovery = onReauthenticateRecovery,
         )
         return
     }

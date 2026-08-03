@@ -23,6 +23,8 @@
     {"path":"dto-contract-examples.json","scope":"all-v1-dto-snapshots","backend_phase":"Phase 0"},
     {"path":"bootstrap-one-profile.json","scope":"bootstrap","backend_phase":"Phase 3"},
     {"path":"bootstrap-multiple-profiles.json","scope":"bootstrap","backend_phase":"Phase 3"},
-    {"path":"bootstrap-stale-opening.json","scope":"bootstrap","backend_phase":"Phase 3"}
+    {"path":"bootstrap-stale-opening.json","scope":"bootstrap","backend_phase":"Phase 3"},
+    {"path":"session-current.json","scope":"sessions.current","backend_phase":"Phase 4"},
+    {"path":"session-opened.json","scope":"sessions.open","backend_phase":"Phase 4"}
   ]
 }

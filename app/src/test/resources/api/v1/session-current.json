@@ -1,0 +1,16 @@
+{
+  "opening_session": {
+    "name": "OPENING-EXAMPLE-0001",
+    "pos_profile": "OUTLET-01",
+    "company": "Roti Ropi",
+    "user": "cashier@example.com",
+    "status": "open",
+    "posting_date": "2026-08-03",
+    "period_start_date": "2026-08-03T08:00:00+07:00",
+    "opening_balances": [
+      {"mode_of_payment": "Cash", "opening_amount": "12.30"},
+      {"mode_of_payment": "Bank", "opening_amount": "0.00"}
+    ],
+    "warnings": []
+  }
+}

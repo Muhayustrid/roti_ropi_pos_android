@@ -96,6 +96,13 @@ class AppViewModel internal constructor(
         }
     }
 
+    fun refreshAfterOpeningCompletion() {
+        synchronized(lock) {
+            if (closed || !authenticated) return
+            requestRefreshLocked(BootstrapRefreshTrigger.OPENING_COMPLETED)
+        }
+    }
+
     fun synchronizeRouteFromRepository() {
         synchronized(lock) {
             if (closed || !authenticated) return
