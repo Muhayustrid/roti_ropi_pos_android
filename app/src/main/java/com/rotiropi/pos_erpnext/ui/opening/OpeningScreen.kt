@@ -10,7 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -32,16 +32,32 @@ fun OpeningScreen(
     onAcknowledgeRecovery: () -> Unit = {},
     onReauthenticateRecovery: () -> Unit = {},
 ) {
+    val fieldsEnabled = !state.submitting && !state.recoveryPending
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(PosDimensions.screenPadding)
             .testTag("opening-screen"),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text("Open POS session", style = MaterialTheme.typography.headlineSmall)
-        state.profileName?.let { Text(it) }
-        state.currency?.let { Text("Opening amounts ($it)") }
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("opening-summary"),
+            shape = MaterialTheme.shapes.large,
+            tonalElevation = 2.dp,
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text("Opening amounts", style = MaterialTheme.typography.titleMedium)
+                state.profileName?.let { Text("POS Profile: $it") }
+                state.currency?.let { Text("Currency: $it") }
+            }
+        }
         RecoveryScreen(
             state = recoveryState,
             onAcknowledge = onAcknowledgeRecovery,
@@ -61,17 +77,14 @@ fun OpeningScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(state.rows, key = { it.modeOfPayment }) { row ->
-                OutlinedTextField(
+                OpeningAmountField(
                     value = row.input,
-                    onValueChange = { onAmountChanged(row.modeOfPayment, it) },
-                    label = { Text(row.modeOfPayment) },
-                    enabled = row.editable && !state.submitting && !state.recoveryPending,
+                    label = row.modeOfPayment,
+                    enabled = row.editable && fieldsEnabled,
                     isError = row.error != null,
-                    supportingText = row.error?.let { message -> { Text(message) } },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("opening-amount-${row.modeOfPayment}"),
-                    singleLine = true,
+                    supportingText = row.error ?: if (!row.editable) "Set by server" else null,
+                    editableStateDescription = if (!row.editable) "Set by server" else null,
+                    onValueChange = { onAmountChanged(row.modeOfPayment, it) },
                 )
             }
         }
@@ -84,7 +97,7 @@ fun OpeningScreen(
         }
         Button(
             onClick = onSubmit,
-            enabled = state.canSubmit && !state.submitting && !state.recoveryPending,
+            enabled = state.canSubmit && fieldsEnabled,
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = PosDimensions.touchTarget)
