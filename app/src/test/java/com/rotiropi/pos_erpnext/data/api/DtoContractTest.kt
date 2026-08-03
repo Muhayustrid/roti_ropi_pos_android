@@ -57,7 +57,9 @@ class DtoContractTest {
     @Test
     fun fixture_manifest_covers_every_payload_fixture() {
         val manifest = resource("fixture-manifest.json").let(json::parseToJsonElement).jsonObject
-        assertEquals("b2a09d2", manifest.getValue("backend_sha").jsonPrimitive.content)
+        assertEquals("40d2f2b56c6aa92b363485487e58ccb3a62e334c", manifest.getValue("backend_sha").jsonPrimitive.content)
+        assertEquals("docs/mobile-pos/api-contract.md", manifest.getValue("backend_contract_path").jsonPrimitive.content)
+        assertEquals("contract_example", manifest.getValue("source_type").jsonPrimitive.content)
         assertFalse(manifest.getValue("contains_credentials").jsonPrimitive.boolean)
         assertFalse(manifest.getValue("contains_production_pii").jsonPrimitive.boolean)
         assertFalse(manifest.getValue("runtime_integration_evidence").jsonPrimitive.boolean)
@@ -75,6 +77,81 @@ class DtoContractTest {
             "bootstrap-stale-opening.json"
         )
         assertEquals(expected, declared)
+    }
+
+    @Test
+    fun bootstrap_one_profile_parses_opening_contract_projection() {
+        val profile = decodeFixture<BootstrapResponseDto>("bootstrap-one-profile.json").profiles.single()
+        assertEquals(listOf("Cash", "Bank"), profile.opening_payment_modes.map { it.mode_of_payment })
+        assertEquals("200000.00", profile.opening_payment_modes[0].suggested_opening_amount)
+        assertTrue(profile.opening_payment_modes[0].amount_editable)
+        assertEquals("IDR", profile.opening_amount_policy?.currency)
+        assertEquals(2, profile.opening_amount_policy?.decimal_places)
+        assertEquals("0.00", profile.opening_amount_policy?.minimum)
+        assertEquals("ascii_decimal_dot", profile.opening_amount_policy?.api_syntax)
+        assertEquals("reject", profile.opening_amount_policy?.rounding)
+        assertEquals("opening-amount/v1", profile.opening_amount_policy?.policy_version)
+    }
+
+    @Test
+    fun profile_with_absent_opening_contract_fields_remains_compatible() {
+        val profile = json.decodeFromString<ProfileDto>("""
+            {
+              "name": "OUTLET-LEGACY",
+              "company": "Legacy Company",
+              "warehouse": "Legacy Warehouse",
+              "currency": "IDR",
+              "selling_price_list": "Legacy Price List",
+              "customer": "Walk In Customer",
+              "allow_partial_payment": false,
+              "invoice_mode": "POS Invoice"
+            }
+        """.trimIndent())
+
+        assertTrue(profile.opening_payment_modes.isEmpty())
+        assertEquals(null, profile.opening_amount_policy)
+    }
+
+    @Test
+    fun profile_with_empty_opening_payment_modes_is_parseable() {
+        val profile = json.decodeFromString<ProfileDto>("""
+            {
+              "name": "OUTLET-EMPTY",
+              "company": "Example Company",
+              "warehouse": "Example Warehouse",
+              "currency": "IDR",
+              "selling_price_list": "Example Price List",
+              "customer": "Walk In Customer",
+              "allow_partial_payment": false,
+              "invoice_mode": "POS Invoice",
+              "opening_payment_modes": [],
+              "opening_amount_policy": null
+            }
+        """.trimIndent())
+
+        assertTrue(profile.opening_payment_modes.isEmpty())
+        assertEquals(null, profile.opening_amount_policy)
+    }
+
+    @Test
+    fun opening_contract_ignores_unknown_additive_fields() {
+        val profile = json.decodeFromString<ProfileDto>("""
+            {
+              "name": "OUTLET-UNKNOWN",
+              "company": "Example Company",
+              "warehouse": "Example Warehouse",
+              "currency": "IDR",
+              "selling_price_list": "Example Price List",
+              "customer": "Walk In Customer",
+              "allow_partial_payment": false,
+              "invoice_mode": "POS Invoice",
+              "opening_payment_modes": [],
+              "opening_amount_policy": null,
+              "future_opening_field": "ignored"
+            }
+        """.trimIndent())
+
+        assertTrue(profile.opening_payment_modes.isEmpty())
     }
 
     @Test

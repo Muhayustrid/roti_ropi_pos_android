@@ -25,7 +25,26 @@ data class ProfileDto(
     val selling_price_list: String,
     val customer: String,
     val allow_partial_payment: Boolean,
-    val invoice_mode: String
+    val invoice_mode: String,
+    val opening_payment_modes: List<OpeningPaymentModeDto> = emptyList(),
+    val opening_amount_policy: OpeningAmountPolicyDto? = null
+)
+
+@Serializable
+data class OpeningPaymentModeDto(
+    val mode_of_payment: String,
+    val suggested_opening_amount: String,
+    val amount_editable: Boolean
+)
+
+@Serializable
+data class OpeningAmountPolicyDto(
+    val currency: String,
+    val decimal_places: Int,
+    val minimum: String,
+    val api_syntax: String,
+    val rounding: String,
+    val policy_version: String
 )
 
 @Serializable

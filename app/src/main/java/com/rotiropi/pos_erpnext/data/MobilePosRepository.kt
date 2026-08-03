@@ -22,7 +22,24 @@ data class PosProfile(
     val sellingPriceList: String,
     val customer: String,
     val allowPartialPayment: Boolean,
-    val invoiceMode: String
+    val invoiceMode: String,
+    val openingPaymentModes: List<OpeningPaymentMode>,
+    val openingAmountPolicy: OpeningAmountPolicy?
+)
+
+data class OpeningPaymentMode(
+    val modeOfPayment: String,
+    val suggestedOpeningAmount: String,
+    val amountEditable: Boolean
+)
+
+data class OpeningAmountPolicy(
+    val currency: String,
+    val decimalPlaces: Int,
+    val minimum: String,
+    val apiSyntax: String,
+    val rounding: String,
+    val policyVersion: String
 )
 
 /**
@@ -112,6 +129,34 @@ sealed interface BootstrapFailure {
  * Snapshot published by [MobilePosRepository]. Reads are side-effect free and never
  * trigger a refresh; the repository owns all in-memory capability state.
  */
+internal fun com.rotiropi.pos_erpnext.data.api.ProfileDto.toDomain(): PosProfile = PosProfile(
+    name = name,
+    company = company,
+    warehouse = warehouse,
+    currency = currency,
+    sellingPriceList = selling_price_list,
+    customer = customer,
+    allowPartialPayment = allow_partial_payment,
+    invoiceMode = invoice_mode,
+    openingPaymentModes = opening_payment_modes.map {
+        OpeningPaymentMode(
+            modeOfPayment = it.mode_of_payment,
+            suggestedOpeningAmount = it.suggested_opening_amount,
+            amountEditable = it.amount_editable
+        )
+    },
+    openingAmountPolicy = opening_amount_policy?.let {
+        OpeningAmountPolicy(
+            currency = it.currency,
+            decimalPlaces = it.decimal_places,
+            minimum = it.minimum,
+            apiSyntax = it.api_syntax,
+            rounding = it.rounding,
+            policyVersion = it.policy_version
+        )
+    }
+)
+
 data class RepositoryState(
     val bootstrap: BootstrapData? = null,
     val bootstrapFailure: BootstrapFailure? = null
@@ -327,17 +372,6 @@ class MobilePosRepository(
             posMode = pos_mode
         )
     }
-
-    private fun com.rotiropi.pos_erpnext.data.api.ProfileDto.toDomain(): PosProfile = PosProfile(
-        name = name,
-        company = company,
-        warehouse = warehouse,
-        currency = currency,
-        sellingPriceList = selling_price_list,
-        customer = customer,
-        allowPartialPayment = allow_partial_payment,
-        invoiceMode = invoice_mode
-    )
 
     private fun com.rotiropi.pos_erpnext.data.api.OpeningSessionDto.toDomain(): OpeningSession = OpeningSession(
         name = name,

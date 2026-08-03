@@ -250,6 +250,8 @@ class Task4RootControllerTest {
             customer = "Walk In",
             allowPartialPayment = false,
             invoiceMode = "POS Invoice",
+            openingPaymentModes = emptyList(),
+            openingAmountPolicy = null,
         )
     }
 }

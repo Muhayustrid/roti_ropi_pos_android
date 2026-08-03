@@ -9,7 +9,19 @@
       "selling_price_list": "PG-Outlet 01",
       "customer": "Walk In Customer",
       "allow_partial_payment": false,
-      "invoice_mode": "POS Invoice"
+      "invoice_mode": "POS Invoice",
+      "opening_payment_modes": [
+        {"mode_of_payment": "Cash", "suggested_opening_amount": "200000.00", "amount_editable": true},
+        {"mode_of_payment": "Bank", "suggested_opening_amount": "0.00", "amount_editable": true}
+      ],
+      "opening_amount_policy": {
+        "currency": "IDR",
+        "decimal_places": 2,
+        "minimum": "0.00",
+        "api_syntax": "ascii_decimal_dot",
+        "rounding": "reject",
+        "policy_version": "opening-amount/v1"
+      }
     }
   ],
   "selected_profile": {
@@ -20,7 +32,19 @@
     "selling_price_list": "PG-Outlet 01",
     "customer": "Walk In Customer",
     "allow_partial_payment": false,
-    "invoice_mode": "POS Invoice"
+    "invoice_mode": "POS Invoice",
+    "opening_payment_modes": [
+      {"mode_of_payment": "Cash", "suggested_opening_amount": "200000.00", "amount_editable": true},
+      {"mode_of_payment": "Bank", "suggested_opening_amount": "0.00", "amount_editable": true}
+    ],
+    "opening_amount_policy": {
+      "currency": "IDR",
+      "decimal_places": 2,
+      "minimum": "0.00",
+      "api_syntax": "ascii_decimal_dot",
+      "rounding": "reject",
+      "policy_version": "opening-amount/v1"
+    }
   },
   "opening_session": null,
   "capabilities": {

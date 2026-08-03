@@ -1,5 +1,7 @@
 package com.rotiropi.pos_erpnext.data.api
 
+import java.nio.file.Files
+import java.nio.file.Paths
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -8,6 +10,24 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MobilePosApiContractTest {
+
+    @Test
+    fun production_source_does_not_hard_code_opening_fixture_values() {
+        val sourceRoot = listOf(Paths.get("app/src/main"), Paths.get("src/main"))
+            .first { Files.isDirectory(it) }
+        val forbidden = listOf("\"Cash\"", "\"200000.00\"")
+        val matches = Files.walk(sourceRoot).use { paths ->
+            paths.filter { Files.isRegularFile(it) && it.toString().endsWith(".kt") }
+                .toList()
+                .flatMap { path ->
+                    Files.readAllLines(path).withIndex()
+                        .filter { (_, line) -> forbidden.any(line::contains) }
+                        .map { (index, line) -> "${path}:${index + 1}:$line" }
+                }
+        }
+
+        assertFalse("Production source contains fixture literals: $matches", matches.isNotEmpty())
+    }
 
     private val json = Json { ignoreUnknownKeys = true }
 
