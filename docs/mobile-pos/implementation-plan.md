@@ -21,12 +21,13 @@ MockWebServer, Compose UI test, test-only UI Automator, minSdk 23, and targetSdk
 
 ## Verified Implementation Status
 
-Status last audited on 2026-07-30 from current source and tests, commits
-`21feaa9`, `1bb1bd0`, `e8fdba6`, and `f49f624` (Tasks 1A–2), merged
-Task 2C commit `3801d03`, merged Task 2D commit `ee56e73`, and Task 2E
-candidate `a391411` plus its API 23 test fix. Fresh Gradle, preview, and API
-23/API 36 evidence covers the cumulative Android implementation through Task 2E.
-Task status, not unchecked execution-step boxes below, records current completion.
+Status last audited on 2026-08-03 from current source, tests, merged commits,
+and staging evidence. Tasks 1A–5 retain their recorded authorities below. Task 6
+candidate `acd6769c` and PASS evidence commit `10a55c1` merged via PR #15 as
+`c96ade7f`. Fresh Gradle, API 23/API 36, API 25 focused, process-death, and
+`mobile-pos-response-drop/v1` evidence covers the cumulative Android
+implementation through Task 6. Task status, not unchecked execution-step boxes
+below, records current completion.
 
 | Task | Status | Evidence summary |
 | --- | --- | --- |
@@ -40,7 +41,7 @@ Task status, not unchecked execution-step boxes below, records current completio
 | 3 | Completed | Commit `7a0aa51` implements OAuth Authorization Code + PKCE, encrypted attempt/token storage, App Link redirect handling, restart/logout/stale-callback behavior, and authenticated bootstrap. Final stable-origin verification passed on 2026-08-01; see `task-3-gate-record.md`. |
 | 4 | Completed | Uncommitted implementation adds bootstrap/profile routing, coalesced capability ownership, ordered logout cleanup, XML/ViewBinding profile/root UI, fixtures, and tests. Final API 23/API 36 gates and corrected AGP 9 release unit-test gate passed on 2026-08-02; see `session-handoff-task-4.md`. |
 | 5 | Completed | Commit `aa9d897`, PR #11, merged as `da28b57874e7f1840eab20af201379ff95c76148`. Accepted evidence: `./gradlew testDebugUnitTest`, `./gradlew lintDebug`, `./gradlew lintRelease`, `./gradlew assembleDebug`, `./gradlew assembleRelease`, API 23 device suite (98 tests passed), API 36 device suite (98 tests passed), API 23 two-process recovery harness (PASS), and `git diff --check`. |
-| 6 | Not Started | Opening UI/repository behavior, tests, and fixtures are absent. |
+| 6 | Completed | PR #15 merged as `c96ade7f`. Candidate `acd6769c` adds opening UI/repository behavior, server-driven payment modes, decimal validation, durable opening recovery, session reconciliation, capability refresh, fixtures, and tests. Main-thread recovered reconciliation defect evidence remains preserved as FAIL; corrected API 25 `mobile-pos-response-drop/v1` evidence records exact UUID/body replay, one backend logical result, one `sessions.current`, one capability refresh, no new crash, and targeted staging cleanup PASS. Fresh verification passed debug unit/lint/assemble, exposed release unit task, release lint/assemble, Android-test assembly, API 23/API 36 suites (103 tests each), API 25 focused thread test, and API 23 process-death harness. |
 | 7 | Not Started | Customer selection UI/repository behavior, tests, and fixture are absent. |
 | 8 | Not Started | Catalog/cart UI/repository behavior, tests, fixtures, and accessibility harness are absent. |
 | 9 | Not Started | Payment/receipt UI/repository behavior, tests, and fixtures are absent. |
@@ -48,8 +49,8 @@ Task status, not unchecked execution-step boxes below, records current completio
 | 11 | Not Started | Closing UI/repository behavior, tests, and fixtures are absent. |
 | 12 | Not Started | Final lifecycle, performance, accessibility, release-inspection tests and harnesses are absent. |
 
-The next incomplete Android task is Task 6. Completion of Task 5 does not
-authorize Task 6; it requires separate explicit approval.
+The next incomplete Android task is Task 7. Completion of Task 6 does not
+authorize Task 7; it requires separate explicit approval.
 
 ## Global Constraints
 
