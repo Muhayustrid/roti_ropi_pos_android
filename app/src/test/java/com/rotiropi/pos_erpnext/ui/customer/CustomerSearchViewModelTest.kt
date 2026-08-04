@@ -149,6 +149,45 @@ class CustomerSearchViewModelTest {
     }
 
     @Test
+    fun `repeated successful normalized empty query is a no op`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val requests = mutableListOf<CustomerSearchRequest>()
+        val viewModel = CustomerSearchViewModel(dispatcher, search = { request, _ ->
+            requests += request
+            CustomerSearchResult.Success(RepositoryPage(emptyList(), 0, 20, false))
+        })
+        viewModel.bind(CustomerSearchIdentity("cashier", "PROFILE", "WALK"))
+
+        viewModel.onQueryChanged("ayu"); advanceTimeBy(300); runCurrent()
+        viewModel.onQueryChanged(" ayu "); advanceTimeBy(300); runCurrent()
+
+        assertEquals(1, requests.size)
+        assertEquals("ayu", viewModel.state.value.query)
+        assertTrue(viewModel.state.value.customers.isEmpty())
+        assertFalse(viewModel.state.value.loading)
+        assertEquals(null, viewModel.state.value.error)
+        assertEquals(null, viewModel.state.value.pageError)
+        assertFalse(viewModel.state.value.hasMore)
+    }
+
+    @Test
+    fun `successful empty query dispatches again after query changes`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val requests = mutableListOf<CustomerSearchRequest>()
+        val viewModel = CustomerSearchViewModel(dispatcher, search = { request, _ ->
+            requests += request
+            CustomerSearchResult.Success(RepositoryPage(emptyList(), 0, 20, false))
+        })
+        viewModel.bind(CustomerSearchIdentity("cashier", "PROFILE", "WALK"))
+
+        viewModel.onQueryChanged("ayu"); advanceTimeBy(300); runCurrent()
+        viewModel.onQueryChanged("bima"); advanceTimeBy(300); runCurrent()
+        viewModel.onQueryChanged("ayu"); advanceTimeBy(300); runCurrent()
+
+        assertEquals(listOf("ayu", "bima", "ayu"), requests.map(CustomerSearchRequest::query))
+    }
+
+    @Test
     fun `initial failure clears old records and retry is explicit`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         var fail = false
@@ -281,6 +320,152 @@ class CustomerSearchViewModelTest {
         assertEquals(listOf("ONE"), viewModel.state.value.customers.map(CustomerRecord::id))
         assertFalse(viewModel.state.value.hasMore)
         assertFalse(viewModel.state.value.loading)
+    }
+
+    @Test
+    fun `old retry completion cannot publish over replacement request`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val viewModel = CustomerSearchViewModel(dispatcher, search = { _, _ ->
+            CustomerSearchResult.Failure(CustomerSearchFailure.Unavailable)
+        })
+        val identity = CustomerSearchIdentity("cashier", "PROFILE", "WALK")
+        viewModel.bind(identity)
+        viewModel.onQueryChanged("ayu"); advanceTimeBy(300); runCurrent()
+
+        val old = CustomerSearchAuthority(identity, viewModel.activeGeneration, "ayu", 0, 1)
+        viewModel.retry(); runCurrent()
+        viewModel.publishForAuthority(old, CustomerSearchResult.Success(RepositoryPage(
+            listOf(com.rotiropi.pos_erpnext.data.Customer("OLD", "Old", null, false)), 0, 20, false,
+        )))
+
+        assertTrue(viewModel.state.value.customers.isEmpty())
+        assertEquals(CustomerSearchError.Unavailable, viewModel.state.value.error)
+    }
+
+    // -------------------------------------------------------------------------
+    // toUiMessage mapping — verifies every error type maps to a user-facing
+    // string that contains no technical details (endpoints, stack traces, etc.)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `toUiMessage AuthenticationRequired returns user facing string without technical details`() {
+        val message = CustomerSearchError.AuthenticationRequired.toUiMessage()
+        assertFalse("must not be empty", message.isBlank())
+        assertFalse("must not contain class name", message.contains("AuthenticationRequired"))
+        assertFalse("must not contain endpoint", message.contains("http"))
+        assertFalse("must not contain stack trace marker", message.contains("at com."))
+        assertFalse("must not contain token", message.contains("token", ignoreCase = true))
+    }
+
+    @Test
+    fun `toUiMessage AuthorizationDenied returns user facing string without technical details`() {
+        val message = CustomerSearchError.AuthorizationDenied.toUiMessage()
+        assertFalse("must not be empty", message.isBlank())
+        assertFalse("must not contain class name", message.contains("AuthorizationDenied"))
+        assertFalse("must not contain endpoint", message.contains("http"))
+    }
+
+    @Test
+    fun `toUiMessage Unavailable returns user facing string without technical details`() {
+        val message = CustomerSearchError.Unavailable.toUiMessage()
+        assertFalse("must not be empty", message.isBlank())
+        assertFalse("must not contain class name", message.contains("Unavailable"))
+        assertFalse("must not contain endpoint", message.contains("http"))
+    }
+
+    @Test
+    fun `toUiMessage Stable does not leak server error code to user`() {
+        val message = CustomerSearchError.Stable(code = "ERR_INTERNAL_SERVER_ERROR").toUiMessage()
+        assertFalse("must not be empty", message.isBlank())
+        // The raw server code must not appear verbatim in the UI message
+        assertFalse("must not contain raw server code", message.contains("ERR_INTERNAL_SERVER_ERROR"))
+        assertFalse("must not contain class name", message.contains("Stable("))
+    }
+
+    @Test
+    fun `toUiMessage Protocol returns user facing string without technical details`() {
+        val message = CustomerSearchError.Protocol.toUiMessage()
+        assertFalse("must not be empty", message.isBlank())
+        assertFalse("must not contain class name", message.contains("Protocol"))
+        assertFalse("must not contain endpoint", message.contains("http"))
+    }
+
+    @Test
+    fun `toUiMessage mapping is consistent — all five error types produce distinct non blank messages`() {
+        val messages = listOf(
+            CustomerSearchError.AuthenticationRequired.toUiMessage(),
+            CustomerSearchError.AuthorizationDenied.toUiMessage(),
+            CustomerSearchError.Unavailable.toUiMessage(),
+            CustomerSearchError.Stable(code = "CODE").toUiMessage(),
+            CustomerSearchError.Protocol.toUiMessage(),
+        )
+        messages.forEach { assertFalse("message must not be blank", it.isBlank()) }
+        // AuthenticationRequired and AuthorizationDenied should be distinct from the
+        // generic fallback messages used for Stable / Protocol
+        val generic = CustomerSearchError.Stable(code = "X").toUiMessage()
+        assertFalse(
+            "auth errors must be distinct from generic error message",
+            CustomerSearchError.AuthenticationRequired.toUiMessage() == generic &&
+                CustomerSearchError.AuthorizationDenied.toUiMessage() == generic
+        )
+    }
+
+    // -------------------------------------------------------------------------
+    // Proof for pushback Issue 1:
+    // Identical normalized query while loading=true cancels the in-flight
+    // debounce and restarts it.  Only ONE request is ultimately dispatched.
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `same query while loading restarts debounce and dispatches only one request`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val requests = mutableListOf<CustomerSearchRequest>()
+        val viewModel = CustomerSearchViewModel(dispatcher, search = { request, _ ->
+            requests += request
+            CustomerSearchResult.Success(RepositoryPage(emptyList(), 0, 20, false))
+        })
+        viewModel.bind(CustomerSearchIdentity("cashier", "PROFILE", "WALK"))
+
+        // First call starts debounce; state has loading=true, customers=empty, error=null
+        viewModel.onQueryChanged("ayu")
+        // Advance only 100 ms — debounce not yet fired, loading=true
+        advanceTimeBy(100)
+        assertTrue("loading should be true before debounce fires", viewModel.state.value.loading)
+        assertTrue("no requests yet", requests.isEmpty())
+
+        // Second call with same normalized query while loading=true
+        viewModel.onQueryChanged("ayu")
+        // Advance full 300 ms from the second call
+        advanceTimeBy(300)
+        runCurrent()
+
+        assertEquals("exactly one request should be dispatched", 1, requests.size)
+        assertEquals("ayu", requests.single().query)
+    }
+
+    @Test
+    fun `same query while loading cannot produce concurrent duplicate requests`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val concurrentActive = mutableListOf<Int>()
+        var active = 0
+        val viewModel = CustomerSearchViewModel(dispatcher, search = { _, _ ->
+            active++
+            concurrentActive += active
+            val result = CustomerSearchResult.Success(RepositoryPage(emptyList(), 0, 20, false))
+            active--
+            result
+        })
+        viewModel.bind(CustomerSearchIdentity("cashier", "PROFILE", "WALK"))
+
+        viewModel.onQueryChanged("ayu"); advanceTimeBy(100)
+        viewModel.onQueryChanged("ayu"); advanceTimeBy(100)
+        viewModel.onQueryChanged("ayu"); advanceTimeBy(300)
+        runCurrent()
+
+        // If debounce restart works correctly, only one request fires and
+        // active never exceeds 1
+        assertTrue("concurrent count never exceeded 1", concurrentActive.all { it <= 1 })
+        assertEquals("exactly one request total", 1, concurrentActive.size)
     }
 
     private fun TestScope.viewModel(

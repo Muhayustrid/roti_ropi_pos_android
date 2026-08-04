@@ -13,9 +13,11 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.rotiropi.pos_erpnext.MainActivity
@@ -89,7 +91,7 @@ class CustomerSearchRootTest {
         rule.onNodeWithTag("customer-search-input").performTextInput("retry")
         rule.waitUntil(2_000) { exists("customer-retry") }
         rule.onNodeWithTag("customer-retry").assertHeightIsAtLeast(48.dp)
-        rule.onNodeWithText("Unavailable").assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Assertive))
+        rule.onNodeWithText(CustomerSearchError.Unavailable.toUiMessage()).assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Assertive))
         val count = requests.size
         rule.onNodeWithTag("customer-retry").performClick()
         rule.waitUntil(2_000) { exists("customer-CUST-RETRY") }
@@ -114,7 +116,7 @@ class CustomerSearchRootTest {
         rule.onNodeWithTag("customer-page-retry").performClick()
         rule.waitUntil(2_000) { requests.size == 3 }
         rule.waitUntil(2_000) { exists("customer-C") }
-        rule.onNodeWithTag("customer-results").performTouchInput { swipeDown() }
+        rule.onNodeWithTag("customer-results").performScrollToNode(hasTestTag("customer-A"))
         rule.waitUntil(2_000) { exists("customer-A") }
         org.junit.Assert.assertEquals(listOf(0, 2, 2), requests.map(CustomerSearchRequest::start))
     }

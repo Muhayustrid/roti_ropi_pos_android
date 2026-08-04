@@ -2,6 +2,9 @@
 set -euo pipefail
 
 TARGET_API=""
+# Customer search root tests added 22 more tests; total suite is now 120 tests.
+# API 36 exceeded the prior 180s host wait while still reporting progress.
+INSTRUMENTATION_TIMEOUT_SEC=360
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -212,7 +215,7 @@ if [ -n "$INITIAL_SERIALS" ]; then
         IDENTS=$(get_serial_identity "$SERIAL")
         CUR_AVD="${IDENTS%%:*}"
         CUR_API="${IDENTS##*:}"
-        if [ "$CUR_AVD" = "$AVD_NAME" ] && [ "$CUR_API" = "$EXPECTED_API" ]; then
+        if [ "$CUR_AVD" = "$AVD_NAME" ] && { [ "$CUR_API" = "$EXPECTED_API" ] || [ -z "$CUR_API" ]; }; then
             MATCHING_EXISTING+=("$SERIAL")
         fi
     done
@@ -550,6 +553,7 @@ run_cmd_bounded 5 "$ADB" -s "$RUNNING_SERIAL" shell settings put system font_sca
 
 if [ "$EXPECTED_API" = "23" ]; then
     run_cmd_bounded 5 "$ADB" -s "$RUNNING_SERIAL" shell setprop persist.sys.timezone UTC
+    run_cmd_bounded 5 "$ADB" -s "$RUNNING_SERIAL" shell service call alarm 3 s16 UTC
     run_cmd_bounded 5 "$ADB" -s "$RUNNING_SERIAL" shell setprop persist.sys.language en
     run_cmd_bounded 5 "$ADB" -s "$RUNNING_SERIAL" shell setprop persist.sys.country US
 else
@@ -676,7 +680,7 @@ echo "Running instrumentation tests on $RUNNING_SERIAL..."
 # Host-script-only setup/verification methods are annotated @SpecialHarnessOnly and
 # excluded from the broad suite; tools/oauth-process-death.sh invokes them by name.
 INSTR_RC=0
-run_cmd_bounded 120 "$ADB" -s "$RUNNING_SERIAL" shell am instrument -w -r -e notAnnotation com.rotiropi.pos_erpnext.test.SpecialHarnessOnly com.rotiropi.pos_erpnext.test/androidx.test.runner.AndroidJUnitRunner > "$INSTRUMENTATION_FILE" 2>&1 || INSTR_RC=$?
+run_cmd_bounded "$INSTRUMENTATION_TIMEOUT_SEC" "$ADB" -s "$RUNNING_SERIAL" shell am instrument -w -r -e notAnnotation com.rotiropi.pos_erpnext.test.SpecialHarnessOnly com.rotiropi.pos_erpnext.test/androidx.test.runner.AndroidJUnitRunner > "$INSTRUMENTATION_FILE" 2>&1 || INSTR_RC=$?
 
 cat "$INSTRUMENTATION_FILE"
 

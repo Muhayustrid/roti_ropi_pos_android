@@ -18,7 +18,13 @@ const val MAX_CUSTOMERS = 100
 
 data class CustomerSearchIdentity(val cashier: String, val posProfile: String, val walkInCustomerId: String)
 data class CustomerSearchRequest(val query: String, val posProfile: String, val start: Int, val limit: Int)
-data class CustomerSearchAuthority(val identity: CustomerSearchIdentity, val generation: Long, val query: String, val start: Int)
+data class CustomerSearchAuthority(
+    val identity: CustomerSearchIdentity,
+    val generation: Long,
+    val query: String,
+    val start: Int,
+    val requestId: Long = 0,
+)
 data class CustomerRecord(val id: String, val displayLabel: String, val mobile: String?, val isDefaultWalkIn: Boolean)
 data class CustomerSearchPage(val customers: List<CustomerRecord>, val start: Int, val limit: Int, val hasMore: Boolean)
 
@@ -56,11 +62,14 @@ class CustomerSearchViewModel(
     private var cancellation: ApiCallCancellation? = null
     private var activeAuthority: CustomerSearchAuthority? = null
     private var nextStart: Int? = null
+    private var successfulInitialQuery: String? = null
+    private var nextRequestId = 0L
     var activeGeneration: Long = 0
         private set
     private val _state = MutableStateFlow(CustomerSearchUiState())
     val state: StateFlow<CustomerSearchUiState> = _state.asStateFlow()
 
+    /** Must be called on the main thread. */
     fun bind(value: CustomerSearchIdentity) {
         if (identity == value) return
         invalidateAndCancel()
@@ -70,7 +79,9 @@ class CustomerSearchViewModel(
 
     fun onQueryChanged(value: String) {
         val query = value.trim()
-        if (query == _state.value.query && (_state.value.customers.isNotEmpty() || _state.value.error != null || _state.value.pageError != null)) return
+        if (query == successfulInitialQuery ||
+            (query == _state.value.query && (_state.value.customers.isNotEmpty() || _state.value.error != null || _state.value.pageError != null))
+        ) return
         invalidateAndCancel()
         val current = identity ?: return
         _state.value = _state.value.copy(query = query, customers = emptyList(), loading = true, hasMore = false, error = null, pageError = null)
@@ -125,15 +136,16 @@ class CustomerSearchViewModel(
         if (!isCurrent(authority)) return
         cancellation?.cancel()
         requestJob?.cancel()
-        val request = CustomerSearchRequest(authority.query, authority.identity.posProfile, authority.start, CUSTOMER_PAGE_SIZE)
+        val requestAuthority = authority.copy(requestId = ++nextRequestId)
+        val request = CustomerSearchRequest(requestAuthority.query, requestAuthority.identity.posProfile, requestAuthority.start, CUSTOMER_PAGE_SIZE)
         val callCancellation = cancellationFactory()
-        activeAuthority = authority
+        activeAuthority = requestAuthority
         cancellation = callCancellation
         _state.value = _state.value.copy(loading = true, error = null, pageError = null)
         requestJob = scope.launch {
             when (val result = search(request, callCancellation)) {
-                is CustomerSearchResult.Success -> publishSuccess(authority, result.page.toUi())
-                is CustomerSearchResult.Failure -> publishFailure(authority, result.reason.toUi())
+                is CustomerSearchResult.Success -> publishSuccess(requestAuthority, result.page.toUi())
+                is CustomerSearchResult.Failure -> publishFailure(requestAuthority, result.reason.toUi())
             }
         }
     }
@@ -147,6 +159,7 @@ class CustomerSearchViewModel(
         }
         val current = _state.value.customers
         val customers = (if (page.start == 0) page.customers else current + page.customers).distinctBy(CustomerRecord::id).take(MAX_CUSTOMERS)
+        if (authority.start == 0) successfulInitialQuery = authority.query
         val candidate = page.start + page.limit
         nextStart = candidate.takeIf {
             page.hasMore && page.start >= authority.start && it > authority.start && customers.size < MAX_CUSTOMERS
@@ -157,6 +170,7 @@ class CustomerSearchViewModel(
     private fun publishFailure(authority: CustomerSearchAuthority, failure: CustomerSearchError) {
         if (!isCurrent(authority) || activeAuthority != authority) return
         _state.value = if (authority.start == 0) {
+            successfulInitialQuery = null
             _state.value.copy(customers = emptyList(), loading = false, error = failure, pageError = null)
         } else {
             _state.value.copy(loading = false, pageError = failure)
@@ -174,6 +188,7 @@ class CustomerSearchViewModel(
         requestJob = null
         activeAuthority = null
         nextStart = null
+        successfulInitialQuery = null
     }
 
     private fun RepositoryPage.toUi() = CustomerSearchPage(customers.map { CustomerRecord(it.id, it.displayLabel, it.mobile, it.isDefaultWalkIn) }, start, limit, hasMore)
@@ -184,4 +199,13 @@ class CustomerSearchViewModel(
         is CustomerSearchFailure.Stable -> CustomerSearchError.Stable(code)
         is CustomerSearchFailure.Protocol -> CustomerSearchError.Protocol
     }
+}
+
+/** Returns a user-facing error message for display in the customer search UI. */
+fun CustomerSearchError.toUiMessage(): String = when (this) {
+    CustomerSearchError.AuthenticationRequired -> "Session expired. Please sign in again."
+    CustomerSearchError.AuthorizationDenied -> "You do not have permission to search customers."
+    CustomerSearchError.Unavailable -> "Customer search is unavailable. Check your connection."
+    is CustomerSearchError.Stable -> "Search failed. Please try again."
+    CustomerSearchError.Protocol -> "Search failed. Please try again."
 }
