@@ -30,6 +30,21 @@ class RecoveryLogoutCoordinatorTest {
     }
 
     @Test
+    fun `logout clears customer state before authentication`() {
+        val events = mutableListOf<String>()
+        val coordinator = LogoutCoordinator(
+            clearRepository = { events += "repository" },
+            clearProfileUi = { events += "profile" },
+            clearCustomerUi = { events += "customer" },
+            clearAuthentication = { events += "authentication" },
+            runCleanupIfNoRecovery = { cleanup -> cleanup(); null },
+        )
+
+        assertEquals(LogoutResult.LoggedOut, coordinator.logout())
+        assertEquals(listOf("repository", "profile", "customer", "authentication"), events)
+    }
+
+    @Test
     fun `blocked logout identifies owning cashier`() {
         val events = mutableListOf<String>()
         val coordinator = coordinator(events) {

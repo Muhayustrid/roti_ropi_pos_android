@@ -48,7 +48,8 @@ data class ProfileSelectionUiState(
  * Android framework, coroutine, or dependency is required.
  */
 class ProfileSelectionViewModel(
-    private val repository: MobilePosRepository
+    private val repository: MobilePosRepository,
+    private val onProfileChanged: () -> Unit = {},
 ) {
     private val lock = Any()
     private var refreshing = false
@@ -91,6 +92,7 @@ class ProfileSelectionViewModel(
             }
             return
         }
+        onProfileChanged()
         finishAction(action, repository.refreshCapabilities(action.trigger))
     }
 

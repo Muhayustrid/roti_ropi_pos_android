@@ -19,17 +19,20 @@ sealed interface LogoutResult {
 class LogoutCoordinator internal constructor(
     private val clearRepository: () -> Unit,
     private val clearProfileUi: () -> Unit = {},
+    private val clearCustomerUi: () -> Unit = {},
     private val clearAuthentication: () -> Unit,
     private val runCleanupIfNoRecovery: ((() -> Unit) -> RecoveryLogoutBlocker?)? = null,
 ) {
     constructor(
         repository: MobilePosRepository,
         profileSelectionViewModel: ProfileSelectionViewModel,
+        clearCustomerUi: () -> Unit = {},
         authenticationOwner: AuthenticationOwner,
         pendingMutations: SqlitePendingMutationStore,
     ) : this(
         clearRepository = repository::clear,
         clearProfileUi = profileSelectionViewModel::clear,
+        clearCustomerUi = clearCustomerUi,
         clearAuthentication = authenticationOwner::logout,
         runCleanupIfNoRecovery = pendingMutations::logoutIfNoRecords,
     )
@@ -39,6 +42,7 @@ class LogoutCoordinator internal constructor(
         val cleanup = {
             clearRepository()
             clearProfileUi()
+            clearCustomerUi()
             clearAuthentication()
         }
         val blocker = runCleanupIfNoRecovery?.invoke(cleanup).also {

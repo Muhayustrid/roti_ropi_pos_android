@@ -1,0 +1,22 @@
+{
+  "customers": [
+    {
+      "name": "CUST-0001",
+      "customer_name": "Ayu Bakery",
+      "mobile_no": "081234567890",
+      "is_default_walk_in": false,
+      "future_field": "ignored"
+    },
+    {
+      "name": "WALK-IN-01",
+      "customer_name": "Walk In Customer",
+      "mobile_no": null,
+      "is_default_walk_in": true
+    }
+  ],
+  "page": {
+    "start": 0,
+    "limit": 20,
+    "has_more": true
+  }
+}

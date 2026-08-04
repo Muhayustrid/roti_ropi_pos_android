@@ -25,6 +25,7 @@
     {"path":"bootstrap-multiple-profiles.json","scope":"bootstrap","backend_phase":"Phase 3"},
     {"path":"bootstrap-stale-opening.json","scope":"bootstrap","backend_phase":"Phase 3"},
     {"path":"session-current.json","scope":"sessions.current","backend_phase":"Phase 4"},
-    {"path":"session-opened.json","scope":"sessions.open","backend_phase":"Phase 4"}
+    {"path":"session-opened.json","scope":"sessions.open","backend_phase":"Phase 4"},
+    {"path":"customer-page.json","scope":"customers.search","backend_phase":"Phase 4","endpoint":"/api/method/roti_ropi_pos.api.v1.customers.search","source_type":"reviewed_backend_test_fixture","backend_sha":"38728df32394aac1fc5c49387b2ea6e0f3b5c15b","review_reference":"roti_ropi_pos/tests/test_customers.py","contains_credentials":false,"contains_production_pii":false,"runtime_integration_evidence":false}
   ]
 }

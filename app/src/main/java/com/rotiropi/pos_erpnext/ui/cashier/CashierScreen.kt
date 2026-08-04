@@ -49,6 +49,9 @@ import androidx.compose.ui.unit.dp
 import com.rotiropi.pos_erpnext.ui.navigation.PosLayoutMode
 import com.rotiropi.pos_erpnext.ui.receipt.ReceiptScreen
 import com.rotiropi.pos_erpnext.ui.theme.PosDimensions
+import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchSheet
+import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchUiState
+import com.rotiropi.pos_erpnext.ui.customer.CustomerRecord
 
 @Composable
 fun CashierScreen(
@@ -67,9 +70,21 @@ fun CashierScreen(
     onIncreaseQuantity: (CartLine) -> Unit = {},
     onRetry: () -> Unit = {},
     onCloseReceipt: () -> Unit = {},
+    customerState: CustomerSearchUiState? = null,
+    customerSheetVisible: Boolean = false,
+    onOpenCustomerSheet: () -> Unit = {},
+    onDismissCustomerSheet: () -> Unit = {},
+    onCustomerQueryChanged: (String) -> Unit = {},
+    onWalkInNameChanged: (String) -> Unit = {},
+    onSelectWalkIn: () -> Unit = {},
+    onSelectRegistered: (CustomerRecord) -> Unit = {},
+    onCustomerRetry: () -> Unit = {},
+    onCustomerLoadMore: () -> Unit = {},
 ) {
     when (state) {
-        CashierUiState.Unavailable -> CashierUnavailable(modifier)
+        CashierUiState.Unavailable -> CashierUnavailable(
+            modifier, customerState, onOpenCustomerSheet,
+        )
         is CashierUiState.Error -> CashierError(state.message, modifier, onRetry)
         is CashierUiState.Receipt -> ReceiptScreen(state.content, modifier, onCloseReceipt)
         is CashierUiState.Active -> CashierActive(
@@ -88,6 +103,9 @@ fun CashierScreen(
             onIncreaseQuantity = onIncreaseQuantity,
             onRetry = onRetry,
         )
+    }
+    if (customerSheetVisible && customerState != null) {
+        CustomerSearchSheet(customerState, onCustomerQueryChanged, onWalkInNameChanged, onSelectWalkIn, onSelectRegistered, onCustomerRetry, onCustomerLoadMore, onDismissCustomerSheet)
     }
 }
 
@@ -322,12 +340,23 @@ private fun CashierProductCard(
 }
 
 @Composable
-private fun CashierUnavailable(modifier: Modifier) {
-    CashierStatePanel(
-        title = "Cashier unavailable",
-        message = "Catalog, authoritative payable, and payment modes are not integrated.",
-        modifier = modifier,
-    )
+private fun CashierUnavailable(
+    modifier: Modifier,
+    customerState: CustomerSearchUiState?,
+    onOpenCustomerSheet: () -> Unit,
+) {
+    Column(modifier = modifier.padding(PosDimensions.screenPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Cashier unavailable", style = MaterialTheme.typography.headlineMedium)
+        customerState?.let { state ->
+            val label = when (val selection = state.selection) {
+                is com.rotiropi.pos_erpnext.ui.customer.CustomerSelection.WalkIn -> selection.displayName.ifBlank { "Walk-in customer" }
+                is com.rotiropi.pos_erpnext.ui.customer.CustomerSelection.Registered -> selection.displayLabel
+                null -> "Customer"
+            }
+            Button(onClick = onOpenCustomerSheet, modifier = Modifier.heightIn(min = PosDimensions.touchTarget).testTag("customer-open")) { Text(label) }
+        }
+        Text("Catalog, authoritative payable, and payment modes are not integrated.")
+    }
 }
 
 @Composable

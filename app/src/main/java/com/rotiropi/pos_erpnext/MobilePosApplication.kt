@@ -23,10 +23,13 @@ import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.json.Json
 import com.rotiropi.pos_erpnext.recovery.PendingMutation
 import com.rotiropi.pos_erpnext.ui.AppViewModel
+import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchIdentity
+import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchViewModel
 import com.rotiropi.pos_erpnext.ui.profile.ProfileSelectionViewModel
 import com.rotiropi.pos_erpnext.data.api.CanonicalBackendOrigin
 import com.rotiropi.pos_erpnext.data.api.CoordinatorAuthTokenProvider
 import okhttp3.OkHttpClient
+import kotlinx.coroutines.Dispatchers
 
 /** Manual application container for one process-wide authentication owner. */
 class MobilePosApplication : Application() {
@@ -102,6 +105,8 @@ class MobilePosApplication : Application() {
         private set
     lateinit var profileSelectionViewModel: ProfileSelectionViewModel
         private set
+    lateinit var customerSearchViewModel: CustomerSearchViewModel
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -133,10 +138,26 @@ class MobilePosApplication : Application() {
             openSession = { request -> recoveryCoordinator.execute(openingRecoverySpec(request, Json)) },
         )
         appViewModel = AppViewModel(mobilePosRepository)
-        profileSelectionViewModel = ProfileSelectionViewModel(mobilePosRepository)
+        customerSearchViewModel = CustomerSearchViewModel(Dispatchers.IO, search = { request, cancellation ->
+            mobilePosRepository.searchCustomers(
+                request.query,
+                request.posProfile,
+                request.start,
+                request.limit,
+                cancellation,
+            )
+        })
+        profileSelectionViewModel = ProfileSelectionViewModel(mobilePosRepository) {
+            val bootstrap = mobilePosRepository.state.bootstrap
+            val profile = bootstrap?.selectedProfile
+            val cashier = bootstrap?.user?.name
+            if (profile == null || cashier == null) customerSearchViewModel.clear()
+            else customerSearchViewModel.bind(CustomerSearchIdentity(cashier, profile.name, profile.customer))
+        }
         logoutCoordinator = LogoutCoordinator(
             mobilePosRepository,
             profileSelectionViewModel,
+            customerSearchViewModel::clear,
             authenticationOwner,
             pendingMutations,
         )

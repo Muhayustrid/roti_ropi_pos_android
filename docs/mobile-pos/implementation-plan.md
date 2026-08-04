@@ -42,7 +42,7 @@ below, records current completion.
 | 4 | Completed | Uncommitted implementation adds bootstrap/profile routing, coalesced capability ownership, ordered logout cleanup, XML/ViewBinding profile/root UI, fixtures, and tests. Final API 23/API 36 gates and corrected AGP 9 release unit-test gate passed on 2026-08-02; see `session-handoff-task-4.md`. |
 | 5 | Completed | Commit `aa9d897`, PR #11, merged as `da28b57874e7f1840eab20af201379ff95c76148`. Accepted evidence: `./gradlew testDebugUnitTest`, `./gradlew lintDebug`, `./gradlew lintRelease`, `./gradlew assembleDebug`, `./gradlew assembleRelease`, API 23 device suite (98 tests passed), API 36 device suite (98 tests passed), API 23 two-process recovery harness (PASS), and `git diff --check`. |
 | 6 | Completed | PR #15 merged as `c96ade7f`. Candidate `acd6769c` adds opening UI/repository behavior, server-driven payment modes, decimal validation, durable opening recovery, session reconciliation, capability refresh, fixtures, and tests. Main-thread recovered reconciliation defect evidence remains preserved as FAIL; corrected API 25 `mobile-pos-response-drop/v1` evidence records exact UUID/body replay, one backend logical result, one `sessions.current`, one capability refresh, no new crash, and targeted staging cleanup PASS. Fresh verification passed debug unit/lint/assemble, exposed release unit task, release lint/assemble, Android-test assembly, API 23/API 36 suites (103 tests each), API 25 focused thread test, and API 23 process-death harness. |
-| 7 | Not Started | Customer selection UI/repository behavior, tests, and fixture are absent. |
+| 7 | Completed | Customer search is debounced, cancellable, offset-paginated, bounded to 100 distinct records, scoped to profile/cashier, clears on logout and profile change, and has API 23/API 36 coverage. |
 | 8 | Not Started | Catalog/cart UI/repository behavior, tests, fixtures, and accessibility harness are absent. |
 | 9 | Not Started | Payment/receipt UI/repository behavior, tests, and fixtures are absent. |
 | 10 | Not Started | History/return UI/repository behavior, tests, and fixtures are absent. |
@@ -1438,7 +1438,7 @@ wait for approval.
 
 ### Task 7: Implement Customer Search
 
-**Status:** Not Started.
+**Status:** Completed. Customer search, profile walk-in selection, DTO/repository mapping, logout cleanup, fixture provenance, unit tests, production-root UI tests, and API 23/API 36 verification are present. Task 8 remains unstarted.
 
 **Depends on:** Approved and passing Task 6.
 
@@ -1458,13 +1458,28 @@ wait for approval.
 **Produces:**
 
 - `MobilePosRepository.searchCustomers(query, posProfile, page, pageLength)`
-  mapped from the reviewed customer contract.
+  mapped to `GET customers.search` query parameters `q`, `pos_profile`, `start`,
+  and `limit`. The first offset is `start=0`; requests use `limit=20`, advance
+  from returned offset metadata, use no page-number model, and retain at most
+  100 distinct Customer records.
+
+- Task 7 is an approved exception to the existing Compose restriction. It may
+  add only the customer sheet, its Cashier integration, focused reusable
+  components, previews, and tests; it does not authorize a global UI redesign
+  or Task 8 work.
 
 - [ ] **Step 1: Write failing customer tests**
 
-Cover 300 ms debounce, cancellation, pagination, default walk-in selection,
-registered selection, display-name visibility, empty state, errors, fixture
-provenance, and logout cache clearing.
+Cover exact 300 ms debounce, cancellation, generation/identity/profile stale
+response suppression, offset pagination, default walk-in selection, registered
+selection, display-name visibility, empty state, initial and page retry, fixture
+provenance, and logout cache clearing. A changed normalized query clears prior
+records and restarts at offset zero. A successful identical normalized query is
+a no-op; a failed query retries only after explicit cashier action. Page results
+deduplicate by Customer `name`, preserve server ordering, and stop at
+`has_more=false` or 100 records. Initial failure shows no old-query records;
+page failure retains successful records and retries the same offset. Known
+offline shows unavailable without a local customer cache or fallback endpoint.
 
 - [ ] **Step 2: Run red tests**
 
@@ -1476,8 +1491,11 @@ Expected: FAIL.
 
 - [ ] **Step 3: Implement bounded customer selection**
 
-Use page size 20, never create customers, and clear walk-in display name when a
-registered customer is selected.
+Use offset page size 20, never create customers, and clear walk-in display name
+when a registered customer is selected. Default walk-in identity comes only from
+the selected profile `customer`; it is not hard-coded or derived from results.
+Query, result, selection, and display-name state stay memory-only and clear on
+logout, cashier change, or profile change.
 
 - [ ] **Step 4: Verify customer search**
 
