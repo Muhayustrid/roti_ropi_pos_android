@@ -2,9 +2,7 @@
 set -euo pipefail
 
 TARGET_API=""
-# Customer search root tests added 22 more tests; total suite is now 120 tests.
-# API 36 exceeded the prior 180s host wait while still reporting progress.
-INSTRUMENTATION_TIMEOUT_SEC=360
+INSTRUMENTATION_TIMEOUT_SEC=180
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -674,6 +672,39 @@ run_cmd_bounded 60 "$ADB" -s "$RUNNING_SERIAL" install -r "$TEST_APK" || INSTALL
 if [ $INSTALL_TEST_RC -ne 0 ]; then
     echo "ERROR: Test APK install failed on $RUNNING_SERIAL with status $INSTALL_TEST_RC." >&2
     exit 1
+fi
+
+# Pre-compile APKs to native code to eliminate ART cold-JIT overhead on first run.
+# cmd package compile is available on API 24+; skip silently on API 23.
+if [ "$EXPECTED_API" != "23" ]; then
+    # Package names must match applicationId in app/build.gradle.kts.
+    # Update both values here if applicationId is ever renamed.
+    APP_PKG="com.rotiropi.pos_erpnext"
+    TEST_PKG="com.rotiropi.pos_erpnext.test"
+
+    echo "Pre-compiling $APP_PKG with speed profile on $RUNNING_SERIAL..."
+    COMPILE_APP_START=$(python3 -c 'import time; print(time.monotonic())')
+    COMPILE_APP_RC=0
+    run_cmd_bounded 120 "$ADB" -s "$RUNNING_SERIAL" shell cmd package compile -m speed -f "$APP_PKG" || COMPILE_APP_RC=$?
+    COMPILE_APP_END=$(python3 -c 'import time; print(time.monotonic())')
+    COMPILE_APP_DUR=$(python3 -c "print(round($COMPILE_APP_END - $COMPILE_APP_START, 1))")
+    if [ $COMPILE_APP_RC -ne 0 ]; then
+        echo "ERROR: ART pre-compilation of $APP_PKG failed on $RUNNING_SERIAL with status $COMPILE_APP_RC." >&2
+        exit 1
+    fi
+    echo "Pre-compiled $APP_PKG in ${COMPILE_APP_DUR}s (exit $COMPILE_APP_RC)."
+
+    echo "Pre-compiling $TEST_PKG with speed profile on $RUNNING_SERIAL..."
+    COMPILE_TEST_START=$(python3 -c 'import time; print(time.monotonic())')
+    COMPILE_TEST_RC=0
+    run_cmd_bounded 120 "$ADB" -s "$RUNNING_SERIAL" shell cmd package compile -m speed -f "$TEST_PKG" || COMPILE_TEST_RC=$?
+    COMPILE_TEST_END=$(python3 -c 'import time; print(time.monotonic())')
+    COMPILE_TEST_DUR=$(python3 -c "print(round($COMPILE_TEST_END - $COMPILE_TEST_START, 1))")
+    if [ $COMPILE_TEST_RC -ne 0 ]; then
+        echo "ERROR: ART pre-compilation of $TEST_PKG failed on $RUNNING_SERIAL with status $COMPILE_TEST_RC." >&2
+        exit 1
+    fi
+    echo "Pre-compiled $TEST_PKG in ${COMPILE_TEST_DUR}s (exit $COMPILE_TEST_RC)."
 fi
 
 echo "Running instrumentation tests on $RUNNING_SERIAL..."
