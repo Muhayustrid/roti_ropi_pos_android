@@ -173,6 +173,25 @@ class ProfileSelectionViewModelTest {
     }
 
     @Test
+    fun `profile change callback runs before its refresh`() {
+        server.enqueue(response(fixture("bootstrap-multiple-profiles.json")))
+        val repo = repository()
+        repo.bootstrap(null)
+        var selectedDuringCallback: String? = null
+        var requestsDuringCallback = -1
+        val viewModel = ProfileSelectionViewModel(repo) {
+            selectedDuringCallback = repo.state.selectedProfile?.name
+            requestsDuringCallback = server.requestCount
+        }
+
+        server.enqueue(response(fixture("bootstrap-one-profile.json")))
+        viewModel.selectProfile("OUTLET-01")
+
+        assertEquals("OUTLET-01", selectedDuringCallback)
+        assertEquals(1, requestsDuringCallback)
+    }
+
+    @Test
     fun `changing an existing selection issues one PROFILE_CHANGED refresh`() {
         // Multi-profile bootstrap with OUTLET-01 already selected by the server.
         val body = fixture("bootstrap-multiple-profiles.json")

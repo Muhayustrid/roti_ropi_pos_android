@@ -182,6 +182,9 @@ class ApiCallCancellation {
         call?.cancel()
     }
 
+    val isCancelled: Boolean
+        get() = cancelled
+
     internal fun attach(call: okhttp3.Call) {
         this.call = call
         if (cancelled) call.cancel()

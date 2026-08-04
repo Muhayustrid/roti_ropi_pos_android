@@ -24,6 +24,7 @@ import com.rotiropi.pos_erpnext.ui.profile.ProfileSelectionUiState
 import com.rotiropi.pos_erpnext.ui.settings.PosThemeMode
 import com.rotiropi.pos_erpnext.ui.settings.ThemePreferences
 import com.rotiropi.pos_erpnext.ui.theme.PosTheme
+import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchIdentity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -38,6 +39,7 @@ class Task4RootHost(
 ) {
     private val logoutResult = MutableStateFlow<LogoutResult?>(null)
     private val openingState = MutableStateFlow<com.rotiropi.pos_erpnext.ui.opening.OpeningUiState?>(null)
+    private val customerSheetVisible = MutableStateFlow(false)
     private var openingViewModel: OpeningViewModel? = null
     private var openingFlow: OpeningFlowCoordinator? = null
     private var openingReconciliation: OpeningReconciliationRunner? = null
@@ -100,6 +102,7 @@ class Task4RootHost(
             application.recoveryCoordinator.uiState.collectAsState().value
             val recovery = recoveryViewModel.state.collectAsState().value
             val opening = openingState.collectAsState().value
+            val customer = application.customerSearchViewModel.state.collectAsState().value
             PosTheme(darkTheme = darkTheme, accent = selection.accent) {
                 PosShell(
                     authenticationOwner = application.authenticationOwner,
@@ -114,6 +117,16 @@ class Task4RootHost(
                         openingState.value = openingViewModel?.state?.value
                     },
                     onOpenSession = ::openSession,
+                    customerState = customer,
+                    customerSheetVisible = customerSheetVisible.collectAsState().value,
+                    onOpenCustomerSheet = { customerSheetVisible.value = true },
+                    onDismissCustomerSheet = { customerSheetVisible.value = false },
+                    onCustomerQueryChanged = application.customerSearchViewModel::onQueryChanged,
+                    onWalkInNameChanged = application.customerSearchViewModel::onWalkInDisplayNameChanged,
+                    onSelectWalkIn = application.customerSearchViewModel::selectWalkIn,
+                    onSelectRegistered = application.customerSearchViewModel::selectRegistered,
+                    onCustomerRetry = application.customerSearchViewModel::retry,
+                    onCustomerLoadMore = application.customerSearchViewModel::loadMore,
                     themeMode = selection.mode,
                     accent = selection.accent,
                     onThemeModeSelected = { mode ->
@@ -177,6 +190,7 @@ class Task4RootHost(
                             application.appViewModel.synchronizeRouteFromRepository()
                         }
                         synchronizeOpeningFlow(authentication, application.appViewModel.state.value)
+                        synchronizeCustomerSearch(authentication)
                         synchronizeRecoveredOpening(recoveryViewModel.state.value)
                         controller.render(
                             authentication,
@@ -222,6 +236,18 @@ class Task4RootHost(
         } else {
             null
         }
+    }
+
+    private fun synchronizeCustomerSearch(authentication: AuthenticationState) {
+        val bootstrap = application.mobilePosRepository.state.bootstrap
+        val profile = bootstrap?.selectedProfile
+        val cashier = bootstrap?.user?.name
+        if (authentication != AuthenticationState.Authenticated || profile == null || cashier == null) {
+            customerSheetVisible.value = false
+            application.customerSearchViewModel.clear()
+            return
+        }
+        application.customerSearchViewModel.bind(CustomerSearchIdentity(cashier, profile.name, profile.customer))
     }
 
     private fun openSession() {

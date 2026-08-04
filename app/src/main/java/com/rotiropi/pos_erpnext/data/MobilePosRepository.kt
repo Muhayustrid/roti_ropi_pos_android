@@ -3,8 +3,10 @@ package com.rotiropi.pos_erpnext.data
 import com.rotiropi.pos_erpnext.data.api.ApiResult
 import com.rotiropi.pos_erpnext.data.api.AuthenticatedMobilePosApiClient
 import com.rotiropi.pos_erpnext.data.api.BootstrapResponseDto
+import com.rotiropi.pos_erpnext.data.api.CustomerSearchResponseDto
 import com.rotiropi.pos_erpnext.data.api.MobilePosEndpoint
 import com.rotiropi.pos_erpnext.data.api.MobilePosRequest
+import com.rotiropi.pos_erpnext.data.api.ApiCallCancellation
 import com.rotiropi.pos_erpnext.data.api.OpenSessionRequestDto
 import com.rotiropi.pos_erpnext.data.api.OpenSessionResponseDto
 import com.rotiropi.pos_erpnext.data.api.SessionCurrentResponseDto
@@ -112,6 +114,33 @@ data class PosCapabilities(
 }
 
 data class BootstrapUser(val name: String, val fullName: String)
+
+data class CustomerSearchPage(
+    val customers: List<Customer>,
+    val start: Int,
+    val limit: Int,
+    val hasMore: Boolean,
+)
+
+data class Customer(
+    val id: String,
+    val displayLabel: String,
+    val mobile: String?,
+    val isDefaultWalkIn: Boolean,
+)
+
+sealed interface CustomerSearchResult {
+    data class Success(val page: CustomerSearchPage) : CustomerSearchResult
+    data class Failure(val reason: CustomerSearchFailure) : CustomerSearchResult
+}
+
+sealed interface CustomerSearchFailure {
+    data object AuthenticationRequired : CustomerSearchFailure
+    data object AuthorizationDenied : CustomerSearchFailure
+    data object Unavailable : CustomerSearchFailure
+    data class Stable(val code: String) : CustomerSearchFailure
+    data class Protocol(val reason: String) : CustomerSearchFailure
+}
 
 /**
  * Immutable, render-equivalent snapshot mapped from the versioned bootstrap DTO.
@@ -260,6 +289,40 @@ class MobilePosRepository(
     }
 
     fun openSession(request: OpenSessionRequestDto): RecoveryExecution = openSession.invoke(request)
+
+    fun searchCustomers(
+        query: String,
+        posProfile: String,
+        start: Int,
+        limit: Int,
+        cancellation: ApiCallCancellation,
+    ): CustomerSearchResult {
+        require(start >= 0)
+        require(limit in 1..20)
+        val request = MobilePosRequest.get(
+            MobilePosEndpoint.CUSTOMERS_SEARCH,
+            mapOf("q" to query, "pos_profile" to posProfile, "start" to start.toString(), "limit" to limit.toString()),
+        )
+        return when (val result = client.execute(request, CustomerSearchResponseDto.serializer(), cancellation)) {
+            is ApiResult.Success -> CustomerSearchResult.Success(
+                CustomerSearchPage(
+                    result.data.customers.map { Customer(it.name, it.customer_name, it.mobile_no, it.is_default_walk_in) },
+                    result.data.page.start,
+                    result.data.page.limit,
+                    result.data.page.has_more,
+                ),
+            )
+            is ApiResult.ExpectedFailure -> CustomerSearchResult.Failure(CustomerSearchFailure.Stable(result.error.code))
+            is ApiResult.ProtocolFailure -> CustomerSearchResult.Failure(CustomerSearchFailure.Protocol(result.reason))
+            is ApiResult.TransportFailure -> CustomerSearchResult.Failure(
+                when (result.kind) {
+                    TransportFailureKind.AUTHENTICATION_REQUIRED -> CustomerSearchFailure.AuthenticationRequired
+                    TransportFailureKind.ROUTE_FORBIDDEN -> CustomerSearchFailure.AuthorizationDenied
+                    else -> CustomerSearchFailure.Unavailable
+                },
+            )
+        }
+    }
 
     fun currentSession(profileName: String): CurrentSessionResult {
         val requestEpoch = synchronized(lock) { epoch }

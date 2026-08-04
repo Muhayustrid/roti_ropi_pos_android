@@ -27,6 +27,8 @@ import com.rotiropi.pos_erpnext.session.LogoutResult
 import com.rotiropi.pos_erpnext.ui.auth.SignInScreen
 import com.rotiropi.pos_erpnext.ui.cashier.CashierScreen
 import com.rotiropi.pos_erpnext.ui.cashier.CashierUiState
+import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchUiState
+import com.rotiropi.pos_erpnext.ui.customer.CustomerRecord
 import com.rotiropi.pos_erpnext.ui.components.RootNavigationBar
 import com.rotiropi.pos_erpnext.ui.dashboard.DashboardScreen
 import com.rotiropi.pos_erpnext.ui.dashboard.DashboardUiState
@@ -59,6 +61,16 @@ fun PosShell(
     openingState: OpeningUiState? = null,
     onOpeningAmountChanged: (String, String) -> Unit = { _, _ -> },
     onOpenSession: () -> Unit = {},
+    customerState: CustomerSearchUiState? = null,
+    customerSheetVisible: Boolean = false,
+    onOpenCustomerSheet: () -> Unit = {},
+    onDismissCustomerSheet: () -> Unit = {},
+    onCustomerQueryChanged: (String) -> Unit = {},
+    onWalkInNameChanged: (String) -> Unit = {},
+    onSelectWalkIn: () -> Unit = {},
+    onSelectRegistered: (CustomerRecord) -> Unit = {},
+    onCustomerRetry: () -> Unit = {},
+    onCustomerLoadMore: () -> Unit = {},
 ) {
     val authState = authenticationOwner?.state?.collectAsState()?.value
     if (authenticationOwner != null && authState != AuthenticationState.Authenticated) {
@@ -101,6 +113,16 @@ fun PosShell(
         onAcknowledgeRecovery = onAcknowledgeRecovery,
         onReauthenticateRecovery = onReauthenticateRecovery,
         logoutVisible = authenticationOwner != null,
+        customerState = customerState,
+        customerSheetVisible = customerSheetVisible,
+        onOpenCustomerSheet = onOpenCustomerSheet,
+        onDismissCustomerSheet = onDismissCustomerSheet,
+        onCustomerQueryChanged = onCustomerQueryChanged,
+        onWalkInNameChanged = onWalkInNameChanged,
+        onSelectWalkIn = onSelectWalkIn,
+        onSelectRegistered = onSelectRegistered,
+        onCustomerRetry = onCustomerRetry,
+        onCustomerLoadMore = onCustomerLoadMore,
         modifier = modifier,
     )
 }
@@ -117,6 +139,16 @@ private fun AuthenticatedPosShell(
     onAcknowledgeRecovery: (String) -> Unit,
     onReauthenticateRecovery: () -> Unit,
     logoutVisible: Boolean,
+    customerState: CustomerSearchUiState?,
+    customerSheetVisible: Boolean,
+    onOpenCustomerSheet: () -> Unit,
+    onDismissCustomerSheet: () -> Unit,
+    onCustomerQueryChanged: (String) -> Unit,
+    onWalkInNameChanged: (String) -> Unit,
+    onSelectWalkIn: () -> Unit,
+    onSelectRegistered: (CustomerRecord) -> Unit,
+    onCustomerRetry: () -> Unit,
+    onCustomerLoadMore: () -> Unit,
     modifier: Modifier,
 ) {
     val navController = rememberNavController()
@@ -185,6 +217,16 @@ private fun AuthenticatedPosShell(
                             state = if (demoActive) PosDemoStates.cashier else CashierUiState.Unavailable,
                             layoutMode = layoutMode,
                             modifier = Modifier.testTag("destination-content-cashier"),
+                            customerState = if (demoActive) null else customerState,
+                            customerSheetVisible = customerSheetVisible,
+                            onOpenCustomerSheet = onOpenCustomerSheet,
+                            onDismissCustomerSheet = onDismissCustomerSheet,
+                            onCustomerQueryChanged = onCustomerQueryChanged,
+                            onWalkInNameChanged = onWalkInNameChanged,
+                            onSelectWalkIn = onSelectWalkIn,
+                            onSelectRegistered = onSelectRegistered,
+                            onCustomerRetry = onCustomerRetry,
+                            onCustomerLoadMore = onCustomerLoadMore,
                         )
                     }
                     composable(PosDestination.REPORTS.route) {
