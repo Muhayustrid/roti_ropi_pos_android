@@ -25,6 +25,7 @@ import com.rotiropi.pos_erpnext.recovery.PendingMutation
 import com.rotiropi.pos_erpnext.ui.AppViewModel
 import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchIdentity
 import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchViewModel
+import com.rotiropi.pos_erpnext.ui.cashier.CashierViewModel
 import com.rotiropi.pos_erpnext.ui.profile.ProfileSelectionViewModel
 import com.rotiropi.pos_erpnext.data.api.CanonicalBackendOrigin
 import com.rotiropi.pos_erpnext.data.api.CoordinatorAuthTokenProvider
@@ -107,6 +108,8 @@ class MobilePosApplication : Application() {
         private set
     lateinit var customerSearchViewModel: CustomerSearchViewModel
         private set
+    lateinit var cashierViewModel: CashierViewModel
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -147,6 +150,24 @@ class MobilePosApplication : Application() {
                 cancellation,
             )
         })
+        cashierViewModel = CashierViewModel(
+            dispatcher = Dispatchers.IO,
+            searchCatalog = { request, cancellation ->
+                mobilePosRepository.searchCatalog(
+                    request.query,
+                    request.posProfile,
+                    request.start,
+                    request.limit,
+                    cancellation,
+                )
+            },
+            scanCatalog = { request, cancellation ->
+                mobilePosRepository.scanCatalog(request.posProfile, request.value, cancellation)
+            },
+            quoteItem = { request, cancellation ->
+                mobilePosRepository.quoteItem(request, cancellation)
+            },
+        )
         profileSelectionViewModel = ProfileSelectionViewModel(mobilePosRepository) {
             val bootstrap = mobilePosRepository.state.bootstrap
             val profile = bootstrap?.selectedProfile
@@ -162,6 +183,7 @@ class MobilePosApplication : Application() {
             clearCustomerUi = customerSearchViewModel::clearUi,
             authenticationOwner = authenticationOwner,
             pendingMutations = pendingMutations,
+            clearCashierUi = cashierViewModel::clear,
         )
     }
 

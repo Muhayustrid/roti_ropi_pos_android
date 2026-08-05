@@ -179,9 +179,22 @@ The MVP accepts scanner-wedge text or manual scan-value entry.
   server flow has supplied it.
 - Camera capture requires separate CameraX approval.
 
-The current quote request has no serial-selection field. Task 8 stops until
-backend/product owners decide whether a serial change requires an identical
-refresh using the existing fields or a contracted serial-aware quote input.
+Task 8 approved serial behavior (2026-08-04) keeps serial identity out of
+`catalog.quote_item`. Send only its existing fields: `pos_profile`, `customer`,
+`item_code`, `qty`, `uom`, and `batch_no`. When serial identity changes, Android
+invalidates the previous quote authority, cancels the active request when
+possible, updates the cart identity, and starts a fresh quote using those same
+fields. Quote results are applicable only when cashier/session identity,
+profile, customer, item, quantity, UOM, batch, serial identity, generation, and
+request ID still match. The serial remains on the cart line for sale submission;
+ERPNext remains authoritative for serial validation. Android must not add
+`serial_numbers`, `serial_no`, a generic Frappe fallback, or a new endpoint.
+
+Serial cart rules are strict: one serial is one unit with `qty = 1`; serial
+lines cannot merge or share a serial; replacing a serial requires a verified
+`catalog.scan` result; scan-provided warehouse, UOM, batch, and conversion
+factor are preserved. Non-serial rows merge only when item code, resolved UOM,
+and batch exactly match.
 
 ### History
 
@@ -218,6 +231,18 @@ After the contract is complete:
 - Android does not calculate authoritative tax or grand total.
 - A stale quote never authorizes submission.
 - The cart is capped at 50 distinct rows.
+
+### Cart Quantity
+
+Task 8 approved quantity syntax (2026-08-04) for non-serial items is ASCII
+digits with one optional ASCII decimal point, zero to six fractional digits,
+value greater than zero, and maximum `999999.999999`. Reject comma decimals,
+grouping separators, signs, exponents, whitespace, `.5`, `1.`, and more than
+six fractional digits. Parse with exact decimal representation, send canonical
+decimal-dot text, preserve leading fractional zeroes, optionally normalize
+trailing zeroes without changing value, and never round or truncate. Serial
+items always use exact quantity `1`. These rules do not create local inventory,
+pricing, tax, conversion, availability, or accounting authority.
 
 ### Payment, Sale, Invoice, and Receipt
 

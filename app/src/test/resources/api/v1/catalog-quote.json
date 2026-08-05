@@ -1,0 +1,20 @@
+{
+  "item": {
+    "item_code": "CROISSANT-PACK",
+    "qty": "2.00",
+    "uom": "Pack",
+    "conversion_factor": "6",
+    "warehouse": "Outlet 01 - RR",
+    "available_qty": "18",
+    "price_list_rate": "25000",
+    "discount_percentage": "0",
+    "rate": "25000",
+    "item_tax_template": "VAT 10% - RR"
+  },
+  "warnings": [
+    {
+      "code": "MISSING_UOM_CONVERSION",
+      "message": "The selected UOM has no conversion factor."
+    }
+  ]
+}

@@ -710,8 +710,12 @@ fi
 echo "Running instrumentation tests on $RUNNING_SERIAL..."
 # Host-script-only setup/verification methods are annotated @SpecialHarnessOnly and
 # excluded from the broad suite; tools/oauth-process-death.sh invokes them by name.
+INSTRUMENTATION_ARGS=(-e notAnnotation com.rotiropi.pos_erpnext.test.SpecialHarnessOnly)
+if [ -n "${INSTRUMENTATION_CLASS:-}" ]; then
+    INSTRUMENTATION_ARGS+=(-e class "$INSTRUMENTATION_CLASS")
+fi
 INSTR_RC=0
-run_cmd_bounded "$INSTRUMENTATION_TIMEOUT_SEC" "$ADB" -s "$RUNNING_SERIAL" shell am instrument -w -r -e notAnnotation com.rotiropi.pos_erpnext.test.SpecialHarnessOnly com.rotiropi.pos_erpnext.test/androidx.test.runner.AndroidJUnitRunner > "$INSTRUMENTATION_FILE" 2>&1 || INSTR_RC=$?
+run_cmd_bounded "$INSTRUMENTATION_TIMEOUT_SEC" "$ADB" -s "$RUNNING_SERIAL" shell am instrument -w -r "${INSTRUMENTATION_ARGS[@]}" com.rotiropi.pos_erpnext.test/androidx.test.runner.AndroidJUnitRunner > "$INSTRUMENTATION_FILE" 2>&1 || INSTR_RC=$?
 
 cat "$INSTRUMENTATION_FILE"
 

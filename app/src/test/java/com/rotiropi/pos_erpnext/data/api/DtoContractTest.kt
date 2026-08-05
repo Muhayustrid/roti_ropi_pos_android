@@ -55,6 +55,34 @@ class DtoContractTest {
     }
 
     @Test
+    fun catalog_feature_fixtures_parse_through_reviewed_dtos() {
+        assertEquals("CROISSANT-PACK", decodeFixture<CatalogSearchResponseDto>("catalog-page.json").items.single().item_code)
+        assertEquals("BATCH-QR-0001", decodeFixture<CatalogScanResponseDto>("catalog-scan.json").scan.batch_no)
+        assertEquals("MISSING_UOM_CONVERSION", decodeFixture<QuoteItemResponseDto>("catalog-quote.json").warnings.single().code)
+    }
+
+    @Test
+    fun scan_with_null_conversion_factor_is_supported() {
+        val scan = json.decodeFromString<CatalogScanDto>(
+            """{"item_code":"SCALE","barcode":"SER-1","batch_no":null,"serial_no":"SER-1","uom":"Nos","conversion_factor":null,"warehouse":"Outlet 01 - RR"}""",
+        )
+        assertEquals(null, scan.conversion_factor)
+    }
+
+    @Test
+    fun quote_request_without_uom_is_not_representable() {
+        // uom is non-nullable in QuoteItemRequestDto, so a serialized request must always carry it
+        val request = QuoteItemRequestDto(
+            pos_profile = "OUTLET-01",
+            item_code = "SCALE",
+            qty = "1",
+            uom = "Nos",
+        )
+        assertEquals("Nos", request.uom)
+        assertTrue(json.encodeToString(QuoteItemRequestDto.serializer(), request).contains("\"uom\":\"Nos\""))
+    }
+
+    @Test
     fun fixture_manifest_covers_every_payload_fixture() {
         val manifest = resource("fixture-manifest.json").let(json::parseToJsonElement).jsonObject
         assertEquals("40d2f2b56c6aa92b363485487e58ccb3a62e334c", manifest.getValue("backend_sha").jsonPrimitive.content)
@@ -74,7 +102,8 @@ class DtoContractTest {
             "incompatible-api-version.json", "additive-fields.json", "unknown-enum.json",
             "dto-contract-examples.json",
             "bootstrap-one-profile.json", "bootstrap-multiple-profiles.json",
-            "bootstrap-stale-opening.json", "session-current.json", "session-opened.json", "customer-page.json"
+            "bootstrap-stale-opening.json", "session-current.json", "session-opened.json", "customer-page.json",
+            "catalog-page.json", "catalog-scan.json", "catalog-quote.json"
         )
         assertEquals(expected, declared)
     }

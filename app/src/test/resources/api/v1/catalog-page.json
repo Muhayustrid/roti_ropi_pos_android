@@ -1,0 +1,19 @@
+{
+  "items": [
+    {
+      "item_code": "CROISSANT-PACK",
+      "item_name": "Croissant Pack",
+      "description": "Six butter croissants",
+      "image": null,
+      "uom": "Pack",
+      "price_list_rate": "25000",
+      "currency": "IDR",
+      "available_qty": "18"
+    }
+  ],
+  "page": {
+    "start": 20,
+    "limit": 20,
+    "has_more": true
+  }
+}

@@ -3,12 +3,17 @@ package com.rotiropi.pos_erpnext.data
 import com.rotiropi.pos_erpnext.data.api.ApiResult
 import com.rotiropi.pos_erpnext.data.api.AuthenticatedMobilePosApiClient
 import com.rotiropi.pos_erpnext.data.api.BootstrapResponseDto
+import com.rotiropi.pos_erpnext.data.api.CatalogScanRequestDto
+import com.rotiropi.pos_erpnext.data.api.CatalogScanResponseDto
+import com.rotiropi.pos_erpnext.data.api.CatalogSearchResponseDto
 import com.rotiropi.pos_erpnext.data.api.CustomerSearchResponseDto
 import com.rotiropi.pos_erpnext.data.api.MobilePosEndpoint
 import com.rotiropi.pos_erpnext.data.api.MobilePosRequest
 import com.rotiropi.pos_erpnext.data.api.ApiCallCancellation
 import com.rotiropi.pos_erpnext.data.api.OpenSessionRequestDto
 import com.rotiropi.pos_erpnext.data.api.OpenSessionResponseDto
+import com.rotiropi.pos_erpnext.data.api.QuoteItemRequestDto
+import com.rotiropi.pos_erpnext.data.api.QuoteItemResponseDto
 import com.rotiropi.pos_erpnext.data.api.SessionCurrentResponseDto
 import com.rotiropi.pos_erpnext.data.api.TransportFailureKind
 import com.rotiropi.pos_erpnext.recovery.RecoveryExecution
@@ -324,6 +329,114 @@ class MobilePosRepository(
         }
     }
 
+    fun searchCatalog(
+        query: String,
+        posProfile: String,
+        start: Int,
+        limit: Int,
+        cancellation: ApiCallCancellation,
+    ): CatalogSearchResult {
+        require(start >= 0)
+        require(limit in 1..100)
+        val request = MobilePosRequest.get(
+            MobilePosEndpoint.CATALOG_SEARCH,
+            mapOf(
+                "q" to query,
+                "pos_profile" to posProfile,
+                "start" to start.toString(),
+                "limit" to limit.toString(),
+            ),
+        )
+        return when (val result = client.execute(request, CatalogSearchResponseDto.serializer(), cancellation)) {
+            is ApiResult.Success -> CatalogSearchResult.Success(
+                CatalogPage(
+                    items = result.data.items.map {
+                        CatalogProduct(
+                            itemCode = it.item_code,
+                            itemName = it.item_name,
+                            description = it.description,
+                            image = it.image,
+                            uom = it.uom,
+                            priceListRate = it.price_list_rate,
+                            currency = it.currency,
+                            availableQuantity = it.available_qty,
+                        )
+                    },
+                    start = result.data.page.start,
+                    limit = result.data.page.limit,
+                    hasMore = result.data.page.has_more,
+                ),
+            )
+            else -> CatalogSearchResult.Failure(result.catalogFailure())
+        }
+    }
+
+    fun scanCatalog(
+        posProfile: String,
+        value: String,
+        cancellation: ApiCallCancellation,
+    ): CatalogScanResult {
+        val request = MobilePosRequest.post(
+            MobilePosEndpoint.CATALOG_SCAN,
+            CatalogScanRequestDto(pos_profile = posProfile, value = value),
+            CatalogScanRequestDto.serializer(),
+            Json,
+        )
+        return when (val result = client.execute(request, CatalogScanResponseDto.serializer(), cancellation)) {
+            is ApiResult.Success -> CatalogScanResult.Success(
+                scan = CatalogScan(
+                    itemCode = result.data.scan.item_code,
+                    barcode = result.data.scan.barcode,
+                    batchNo = result.data.scan.batch_no,
+                    serialNo = result.data.scan.serial_no,
+                    uom = result.data.scan.uom,
+                    conversionFactor = result.data.scan.conversion_factor,
+                    warehouse = result.data.scan.warehouse,
+                ),
+                warnings = result.data.warnings.map { CatalogWarning(it.code, it.message) },
+            )
+            else -> CatalogScanResult.Failure(result.catalogFailure())
+        }
+    }
+
+    fun quoteItem(
+        request: CatalogQuoteRequest,
+        cancellation: ApiCallCancellation,
+    ): CatalogQuoteResult {
+        val wireRequest = QuoteItemRequestDto(
+            pos_profile = request.posProfile,
+            customer = request.customer,
+            item_code = request.itemCode,
+            qty = request.quantity,
+            uom = request.uom,
+            batch_no = request.batchNo,
+        )
+        val transportRequest = MobilePosRequest.post(
+            MobilePosEndpoint.CATALOG_QUOTE_ITEM,
+            wireRequest,
+            QuoteItemRequestDto.serializer(),
+            Json,
+        )
+        return when (val result = client.execute(transportRequest, QuoteItemResponseDto.serializer(), cancellation)) {
+            is ApiResult.Success -> CatalogQuoteResult.Success(
+                CatalogQuote(
+                    itemCode = result.data.item.item_code,
+                    quantity = result.data.item.qty,
+                    uom = result.data.item.uom,
+                    conversionFactor = result.data.item.conversion_factor,
+                    warehouse = result.data.item.warehouse,
+                    availableQuantity = result.data.item.available_qty,
+                    priceListRate = result.data.item.price_list_rate,
+                    discountPercentage = result.data.item.discount_percentage,
+                    rate = result.data.item.rate,
+                    itemTaxTemplate = result.data.item.item_tax_template,
+                    warnings = result.data.warnings.map { CatalogWarning(it.code, it.message) },
+                ),
+            )
+            else -> CatalogQuoteResult.Failure(result.catalogFailure())
+        }
+    }
+
     fun currentSession(profileName: String): CurrentSessionResult {
         val requestEpoch = synchronized(lock) { epoch }
         val request = MobilePosRequest.get(
@@ -490,6 +603,17 @@ class MobilePosRepository(
             capabilities = capabilities,
             posMode = pos_mode
         )
+    }
+
+    private fun ApiResult<*>.catalogFailure(): CatalogFailure = when (this) {
+        is ApiResult.ExpectedFailure -> CatalogFailure.Stable(error.code)
+        is ApiResult.ProtocolFailure -> CatalogFailure.Protocol(reason)
+        is ApiResult.TransportFailure -> when (kind) {
+            TransportFailureKind.AUTHENTICATION_REQUIRED -> CatalogFailure.AuthenticationRequired
+            TransportFailureKind.ROUTE_FORBIDDEN -> CatalogFailure.AuthorizationDenied
+            else -> CatalogFailure.Unavailable
+        }
+        is ApiResult.Success -> error("Success cannot be mapped to catalog failure")
     }
 
     private fun com.rotiropi.pos_erpnext.data.api.OpeningSessionDto.toDomain(): OpeningSession = OpeningSession(

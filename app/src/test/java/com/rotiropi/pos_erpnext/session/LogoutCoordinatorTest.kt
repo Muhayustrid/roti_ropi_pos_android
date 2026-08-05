@@ -156,7 +156,7 @@ class LogoutCoordinatorTest {
     }
 
     @Test
-    fun `logout invalidates cancels and clears customer before repository profile and authentication`() {
+    fun `logout invalidates cancels and clears customer and cashier before repository profile and authentication`() {
         val order = mutableListOf<String>()
         val coordinator = LogoutCoordinator(
             invalidateCustomerAuthority = { order += "customer-authority-invalidated" },
@@ -164,6 +164,7 @@ class LogoutCoordinatorTest {
             clearCustomerUi = { order += "customer-ui-cleared" },
             clearRepository = { order += "repository-cleared" },
             clearProfileUi = { order += "profile-ui-cleared" },
+            clearCashierUi = { order += "cashier-ui-cleared" },
             clearAuthentication = { order += "owner-logged-out" },
         )
 
@@ -176,6 +177,7 @@ class LogoutCoordinatorTest {
                 "customer-ui-cleared",
                 "repository-cleared",
                 "profile-ui-cleared",
+                "cashier-ui-cleared",
                 "owner-logged-out",
             ),
             order,
