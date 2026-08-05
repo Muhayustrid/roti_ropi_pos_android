@@ -74,7 +74,8 @@ Run commands from the repository root. Gradle uses the wrapper; Android Studio's
 ./gradlew assembleDebug assembleDebugAndroidTest
 ```
 
-AGP 9.2.1 does not expose `testReleaseUnitTest`; do not claim it passed. `local.properties` and local SDK paths are machine-specific.
+Run `testReleaseUnitTest` as a separate full-gate command and report its actual
+result. `local.properties` and local SDK paths are machine-specific.
 
 ## Architecture
 

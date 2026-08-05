@@ -3,6 +3,7 @@ package com.rotiropi.pos_erpnext.ui.customer
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasTestTag
@@ -16,26 +17,77 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.pressKey
+import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.test.then
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.input.key.Key
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.rotiropi.pos_erpnext.ui.theme.PosTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlinx.coroutines.Dispatchers
 
 @RunWith(AndroidJUnit4::class)
 class CustomerSearchSheetTest {
     @get:Rule val rule = createComposeRule()
+
+    @Test fun profileDefaultMarkedRowUsesWalkInSelectionAndPreservesName() {
+        val viewModel = selectionViewModel()
+        viewModel.onWalkInDisplayNameChanged("Ayu")
+        setSelectionContent(viewModel, listOf(CustomerRecord("WALK", "Walk In", null, true)))
+
+        rule.onNodeWithTag("customer-WALK").performClick()
+
+        rule.runOnIdle { assertEquals(CustomerSelection.WalkIn("WALK", "Ayu"), viewModel.state.value.selection) }
+        rule.onNodeWithTag("customer-walk-in-name").assertIsDisplayed()
+    }
+
+    @Test fun incorrectlyMarkedOtherRowUsesRegisteredSelection() {
+        val viewModel = selectionViewModel()
+        setSelectionContent(viewModel, listOf(CustomerRecord("OTHER", "Other", null, true)))
+
+        rule.onNodeWithTag("customer-OTHER").performClick()
+
+        rule.runOnIdle { assertEquals(CustomerSelection.Registered("OTHER", "Other", null), viewModel.state.value.selection) }
+        rule.onNodeWithTag("customer-select-walk-in").assertIsDisplayed()
+    }
+
+    @Test fun registeredRowCanTransitionToProfileDefaultWalkInRow() {
+        val viewModel = selectionViewModel()
+        setSelectionContent(viewModel, listOf(
+            CustomerRecord("REGISTERED", "Registered", null, false),
+            CustomerRecord("WALK", "Walk In", null, true),
+        ))
+
+        rule.onNodeWithTag("customer-REGISTERED").performClick()
+        rule.onNodeWithTag("customer-WALK").performClick()
+
+        rule.runOnIdle { assertEquals(CustomerSelection.WalkIn("WALK", ""), viewModel.state.value.selection) }
+    }
+
+    @Test fun walkInRowCanTransitionToRegisteredAndClearsName() {
+        val viewModel = selectionViewModel()
+        viewModel.onWalkInDisplayNameChanged("Must clear")
+        setSelectionContent(viewModel, listOf(CustomerRecord("REGISTERED", "Registered", null, false)))
+
+        rule.onNodeWithTag("customer-REGISTERED").performClick()
+
+        rule.runOnIdle { assertEquals(CustomerSelection.Registered("REGISTERED", "Registered", null), viewModel.state.value.selection) }
+        rule.onNodeWithTag("customer-walk-in-name").assertDoesNotExist()
+    }
 
     @Test fun walkInAndRegisteredSelectionAreAccessible() {
         var selected by mutableStateOf<CustomerRecord?>(null)
@@ -51,6 +103,61 @@ class CustomerSearchSheetTest {
         rule.onNodeWithTag("customer-walk-in-name").assertIsDisplayed()
         rule.onNodeWithTag("customer-CUST-1").assertHasClickAction().performClick()
         rule.runOnIdle { assertEquals("CUST-1", selected?.id) }
+    }
+
+    @Test fun externalKeyboardTraversesResultLoadMoreRetryAndDoneAndActivatesSelection() {
+        var state by mutableStateOf(customerState(
+            customers = listOf(CustomerRecord("CUST-1", "Ayu Bakery", null, false)),
+            pageError = CustomerSearchError.Unavailable,
+        ))
+        var loadMoreCount = 0
+        var retryCount = 0
+        var dismissCount = 0
+        rule.setContent {
+            PosTheme {
+                CustomerSearchSheet(
+                    state = state,
+                    onQueryChanged = { state = state.copy(query = it) },
+                    onWalkInNameChanged = {},
+                    onSelectWalkIn = {},
+                    onSelectRegistered = {
+                        state = state.copy(selection = CustomerSelection.Registered(it.id, it.displayLabel, it.mobile))
+                    },
+                    onRetry = { retryCount++ },
+                    onLoadMore = { loadMoreCount++ },
+                    onDismiss = { dismissCount++ },
+                )
+            }
+        }
+
+        val search = rule.onNodeWithTag("customer-search-input").requestFocus().assertIsFocused()
+        search.performKeyInput { pressKey(Key.Tab) }
+        rule.onNodeWithTag("customer-walk-in-name").assertIsFocused()
+            .performKeyInput { pressKey(Key.Tab) }
+        rule.onNodeWithTag("customer-CUST-1").assertIsFocused()
+            .performKeyInput { pressKey(Key.Enter) }
+        rule.runOnIdle {
+            assertEquals(CustomerSelection.Registered("CUST-1", "Ayu Bakery", null), state.selection)
+        }
+        val registeredSelection = SemanticsMatcher.expectValue(
+            SemanticsProperties.StateDescription,
+            "Registered customer Ayu Bakery selected",
+        )
+        rule.onNode(registeredSelection).assert(registeredSelection)
+
+        rule.onNodeWithTag("customer-CUST-1").performKeyInput { pressKey(Key.Tab) }
+        rule.onNodeWithTag("customer-load-more").assertIsFocused()
+            .performKeyInput { pressKey(Key.Enter); pressKey(Key.Tab) }
+        rule.onNodeWithTag("customer-page-retry").assertIsFocused()
+            .performKeyInput { pressKey(Key.Enter); pressKey(Key.Tab) }
+        rule.onNodeWithTag("customer-dismiss").assertIsFocused()
+            .performKeyInput { pressKey(Key.Enter) }
+
+        rule.runOnIdle {
+            assertEquals(1, loadMoreCount)
+            assertEquals(1, retryCount)
+            assertEquals(1, dismissCount)
+        }
     }
 
     @Test fun loadingAndRetryStatesAreVisible() {
@@ -180,4 +287,27 @@ class CustomerSearchSheetTest {
         hasMore = true,
         pageError = pageError,
     )
+
+    private fun selectionViewModel() = CustomerSearchViewModel(
+        dispatcher = Dispatchers.Unconfined,
+        search = { _, _ -> error("Search is not expected") },
+    ).also { it.bind(CustomerSearchIdentity("cashier", "PROFILE", "WALK")) }
+
+    private fun setSelectionContent(viewModel: CustomerSearchViewModel, customers: List<CustomerRecord>) {
+        rule.setContent {
+            val state by viewModel.state.collectAsState()
+            PosTheme {
+                CustomerSearchSheet(
+                    state.copy(customers = customers),
+                    {},
+                    viewModel::onWalkInDisplayNameChanged,
+                    viewModel::selectWalkIn,
+                    viewModel::selectCustomer,
+                    {},
+                    {},
+                    {},
+                )
+            }
+        }
+    }
 }

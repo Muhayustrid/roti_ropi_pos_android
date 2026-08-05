@@ -1438,7 +1438,11 @@ wait for approval.
 
 ### Task 7: Implement Customer Search
 
-**Status:** Completed. Customer search, profile walk-in selection, DTO/repository mapping, logout cleanup, fixture provenance, unit tests, production-root UI tests, and API 23/API 36 verification are present. Task 8 remains unstarted.
+**Status:** Hotfix In Review. Post-merge audit fixes B1-B4 and I1-I2 cover
+serialized search authority, logout ordering, walk-in selection, recoverable
+pagination metadata, strict normalized-query no-op behavior, blank-open search,
+and external-keyboard navigation. Task 8 remains Not Started in merged main
+authority; work in its separate worktree is outside this hotfix.
 
 **Depends on:** Approved and passing Task 6.
 

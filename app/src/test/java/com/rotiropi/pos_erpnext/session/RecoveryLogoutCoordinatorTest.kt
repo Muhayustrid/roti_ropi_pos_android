@@ -30,18 +30,30 @@ class RecoveryLogoutCoordinatorTest {
     }
 
     @Test
-    fun `logout clears customer state before authentication`() {
+    fun `logout uses exact customer repository profile authentication order`() {
         val events = mutableListOf<String>()
         val coordinator = LogoutCoordinator(
+            invalidateCustomerAuthority = { events += "customer-authority-invalidated" },
+            cancelCustomerRequest = { events += "customer-request-cancelled" },
+            clearCustomerUi = { events += "customer-ui-cleared" },
             clearRepository = { events += "repository" },
             clearProfileUi = { events += "profile" },
-            clearCustomerUi = { events += "customer" },
             clearAuthentication = { events += "authentication" },
             runCleanupIfNoRecovery = { cleanup -> cleanup(); null },
         )
 
         assertEquals(LogoutResult.LoggedOut, coordinator.logout())
-        assertEquals(listOf("repository", "profile", "customer", "authentication"), events)
+        assertEquals(
+            listOf(
+                "customer-authority-invalidated",
+                "customer-request-cancelled",
+                "customer-ui-cleared",
+                "repository",
+                "profile",
+                "authentication",
+            ),
+            events,
+        )
     }
 
     @Test
