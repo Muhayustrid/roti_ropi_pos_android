@@ -249,8 +249,8 @@ The Android MVP is accepted only when:
 | Return refund | Hard blocker. Backend must provide an authoritative refund-value workflow before return submission implementation. |
 | Overpayment and change | Unsupported. Backend delegates overpayment behavior to ERPNext core but does not approve an Android request-construction or cashier UX flow. Support requires a separate contract decision. |
 | OAuth attempt lifetime | Proposed default is 10 minutes. A different value requires explicit approval before Task 3. |
-| Decimal input | Hard blocker for amount-entry tasks. Backend/product owners must approve accepted locale syntax, precision, scale, bounds, and the prohibition on Android rounding. |
-| Serial requote | Hard blocker for serial-sensitive Task 8 behavior. Backend/product owners must decide whether serial changes require an identical quote refresh or a contracted serial-aware quote input. |
+| Decimal input | Amount-entry and future mutation contracts still require their own approved locale syntax, precision, scale, bounds, and no-rounding rules. Task 8 non-serial cart quantities are approved as ASCII decimal-dot, 0-6 fractional digits, `0 < qty <= 999999.999999`, exact parsing, and no rounding/truncation. |
+| Serial requote | Resolved for Task 8 on 2026-08-04: serial identity is local cart/quote authority only, never a `catalog.quote_item` field; serial changes invalidate and refresh an existing-field quote, while ERPNext validates serials at sale submission. |
 | Lost-response evidence | Hard blocker for Tasks 6, 9, 10, 11, and Final. An external owner must approve the one-shot post-upstream-completion fault protocol and evidence schema for all four mutations. |
 | Queued closing | Hard blocker for Task 11 staging evidence. An external owner must provide a deterministic staging-only queued-closing procedure without an Android endpoint, production test hook, or Android-owned worker control. |
 | Performance thresholds | UI-flow p95 of 250 ms and PSS growth below 20 MiB remain proposed, not approved pass gates. Final completion requires approved UI-flow-p95, PSS-growth, launch-p95, and representative request-p95 thresholds. |

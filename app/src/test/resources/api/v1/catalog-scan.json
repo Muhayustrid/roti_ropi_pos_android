@@ -1,0 +1,12 @@
+{
+  "scan": {
+    "item_code": "CROISSANT-PACK",
+    "barcode": null,
+    "batch_no": "BATCH-QR-0001",
+    "serial_no": null,
+    "uom": "Pack",
+    "conversion_factor": "6",
+    "warehouse": "Outlet 01 - RR"
+  },
+  "warnings": []
+}

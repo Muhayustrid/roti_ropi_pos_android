@@ -49,8 +49,8 @@ below, records current completion.
 | 11 | Not Started | Closing UI/repository behavior, tests, and fixtures are absent. |
 | 12 | Not Started | Final lifecycle, performance, accessibility, release-inspection tests and harnesses are absent. |
 
-The next incomplete Android task is Task 7. Completion of Task 6 does not
-authorize Task 7; it requires separate explicit approval.
+Task 7 is complete through PR #18. Task 8 is approved and in progress under
+its separate implementation approval; later tasks remain unauthorized.
 
 ## Global Constraints
 
@@ -118,7 +118,9 @@ in an isolated Task 1A commit.
 - Task 6 requires backend payment-mode metadata for opening balances.
 - Tasks accepting decimal input require approved locale syntax, precision,
   scale, bounds, and no-rounding behavior.
-- Task 8 requires an approved decision for serial-change quote behavior.
+- Task 8 serial-change quote and non-serial quantity behavior are governed by
+  the approved decisions recorded in the Task 8 section below. Future mutation
+  amount or quantity inputs still require their own contract review.
 - Task 9 requires backend payment-mode metadata and an authoritative cart
   payable workflow.
 - Task 9 supports exact settlement only. Overpayment/change remains blocked
@@ -1441,8 +1443,9 @@ wait for approval.
 **Status:** Hotfix In Review. Post-merge audit fixes B1-B4 and I1-I2 cover
 serialized search authority, logout ordering, walk-in selection, recoverable
 pagination metadata, strict normalized-query no-op behavior, blank-open search,
-and external-keyboard navigation. Task 8 remains Not Started in merged main
-authority; work in its separate worktree is outside this hotfix.
+and external-keyboard navigation. Task 8 work was implemented in a separate
+worktree and reconciled onto latest main; this hotfix text predates that
+reconciliation.
 
 **Depends on:** Approved and passing Task 6.
 
@@ -1527,13 +1530,44 @@ for approval.
 
 ### Task 8: Implement Catalog, Scan, Quote, and Cart
 
-**Status:** Not Started. Serial-change quote and decimal-quantity gates remain
-active.
+**Status:** In Review. Implementation reconciled onto latest main and all
+blocking review findings resolved; final verification in progress.
 
 **Depends on:** Approved and passing Task 7.
 
-**Backend gate:** Backend Phase 5 catalog contract plus approved serial-change
-quote and decimal quantity syntax decisions.
+**Backend gate:** Backend Phase 5 catalog contract plus the approved Task 8
+serial-change quote and decimal quantity decisions below. No backend contract
+change is required.
+
+**Approved Task 8 decisions (2026-08-04):**
+
+- Serial identity is not a `catalog.quote_item` pricing input. Send only the
+  existing `pos_profile`, `customer`, `item_code`, `qty`, `uom`, and `batch_no`
+  fields. Never add `serial_numbers`, `serial_no`, a generic Frappe fallback, or
+  a new backend endpoint.
+- Selecting, scanning, replacing, or removing a serial invalidates the prior
+  quote authority, cancels the active quote when possible, updates local serial
+  identity, and starts a fresh quote with the existing allowed fields. A result
+  from an earlier serial generation can never be applied to the current line.
+- Local quote authority includes cashier/session identity, POS Profile,
+  customer, item code, quantity, UOM, batch, serial identity, generation, and
+  request ID. The serial remains on the cart line for the future sale request;
+  ERPNext validates it at transaction submission.
+- A serial line represents exactly one unit, uses `qty = 1`, cannot be edited to
+  a fractional or greater quantity, cannot merge, and cannot share its serial
+  with another cart line. Replacing a serial requires a verified
+  `catalog.scan` result. Non-serial rows merge only when item code, resolved
+  UOM, and batch exactly match. Scan-provided warehouse, UOM, batch, and
+  conversion factor are preserved without local inventory or accounting
+  calculation.
+- Non-serial quantity input accepts ASCII digits with one optional ASCII `.`,
+  zero to six fractional digits, a value greater than zero, and a maximum of
+  `999999.999999`. Comma decimals, grouping separators, signs, exponents,
+  whitespace, `.5`, `1.`, and values with more than six fractional digits are
+  rejected. Use exact decimal parsing, send canonical decimal-dot text, keep
+  leading fractional zeroes, optionally remove trailing zeroes without value
+  change, and never round or truncate. This decision applies to Task 8 cart
+  quantities only; it does not authorize Task 9 or later payable/refund rules.
 
 **Files:**
 
@@ -2136,14 +2170,20 @@ Do not commit, publish, sign, or deploy without explicit approval.
 | Serial requote and decimal behavior unresolved | They are explicit hard gates before affected feature tasks. |
 | Queued staging trigger nondeterministic | Task 11 consumes an externally owned deterministic staging-only procedure. |
 
+## Resolved Decision Gates
+
+| Decision | Resolution | Scope |
+| --- | --- | --- |
+| Serial-change quote behavior | Approved 2026-08-04: serial identity remains local cart/quote authority only; serial changes invalidate and refresh an existing-field quote; backend validates serials at sale submission. | Task 8; no backend contract change |
+| Non-serial cart quantity syntax | Approved 2026-08-04: ASCII decimal-dot, 0-6 fractional digits, `0 < qty <= 999999.999999`, exact parsing, no rounding or truncation. | Task 8 cart quantities only |
+
 ## Remaining Decision Gates
 
 | Decision | Blocks |
 | --- | --- |
 | OAuth environment values, configuration source, test cashier, and attempt lifetime | Task 3 |
 | Opening payment-mode projection | Task 6 |
-| Decimal locale, precision, scale, bounds, and no-rounding behavior | Tasks 6, 8, 9, 10, and 11 |
-| Serial-change quote behavior | Task 8 |
+| Decimal locale, precision, scale, bounds, and no-rounding behavior for future mutation inputs | Tasks 9, 10, and 11 |
 | Authoritative payable and sale payment modes | Task 9 |
 | Exact-only settlement alignment with backend overpayment examples | Task 9 |
 | Remaining-returnable and authoritative refund workflow | Task 10 |

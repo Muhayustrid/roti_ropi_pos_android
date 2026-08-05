@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,8 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -62,12 +59,15 @@ fun CashierScreen(
     onQueryChange: (String) -> Unit = {},
     onBarcodeChange: (String) -> Unit = {},
     onBarcodeSubmit: () -> Unit = {},
+    onLoadMoreCatalog: () -> Unit = {},
     onCategorySelected: (CashierCategory) -> Unit = {},
     onProductSelected: (CashierProduct) -> Unit = {},
     onOpenCart: () -> Unit = {},
     onDismissCart: () -> Unit = {},
     onDecreaseQuantity: (CartLine) -> Unit = {},
     onIncreaseQuantity: (CartLine) -> Unit = {},
+    onEditQuantity: (CartLine, String) -> Unit = { _, _ -> },
+    onRemoveLine: (CartLine) -> Unit = {},
     onRetry: () -> Unit = {},
     onCloseReceipt: () -> Unit = {},
     customerState: CustomerSearchUiState? = null,
@@ -101,7 +101,12 @@ fun CashierScreen(
             onDismissCart = onDismissCart,
             onDecreaseQuantity = onDecreaseQuantity,
             onIncreaseQuantity = onIncreaseQuantity,
+            onEditQuantity = onEditQuantity,
             onRetry = onRetry,
+            onLoadMoreCatalog = onLoadMoreCatalog,
+            onRemoveLine = onRemoveLine,
+            customerState = customerState,
+            onOpenCustomerSheet = onOpenCustomerSheet,
         )
     }
     if (customerSheetVisible && customerState != null) {
@@ -125,7 +130,12 @@ private fun CashierActive(
     onDismissCart: () -> Unit,
     onDecreaseQuantity: (CartLine) -> Unit,
     onIncreaseQuantity: (CartLine) -> Unit,
+    onEditQuantity: (CartLine, String) -> Unit,
+    onRemoveLine: (CartLine) -> Unit,
     onRetry: () -> Unit,
+    onLoadMoreCatalog: () -> Unit,
+    customerState: CustomerSearchUiState?,
+    onOpenCustomerSheet: () -> Unit,
 ) {
     if (layoutMode == PosLayoutMode.EXPANDED) {
         Row(
@@ -141,6 +151,10 @@ private fun CashierActive(
                 onBarcodeSubmit = onBarcodeSubmit,
                 onCategorySelected = onCategorySelected,
                 onProductSelected = onProductSelected,
+                onRetry = onRetry,
+                onLoadMoreCatalog = onLoadMoreCatalog,
+                customerState = customerState,
+                onOpenCustomerSheet = onOpenCustomerSheet,
                 columns = GridCells.Adaptive(160.dp),
                 modifier = Modifier.weight(1f),
             )
@@ -157,7 +171,10 @@ private fun CashierActive(
                     checkoutState = content.checkoutState,
                     onDecreaseQuantity = onDecreaseQuantity,
                     onIncreaseQuantity = onIncreaseQuantity,
+                    onEditQuantity = onEditQuantity,
+                    onRemoveLine = onRemoveLine,
                     onRetry = onRetry,
+                    invalidQuantityForLine = content.invalidQuantityForLine,
                 )
             }
         }
@@ -170,6 +187,10 @@ private fun CashierActive(
                 onBarcodeSubmit = onBarcodeSubmit,
                 onCategorySelected = onCategorySelected,
                 onProductSelected = onProductSelected,
+                onRetry = onRetry,
+                onLoadMoreCatalog = onLoadMoreCatalog,
+                customerState = customerState,
+                onOpenCustomerSheet = onOpenCustomerSheet,
                 columns = GridCells.Fixed(2),
                 gridBottomPadding = 88.dp,
                 modifier = Modifier
@@ -199,7 +220,10 @@ private fun CashierActive(
                     modifier = Modifier.heightIn(max = 640.dp),
                     onDecreaseQuantity = onDecreaseQuantity,
                     onIncreaseQuantity = onIncreaseQuantity,
+                    onEditQuantity = onEditQuantity,
+                    onRemoveLine = onRemoveLine,
                     onRetry = onRetry,
+                    invalidQuantityForLine = content.invalidQuantityForLine,
                 )
             }
         }
@@ -214,16 +238,73 @@ private fun CashierBrowser(
     onBarcodeSubmit: () -> Unit,
     onCategorySelected: (CashierCategory) -> Unit,
     onProductSelected: (CashierProduct) -> Unit,
+    onRetry: () -> Unit,
+    onLoadMoreCatalog: () -> Unit,
+    customerState: CustomerSearchUiState?,
+    onOpenCustomerSheet: () -> Unit,
     columns: GridCells,
     modifier: Modifier = Modifier,
     gridBottomPadding: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
     val focusManager = LocalFocusManager.current
     Column(
-        modifier = modifier.semantics { stateDescription = "Cashier demo visuals" },
+        modifier = modifier.semantics {
+            stateDescription = if (content.demoData) "Cashier demo visuals" else "Cashier catalog"
+        },
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        CashierHeader(content.demoData)
+        CashierHeader(content.demoData, customerState, onOpenCustomerSheet)
+        if (content.catalogLoading && content.products.isEmpty()) {
+            Text(
+                text = "Loading catalog",
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        } else if (content.catalogError == null && content.products.isEmpty()) {
+            Text(
+                text = "No products found",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
+        content.catalogError?.let { error ->
+            Text(error, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive })
+            Button(
+                onClick = onRetry,
+                modifier = Modifier.heightIn(min = PosDimensions.touchTarget).testTag("cashier-catalog-retry"),
+            ) { Text("Retry") }
+        }
+        if (content.catalogLoading && content.products.isNotEmpty()) {
+            Text(
+                text = "Loading more products",
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
+        if (content.scanLoading) {
+            Text(
+                text = "Scanning barcode",
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
+        content.scanError?.let { error ->
+            Text(error, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive })
+            Button(
+                onClick = onRetry,
+                modifier = Modifier.heightIn(min = PosDimensions.touchTarget).testTag("cashier-scan-retry"),
+            ) { Text("Retry") }
+        }
+        if (content.quoteLoading) {
+            Text(
+                text = "Updating cart quote",
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
+        content.quoteError?.let { error ->
+            Text(error, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive })
+            Button(
+                onClick = onRetry,
+                modifier = Modifier.heightIn(min = PosDimensions.touchTarget).testTag("cashier-quote-retry"),
+            ) { Text("Retry") }
+        }
         OutlinedTextField(
             value = content.query,
             onValueChange = onQueryChange,
@@ -260,25 +341,32 @@ private fun CashierBrowser(
                 )
             }
         }
-        LazyVerticalGrid(
+        ProductGrid(
+            products = content.products,
             columns = columns,
+            onProductSelected = onProductSelected,
             modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(bottom = gridBottomPadding),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            items(content.products, key = { it.itemCode }) { product ->
-                CashierProductCard(
-                    product = product,
-                    onClick = { onProductSelected(product) },
-                )
-            }
+            gridBottomPadding = gridBottomPadding,
+        )
+        if (content.catalogHasMore) {
+            Button(
+                onClick = onLoadMoreCatalog,
+                enabled = !content.catalogLoading,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = PosDimensions.touchTarget)
+                    .testTag("cashier-load-more"),
+            ) { Text("Load more") }
         }
     }
 }
 
 @Composable
-private fun CashierHeader(demoData: Boolean) {
+private fun CashierHeader(
+    demoData: Boolean,
+    customerState: CustomerSearchUiState?,
+    onOpenCustomerSheet: () -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -291,17 +379,31 @@ private fun CashierHeader(demoData: Boolean) {
                 modifier = Modifier.semantics { heading() },
             )
             Text(
-                text = "Static sale composition",
+                text = if (demoData) "Static sale composition" else "Catalog snapshots",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyLarge,
             )
         }
-        if (demoData) DemoBadge()
+        if (demoData) {
+            DemoBadge()
+        } else if (customerState != null) {
+            val customerLabel = when (val selection = customerState.selection) {
+                is com.rotiropi.pos_erpnext.ui.customer.CustomerSelection.WalkIn -> selection.displayName.ifBlank { "Walk-in customer" }
+                is com.rotiropi.pos_erpnext.ui.customer.CustomerSelection.Registered -> selection.displayLabel
+                null -> "Customer"
+            }
+            Button(
+                onClick = onOpenCustomerSheet,
+                modifier = Modifier
+                    .heightIn(min = PosDimensions.touchTarget)
+                    .testTag("customer-open"),
+            ) { Text(customerLabel) }
+        }
     }
 }
 
 @Composable
-private fun CashierProductCard(
+internal fun CashierProductCard(
     product: CashierProduct,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,

@@ -33,7 +33,7 @@ data class CatalogScanDto(
     val batch_no: String?,
     val serial_no: String?,
     val uom: String,
-    val conversion_factor: String,
+    val conversion_factor: String?,
     val warehouse: String
 )
 
@@ -43,7 +43,7 @@ data class QuoteItemRequestDto(
     val customer: String? = null,
     val item_code: String,
     val qty: String,
-    val uom: String? = null,
+    val uom: String,
     val batch_no: String? = null
 )
 

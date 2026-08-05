@@ -21,6 +21,14 @@ data class CashierContent(
     val cart: CartSnapshot,
     val checkoutState: CheckoutUiState,
     val demoData: Boolean,
+    val catalogLoading: Boolean = false,
+    val catalogHasMore: Boolean = false,
+    val catalogError: String? = null,
+    val scanLoading: Boolean = false,
+    val scanError: String? = null,
+    val quoteLoading: Boolean = false,
+    val quoteError: String? = null,
+    val invalidQuantityForLine: String? = null,
 )
 
 data class CashierCategory(
@@ -47,6 +55,9 @@ data class CartLine(
     val quantity: String,
     val priceLabel: String,
     val uom: String,
+    val batchNo: String? = null,
+    val serialNo: String? = null,
+    val warningLabel: String? = null,
 )
 
 data class CartSnapshot(

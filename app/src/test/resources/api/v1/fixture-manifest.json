@@ -26,6 +26,9 @@
     {"path":"bootstrap-stale-opening.json","scope":"bootstrap","backend_phase":"Phase 3"},
     {"path":"session-current.json","scope":"sessions.current","backend_phase":"Phase 4"},
     {"path":"session-opened.json","scope":"sessions.open","backend_phase":"Phase 4"},
-    {"path":"customer-page.json","scope":"customers.search","backend_phase":"Phase 4","endpoint":"/api/method/roti_ropi_pos.api.v1.customers.search","source_type":"reviewed_backend_test_fixture","backend_sha":"38728df32394aac1fc5c49387b2ea6e0f3b5c15b","review_reference":"roti_ropi_pos/tests/test_customers.py","contains_credentials":false,"contains_production_pii":false,"runtime_integration_evidence":false}
+    {"path":"customer-page.json","scope":"customers.search","backend_phase":"Phase 4","endpoint":"/api/method/roti_ropi_pos.api.v1.customers.search","source_type":"reviewed_backend_test_fixture","backend_sha":"38728df32394aac1fc5c49387b2ea6e0f3b5c15b","review_reference":"roti_ropi_pos/tests/test_customers.py","contains_credentials":false,"contains_production_pii":false,"runtime_integration_evidence":false},
+    {"path":"catalog-page.json","scope":"catalog.search","backend_phase":"Phase 5","endpoint":"/api/method/roti_ropi_pos.api.v1.catalog.search","source_type":"contract_example","backend_sha":"8e0bbab","review_reference":"docs/mobile-pos/api-contract.md","contains_credentials":false,"contains_production_pii":false,"runtime_integration_evidence":false},
+    {"path":"catalog-scan.json","scope":"catalog.scan","backend_phase":"Phase 5","endpoint":"/api/method/roti_ropi_pos.api.v1.catalog.scan","source_type":"contract_example","backend_sha":"8e0bbab","review_reference":"docs/mobile-pos/api-contract.md","contains_credentials":false,"contains_production_pii":false,"runtime_integration_evidence":false},
+    {"path":"catalog-quote.json","scope":"catalog.quote_item","backend_phase":"Phase 5","endpoint":"/api/method/roti_ropi_pos.api.v1.catalog.quote_item","source_type":"contract_example","backend_sha":"8e0bbab","review_reference":"docs/mobile-pos/api-contract.md","contains_credentials":false,"contains_production_pii":false,"runtime_integration_evidence":false}
   ]
 }

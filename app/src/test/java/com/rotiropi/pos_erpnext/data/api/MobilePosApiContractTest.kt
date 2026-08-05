@@ -85,4 +85,12 @@ class MobilePosApiContractTest {
         assertEquals(null, MobilePosEndpoint.fromPath("/api/resource/Item"))
         assertEquals(null, MobilePosEndpoint.fromPath("https://evil.example/api/method/x"))
     }
+
+    @Test
+    fun quote_contract_forbids_serial_fields() {
+        val row = contractTable().endpoints.single { it.method_name == "quote_item" }
+        assertEquals(setOf("serial_numbers"), row.forbidden_request_fields)
+        assertFalse(row.optional_request_fields.contains("serial_no"))
+        assertFalse(row.optional_request_fields.contains("serial_numbers"))
+    }
 }

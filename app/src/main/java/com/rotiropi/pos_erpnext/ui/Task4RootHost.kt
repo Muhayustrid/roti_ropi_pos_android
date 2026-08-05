@@ -25,6 +25,8 @@ import com.rotiropi.pos_erpnext.ui.settings.PosThemeMode
 import com.rotiropi.pos_erpnext.ui.settings.ThemePreferences
 import com.rotiropi.pos_erpnext.ui.theme.PosTheme
 import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchIdentity
+import com.rotiropi.pos_erpnext.ui.customer.CustomerSelection
+import com.rotiropi.pos_erpnext.ui.cashier.CashierIdentity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -40,6 +42,7 @@ class Task4RootHost(
     private val logoutResult = MutableStateFlow<LogoutResult?>(null)
     private val openingState = MutableStateFlow<com.rotiropi.pos_erpnext.ui.opening.OpeningUiState?>(null)
     private val customerSheetVisible = MutableStateFlow(false)
+    private val cashierCartVisible = MutableStateFlow(false)
     private var openingViewModel: OpeningViewModel? = null
     private var openingFlow: OpeningFlowCoordinator? = null
     private var openingReconciliation: OpeningReconciliationRunner? = null
@@ -67,6 +70,7 @@ class Task4RootHost(
             openingFlow = null
             openingReconciliation = null
             openingState.value = null
+            cashierCartVisible.value = false
             handledOpeningTerminal = null
             application.recoveryCoordinator.clearUiState()
             recoveryViewModel.onAuthenticationChanged(application.authenticationOwner.snapshot)
@@ -103,6 +107,7 @@ class Task4RootHost(
             val recovery = recoveryViewModel.state.collectAsState().value
             val opening = openingState.collectAsState().value
             val customer = application.customerSearchViewModel.state.collectAsState().value
+            val cashier = application.cashierViewModel.state.collectAsState().value
             PosTheme(darkTheme = darkTheme, accent = selection.accent) {
                 PosShell(
                     authenticationOwner = application.authenticationOwner,
@@ -117,6 +122,21 @@ class Task4RootHost(
                         openingState.value = openingViewModel?.state?.value
                     },
                     onOpenSession = ::openSession,
+                    cashierState = cashier,
+                    onCashierQueryChanged = application.cashierViewModel::onQueryChanged,
+                    onCashierBarcodeChanged = application.cashierViewModel::onBarcodeChanged,
+                    onCashierBarcodeSubmit = application.cashierViewModel::onBarcodeSubmit,
+                    onLoadMoreCatalog = application.cashierViewModel::loadMore,
+                    onCashierCategorySelected = application.cashierViewModel::onCategorySelected,
+                    onCashierProductSelected = application.cashierViewModel::onProductSelected,
+                    onOpenCashierCart = { cashierCartVisible.value = true },
+                    onDismissCashierCart = { cashierCartVisible.value = false },
+                    cashierCartVisible = cashierCartVisible.collectAsState().value,
+                    onDecreaseCashierQuantity = application.cashierViewModel::onDecreaseQuantity,
+                    onIncreaseCashierQuantity = application.cashierViewModel::onIncreaseQuantity,
+                    onEditCashierQuantity = application.cashierViewModel::onQuantityEdited,
+                    onRemoveCashierLine = application.cashierViewModel::onRemoveLine,
+                    onCashierRetry = application.cashierViewModel::retry,
                     customerState = customer,
                     customerSheetVisible = customerSheetVisible.collectAsState().value,
                     onOpenCustomerSheet = {
@@ -194,6 +214,7 @@ class Task4RootHost(
                         }
                         synchronizeOpeningFlow(authentication, application.appViewModel.state.value)
                         synchronizeCustomerSearch(authentication)
+                        synchronizeCashier(authentication)
                         synchronizeRecoveredOpening(recoveryViewModel.state.value)
                         controller.render(
                             authentication,
@@ -251,6 +272,39 @@ class Task4RootHost(
             return
         }
         application.customerSearchViewModel.bind(CustomerSearchIdentity(cashier, profile.name, profile.customer))
+    }
+
+    private fun synchronizeCashier(authentication: AuthenticationState) {
+        val repository = application.mobilePosRepository.state
+        val profile = repository.selectedProfile
+        val cashier = repository.bootstrap?.user?.name
+        val opening = repository.opening
+        if (authentication != AuthenticationState.Authenticated ||
+            profile == null ||
+            cashier == null ||
+            opening == null ||
+            opening.posProfile != profile.name ||
+            opening.user != cashier ||
+            opening.status != com.rotiropi.pos_erpnext.data.OpeningStatus.OPEN
+        ) {
+            cashierCartVisible.value = false
+            application.cashierViewModel.clear()
+            return
+        }
+        val customer = when (val selection = application.customerSearchViewModel.state.value.selection) {
+            is CustomerSelection.WalkIn -> selection.customerId
+            is CustomerSelection.Registered -> selection.customerId
+            null -> profile.customer
+        }
+        application.cashierViewModel.bind(
+            CashierIdentity(
+                cashier = cashier,
+                sessionName = opening.name,
+                posProfile = profile.name,
+                customer = customer,
+                warehouse = profile.warehouse,
+            ),
+        )
     }
 
     private fun openSession() {
