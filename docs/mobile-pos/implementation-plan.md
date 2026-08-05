@@ -43,14 +43,14 @@ below, records current completion.
 | 5 | Completed | Commit `aa9d897`, PR #11, merged as `da28b57874e7f1840eab20af201379ff95c76148`. Accepted evidence: `./gradlew testDebugUnitTest`, `./gradlew lintDebug`, `./gradlew lintRelease`, `./gradlew assembleDebug`, `./gradlew assembleRelease`, API 23 device suite (98 tests passed), API 36 device suite (98 tests passed), API 23 two-process recovery harness (PASS), and `git diff --check`. |
 | 6 | Completed | PR #15 merged as `c96ade7f`. Candidate `acd6769c` adds opening UI/repository behavior, server-driven payment modes, decimal validation, durable opening recovery, session reconciliation, capability refresh, fixtures, and tests. Main-thread recovered reconciliation defect evidence remains preserved as FAIL; corrected API 25 `mobile-pos-response-drop/v1` evidence records exact UUID/body replay, one backend logical result, one `sessions.current`, one capability refresh, no new crash, and targeted staging cleanup PASS. Fresh verification passed debug unit/lint/assemble, exposed release unit task, release lint/assemble, Android-test assembly, API 23/API 36 suites (103 tests each), API 25 focused thread test, and API 23 process-death harness. |
 | 7 | Completed | Customer search is debounced, cancellable, offset-paginated, bounded to 100 distinct records, scoped to profile/cashier, clears on logout and profile change, and has API 23/API 36 coverage. |
-| 8 | Not Started | Catalog/cart UI/repository behavior, tests, fixtures, and accessibility harness are absent. |
+| 8 | Completed | Catalog, scan, quote, and cart UI/repository behavior, tests, fixtures, and accessibility harness merged via PR #20 (`2c213f8`); Task 8 documentation merged via PR #21 (`25e9f459`). |
 | 9 | Not Started | Payment/receipt UI/repository behavior, tests, and fixtures are absent. |
 | 10 | Not Started | History/return UI/repository behavior, tests, and fixtures are absent. |
 | 11 | Not Started | Closing UI/repository behavior, tests, and fixtures are absent. |
 | 12 | Not Started | Final lifecycle, performance, accessibility, release-inspection tests and harnesses are absent. |
 
-Task 7 is complete through PR #18. Task 8 is approved and in progress under
-its separate implementation approval; later tasks remain unauthorized.
+Task 7 is complete through PR #18. Task 8 is complete through PR #20 with
+documentation merged through PR #21; later tasks remain unauthorized.
 
 ## Global Constraints
 
