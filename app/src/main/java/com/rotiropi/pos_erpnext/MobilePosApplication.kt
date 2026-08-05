@@ -155,11 +155,13 @@ class MobilePosApplication : Application() {
             else customerSearchViewModel.bind(CustomerSearchIdentity(cashier, profile.name, profile.customer))
         }
         logoutCoordinator = LogoutCoordinator(
-            mobilePosRepository,
-            profileSelectionViewModel,
-            customerSearchViewModel::clear,
-            authenticationOwner,
-            pendingMutations,
+            repository = mobilePosRepository,
+            profileSelectionViewModel = profileSelectionViewModel,
+            invalidateCustomerAuthority = customerSearchViewModel::invalidateAuthority,
+            cancelCustomerRequest = customerSearchViewModel::cancelActiveRequest,
+            clearCustomerUi = customerSearchViewModel::clearUi,
+            authenticationOwner = authenticationOwner,
+            pendingMutations = pendingMutations,
         )
     }
 

@@ -14,25 +14,31 @@ sealed interface LogoutResult {
 
 /**
  * Coordinates application-wide logout. Durable recovery evidence blocks cleanup.
- * Repository and profile cleanup still precede authentication cleanup after guard passes.
+ * Customer authority is invalidated before repository and authentication cleanup.
  */
 class LogoutCoordinator internal constructor(
+    private val invalidateCustomerAuthority: () -> Unit = {},
+    private val cancelCustomerRequest: () -> Unit = {},
+    private val clearCustomerUi: () -> Unit = {},
     private val clearRepository: () -> Unit,
     private val clearProfileUi: () -> Unit = {},
-    private val clearCustomerUi: () -> Unit = {},
     private val clearAuthentication: () -> Unit,
     private val runCleanupIfNoRecovery: ((() -> Unit) -> RecoveryLogoutBlocker?)? = null,
 ) {
     constructor(
         repository: MobilePosRepository,
         profileSelectionViewModel: ProfileSelectionViewModel,
+        invalidateCustomerAuthority: () -> Unit = {},
+        cancelCustomerRequest: () -> Unit = {},
         clearCustomerUi: () -> Unit = {},
         authenticationOwner: AuthenticationOwner,
         pendingMutations: SqlitePendingMutationStore,
     ) : this(
+        invalidateCustomerAuthority = invalidateCustomerAuthority,
+        cancelCustomerRequest = cancelCustomerRequest,
+        clearCustomerUi = clearCustomerUi,
         clearRepository = repository::clear,
         clearProfileUi = profileSelectionViewModel::clear,
-        clearCustomerUi = clearCustomerUi,
         clearAuthentication = authenticationOwner::logout,
         runCleanupIfNoRecovery = pendingMutations::logoutIfNoRecords,
     )
@@ -40,9 +46,11 @@ class LogoutCoordinator internal constructor(
     @Synchronized
     fun logout(): LogoutResult {
         val cleanup = {
+            invalidateCustomerAuthority()
+            cancelCustomerRequest()
+            clearCustomerUi()
             clearRepository()
             clearProfileUi()
-            clearCustomerUi()
             clearAuthentication()
         }
         val blocker = runCleanupIfNoRecovery?.invoke(cleanup).also {

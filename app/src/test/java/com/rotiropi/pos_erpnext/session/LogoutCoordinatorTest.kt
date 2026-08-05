@@ -36,7 +36,8 @@ import org.robolectric.annotation.Config
 
 /**
  * Task 4 logout coordinator behavior:
- * - logout clears the in-memory POS repository first, then logs out authentication
+ * - logout invalidates customer work, then clears customer, repository, profile,
+ *   and authentication state
  * - the order guarantees sign-in routing (Unauthenticated) can never observe stale
  *   repository bootstrap/profile/opening/capabilities state
  * - two sequential logout calls remain safe
@@ -151,6 +152,33 @@ class LogoutCoordinatorTest {
         assertEquals(
             listOf("repository-cleared", "profile-ui-cleared", "owner-logged-out"),
             order
+        )
+    }
+
+    @Test
+    fun `logout invalidates cancels and clears customer before repository profile and authentication`() {
+        val order = mutableListOf<String>()
+        val coordinator = LogoutCoordinator(
+            invalidateCustomerAuthority = { order += "customer-authority-invalidated" },
+            cancelCustomerRequest = { order += "customer-request-cancelled" },
+            clearCustomerUi = { order += "customer-ui-cleared" },
+            clearRepository = { order += "repository-cleared" },
+            clearProfileUi = { order += "profile-ui-cleared" },
+            clearAuthentication = { order += "owner-logged-out" },
+        )
+
+        coordinator.logout()
+
+        assertEquals(
+            listOf(
+                "customer-authority-invalidated",
+                "customer-request-cancelled",
+                "customer-ui-cleared",
+                "repository-cleared",
+                "profile-ui-cleared",
+                "owner-logged-out",
+            ),
+            order,
         )
     }
 

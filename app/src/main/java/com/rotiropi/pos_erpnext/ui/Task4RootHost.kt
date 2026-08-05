@@ -119,12 +119,15 @@ class Task4RootHost(
                     onOpenSession = ::openSession,
                     customerState = customer,
                     customerSheetVisible = customerSheetVisible.collectAsState().value,
-                    onOpenCustomerSheet = { customerSheetVisible.value = true },
+                    onOpenCustomerSheet = {
+                        application.customerSearchViewModel.onSelectorOpened()
+                        customerSheetVisible.value = true
+                    },
                     onDismissCustomerSheet = { customerSheetVisible.value = false },
                     onCustomerQueryChanged = application.customerSearchViewModel::onQueryChanged,
                     onWalkInNameChanged = application.customerSearchViewModel::onWalkInDisplayNameChanged,
                     onSelectWalkIn = application.customerSearchViewModel::selectWalkIn,
-                    onSelectRegistered = application.customerSearchViewModel::selectRegistered,
+                    onSelectRegistered = application.customerSearchViewModel::selectCustomer,
                     onCustomerRetry = application.customerSearchViewModel::retry,
                     onCustomerLoadMore = application.customerSearchViewModel::loadMore,
                     themeMode = selection.mode,
