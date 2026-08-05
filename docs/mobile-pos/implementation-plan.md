@@ -1530,8 +1530,8 @@ for approval.
 
 ### Task 8: Implement Catalog, Scan, Quote, and Cart
 
-**Status:** In Review. Implementation reconciled onto latest main and all
-blocking review findings resolved; final verification in progress.
+**Status:** Completed. Task 8 implementation merged via PR #20 (merge commit
+`28ba8f50703dbb901fb7cbcb6cabf0d7bd1f089b`); Task 9 remains Not Started.
 
 **Depends on:** Approved and passing Task 7.
 
