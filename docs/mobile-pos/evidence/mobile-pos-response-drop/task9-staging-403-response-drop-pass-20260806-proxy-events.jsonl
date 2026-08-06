@@ -1,0 +1,8 @@
+{"event":"harness_started","fault_active":false,"timestamp":"2026-08-06T13:23:49.870676+00:00","target_operation":"sales.submit"}
+{"event":"original_captured_before_upstream","uuid":"1ed062a9-c59a-4015-8e1d-84ea7e8dccea","body_sha256":"9291d63011099c58331e56b98d69ef2903ee646591b23662c2c042ff758a67c9","timestamp":"2026-08-06T13:24:04.586759+00:00"}
+{"event":"fault_armed","uuid":"1ed062a9-c59a-4015-8e1d-84ea7e8dccea","body_sha256":"9291d63011099c58331e56b98d69ef2903ee646591b23662c2c042ff758a67c9","fault_active":true,"timestamp":"2026-08-06T13:24:04.589549+00:00"}
+{"event":"backend_commit_confirmed_and_fault_disarmed","upstream_status":201,"invoice_ref":"ACC-PSINV-2026-00034","fault_active":false,"timestamp":"2026-08-06T13:24:04.882026+00:00"}
+{"event":"original_response_dropped","uuid":"1ed062a9-c59a-4015-8e1d-84ea7e8dccea","fault_active":false,"timestamp":"2026-08-06T13:24:04.882259+00:00"}
+{"event":"replay_observed","uuid":"1ed062a9-c59a-4015-8e1d-84ea7e8dccea","uuid_match":true,"body_sha256":"9291d63011099c58331e56b98d69ef2903ee646591b23662c2c042ff758a67c9","body_hash_match":true,"fault_active":false,"timestamp":"2026-08-06T13:24:15.722326+00:00"}
+{"event":"replay_response_relayed","upstream_status":200,"fault_active":false,"timestamp":"2026-08-06T13:24:15.742823+00:00"}
+{"event":"complete","timestamp":"2026-08-06T13:24:15.742971+00:00"}
