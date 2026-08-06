@@ -6,56 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Read `AGENTS.md` before changing code. It is authoritative for security, API boundaries, change control, testing, and Android stack decisions. Communicate with the user in Indonesian; keep repository Markdown, code comments, test names, and commit messages in English. Do not commit, push, publish, deploy, or start a later implementation phase without explicit user approval.
 
-When `.codegraph/` exists, use CodeGraph before broad repository searches or direct code reads. Query affected symbols and their callers before editing; use targeted reads or broad search only when CodeGraph cannot answer. CodeGraph is navigation only; source code, tests, Git state, and actual verification results remain authoritative.
-
-## Model delegation policy
-
-The current primary agent owns orchestration, scope control, integration, verification, and completion claims. It may execute work directly or delegate only when delegation materially improves speed, isolation, expertise, or review quality.
-
-### Routing
-
-- Use direct execution for narrow, well-understood work.
-- Use `quick-explorer` for fast, narrow, read-only discovery.
-- Use `routine-worker` for approved routine implementation with clear scope and acceptance criteria.
-- Use `complex-worker` for difficult, ambiguous, architectural, security, concurrency, data-consistency, recovery, contract, or other high-risk work.
-
-### Escalation
-
-- When scope is unknown, start with targeted CodeGraph navigation or one `quick-explorer`.
-- When scope and acceptance criteria are clear, use direct execution or `routine-worker`.
-- Escalate to `complex-worker` when architectural ambiguity, security concerns, concurrency, unclear invariants, broad cross-layer impact, contract uncertainty, or repeated failure appears.
-- Do not use a heavy model for simple exploration or mechanical edits.
-- Do not allow a lightweight read-only agent to edit files or make high-impact decisions.
-- The primary agent remains responsible for synthesis, scope control, integration, and completion claims.
-
-### Efficiency
-
-- Delegation is optional, not mandatory.
-- Default to direct execution or one bounded subagent.
-- Without explicit user approval, use at most three subagents for one logical task.
-- Do not run lightweight, medium, and heavy models sequentially for every task.
-- Avoid duplicate exploration by multiple agents or by the primary agent after delegation.
-- Do not create recursive agent teams or allow subagents to spawn additional subagents.
-- Larger agent teams require explicit user approval and a written justification.
-
-### CodeGraph navigation
-
-- Use CodeGraph before broad repository exploration to locate symbols, callers, callees, dependencies, execution paths, and affected tests.
-- Verify load-bearing graph findings against actual source code and tests.
-- Do not recursively scan or read unrelated files.
-
-## Subagent Execution Policy
-
-- Subagents, agent teams, and applicable Superpowers delegation skills are allowed only when delegation materially improves speed, isolation, expertise, or review quality.
-- Keep delegated tasks independent, bounded, and explicit about read and write scope.
-- Use at most one active writing agent per Git worktree.
-- Do not assign overlapping file edits, shared state owners, or the same acceptance criteria to multiple writing agents.
-- Use parallel agents only for independent read-only investigations or clearly separated implementation workstreams in separate worktrees.
-- Otherwise, run delegated work sequentially.
-- Read-only reviewers must not run concurrently with an active writer on the same worktree.
-- The primary agent must review delegated findings and diffs, integrate changes, run required verification, and perform one scoped self-review before declaring implementation ready for final review.
-- For high-risk work, a separate independent read-only review session may be used after the implementation session stops and the source no longer changes. This separate session is not a reviewer subagent of the implementation session.
-- Do not run repeated review loops unless the previous review found blocking defects or the implementation changed afterward.
+When `.codegraph/` exists, use CodeGraph before broad repository searches or direct code reads. Query affected symbols and their callers before editing; use targeted reads or broad search only when CodeGraph cannot answer.
 
 ## Commands
 
@@ -68,12 +19,7 @@ Run commands from the repository root. Gradle uses the wrapper; Android Studio's
 ./gradlew assembleDebug
 
 # Full debug/release gate
-./gradlew testDebugUnitTest
-./gradlew testReleaseUnitTest
-./gradlew lintDebug
-./gradlew lintRelease
-./gradlew assembleDebug
-./gradlew assembleRelease
+./gradlew testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease
 
 # One unit-test class or package
 ./gradlew testDebugUnitTest --tests "com.rotiropi.pos_erpnext.data.api.AuthenticatedMobilePosApiClientTest"
@@ -90,7 +36,7 @@ Run commands from the repository root. Gradle uses the wrapper; Android Studio's
 ./gradlew assembleDebug assembleDebugAndroidTest
 ```
 
-Verify the current Gradle task graph before claiming that a task exists or does not exist. In the current verified project state, `testReleaseUnitTest` is available and belongs in the full serial gate. Run final verification commands serially unless independence has been proven. `local.properties` and local SDK paths are machine-specific.
+AGP 9.2.1 does not expose `testReleaseUnitTest`; do not claim it passed. `local.properties` and local SDK paths are machine-specific.
 
 ## Architecture
 
