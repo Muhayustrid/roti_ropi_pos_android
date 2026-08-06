@@ -40,8 +40,8 @@ class MobilePosApiContractTest {
     fun contract_table_matches_closed_production_catalog() {
         val table = contractTable()
         assertEquals("v1", table.api_version)
-        assertEquals(14, table.endpoints.size)
-        assertEquals(14, table.endpoints.map { it.path }.toSet().size)
+        assertEquals(15, table.endpoints.size)
+        assertEquals(15, table.endpoints.map { it.path }.toSet().size)
         assertEquals(MobilePosEndpoint.entries.map { it.path }.toSet(), table.endpoints.map { it.path }.toSet())
 
         table.endpoints.forEach { row ->
@@ -92,5 +92,13 @@ class MobilePosApiContractTest {
         assertEquals(setOf("serial_numbers"), row.forbidden_request_fields)
         assertFalse(row.optional_request_fields.contains("serial_no"))
         assertFalse(row.optional_request_fields.contains("serial_numbers"))
+    }
+
+    @Test
+    fun quote_cart_contract_has_authoritative_payment_fields() {
+        val row = contractTable().endpoints.single { it.method_name == "quote_cart" }
+        assertEquals(setOf("pos_profile", "items"), row.required_request_fields)
+        assertEquals(setOf("customer", "walk_in_customer_name"), row.optional_request_fields)
+        assertEquals("QuoteCartResponseDto", row.serializer_identity)
     }
 }

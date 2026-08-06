@@ -37,6 +37,9 @@ fun CartContent(
     onEditQuantity: (CartLine, String) -> Unit = { _, _ -> },
     onRemoveLine: (CartLine) -> Unit = {},
     onRetry: () -> Unit = {},
+    onOpenCheckout: () -> Unit = {},
+    onUpdatePaymentAmount: (String, String) -> Unit = { _, _ -> },
+    onSubmitPayment: () -> Unit = {},
     invalidQuantityForLine: String? = null,
 ) {
     LazyColumn(
@@ -83,6 +86,10 @@ fun CartContent(
             CheckoutPanel(
                 state = checkoutState,
                 onRetry = onRetry,
+                onOpenCheckout = onOpenCheckout,
+                canReviewCheckout = cart.visibleLines.isNotEmpty(),
+                onUpdatePaymentAmount = onUpdatePaymentAmount,
+                onSubmit = onSubmitPayment,
             )
         }
     }

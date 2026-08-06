@@ -14,10 +14,18 @@ import com.rotiropi.pos_erpnext.data.api.OpenSessionRequestDto
 import com.rotiropi.pos_erpnext.data.api.OpenSessionResponseDto
 import com.rotiropi.pos_erpnext.data.api.QuoteItemRequestDto
 import com.rotiropi.pos_erpnext.data.api.QuoteItemResponseDto
+import com.rotiropi.pos_erpnext.data.api.QuoteCartRequestDto
+import com.rotiropi.pos_erpnext.data.api.QuoteCartResponseDto
+import com.rotiropi.pos_erpnext.data.api.SubmitSaleRequestDto
+import com.rotiropi.pos_erpnext.data.api.SubmitSaleResponseDto
+import com.rotiropi.pos_erpnext.data.api.SaleDetailDto
+import com.rotiropi.pos_erpnext.data.api.SaleDetailResponseDto
 import com.rotiropi.pos_erpnext.data.api.SessionCurrentResponseDto
 import com.rotiropi.pos_erpnext.data.api.TransportFailureKind
 import com.rotiropi.pos_erpnext.recovery.RecoveryExecution
 import com.rotiropi.pos_erpnext.recovery.RecoverySpec
+import com.rotiropi.pos_erpnext.ui.payment.CheckoutQuote
+import com.rotiropi.pos_erpnext.ui.payment.toDomain
 import java.util.concurrent.CountDownLatch
 import kotlinx.serialization.json.Json
 import java.util.concurrent.atomic.AtomicBoolean
@@ -254,6 +262,19 @@ internal fun openingRecoverySpec(
     json = json,
 )
 
+internal fun saleRecoverySpec(request: SubmitSaleRequestDto, json: Json) = RecoverySpec(
+    endpoint = MobilePosEndpoint.SALES_SUBMIT,
+    body = request,
+    bodySerializer = SubmitSaleRequestDto.serializer(),
+    responseDeserializer = SubmitSaleResponseDto.serializer(),
+    json = json,
+)
+
+sealed interface CheckoutQuoteResult {
+    data class Success(val quote: CheckoutQuote) : CheckoutQuoteResult
+    data class Failure(val reason: CatalogFailure) : CheckoutQuoteResult
+}
+
 /**
  * Sole in-memory owner of bootstrap, profile, opening, and capability state.
  *
@@ -272,6 +293,9 @@ class MobilePosRepository(
     private val client: AuthenticatedMobilePosApiClient,
     private val openSession: (OpenSessionRequestDto) -> RecoveryExecution = {
         error("Opening recovery is not configured.")
+    },
+    private val submitSale: (SubmitSaleRequestDto) -> RecoveryExecution = {
+        error("Sale recovery is not configured.")
     },
 ) {
     private val lock = Any()
@@ -294,6 +318,22 @@ class MobilePosRepository(
     }
 
     fun openSession(request: OpenSessionRequestDto): RecoveryExecution = openSession.invoke(request)
+    fun submitSale(request: SubmitSaleRequestDto): RecoveryExecution = submitSale.invoke(request)
+
+    fun quoteCart(request: QuoteCartRequestDto, cancellation: ApiCallCancellation): CheckoutQuoteResult {
+        val transport = MobilePosRequest.post(MobilePosEndpoint.SALES_QUOTE_CART, request, QuoteCartRequestDto.serializer(), Json)
+        return when (val result = client.execute(transport, QuoteCartResponseDto.serializer(), cancellation)) {
+            is ApiResult.Success -> CheckoutQuoteResult.Success(
+                CheckoutQuote(result.data.grand_total, result.data.payable, result.data.currency, result.data.payment_modes.map { it.toDomain() }, result.data.payment_amount_policy.toDomain(), result.data.items, result.data.taxes, 0),
+            )
+            else -> CheckoutQuoteResult.Failure(result.catalogFailure())
+        }
+    }
+
+    fun getSale(name: String, cancellation: ApiCallCancellation = ApiCallCancellation()): SaleDetailDto? {
+        val request = MobilePosRequest.get(MobilePosEndpoint.SALES_GET, mapOf("name" to name))
+        return (client.execute(request, SaleDetailResponseDto.serializer(), cancellation) as? ApiResult.Success)?.data?.sale
+    }
 
     fun searchCustomers(
         query: String,

@@ -137,6 +137,10 @@ class Task4RootHost(
                     onEditCashierQuantity = application.cashierViewModel::onQuantityEdited,
                     onRemoveCashierLine = application.cashierViewModel::onRemoveLine,
                     onCashierRetry = application.cashierViewModel::retry,
+                    onOpenCheckout = application.cashierViewModel::onOpenCheckout,
+                    onUpdatePaymentAmount = application.cashierViewModel::onUpdatePaymentAmount,
+                    onSubmitPayment = application.cashierViewModel::onSubmitPayment,
+                    onCloseReceipt = application.cashierViewModel::closeReceipt,
                     customerState = customer,
                     customerSheetVisible = customerSheetVisible.collectAsState().value,
                     onOpenCustomerSheet = {
@@ -291,7 +295,8 @@ class Task4RootHost(
             application.cashierViewModel.clear()
             return
         }
-        val customer = when (val selection = application.customerSearchViewModel.state.value.selection) {
+        val selection = application.customerSearchViewModel.state.value.selection
+        val customer = when (selection) {
             is CustomerSelection.WalkIn -> selection.customerId
             is CustomerSelection.Registered -> selection.customerId
             null -> profile.customer
@@ -302,6 +307,7 @@ class Task4RootHost(
                 sessionName = opening.name,
                 posProfile = profile.name,
                 customer = customer,
+                walkInCustomerName = (selection as? CustomerSelection.WalkIn)?.displayName?.takeIf { it.isNotBlank() },
                 warehouse = profile.warehouse,
             ),
         )

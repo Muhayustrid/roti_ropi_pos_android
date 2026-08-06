@@ -152,7 +152,7 @@ fun CheckoutStatesPreview() {
         ) {
             CheckoutPanel(CheckoutUiState.Unavailable)
             CheckoutPanel(CheckoutUiState.OfflineNotSubmitted)
-            CheckoutPanel(CheckoutUiState.PriceChanged("Server price changed. Review cart snapshots."))
+            CheckoutPanel(CheckoutUiState.PriceChanged("Server price changed. Review cart snapshots.", emptyMap()))
             CheckoutPanel(CheckoutUiState.Submitting)
             CheckoutPanel(CheckoutUiState.Error("Sale was not submitted."))
         }

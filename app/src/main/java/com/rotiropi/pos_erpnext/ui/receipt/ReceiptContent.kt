@@ -7,5 +7,8 @@ data class ReceiptContent(
     val paid: String,
     val changeAmount: String,
     val status: String,
-    val demoData: Boolean,
+    val demoData: Boolean = false,
+    val items: List<String> = emptyList(),
+    val taxes: List<String> = emptyList(),
+    val payments: List<String> = emptyList(),
 )

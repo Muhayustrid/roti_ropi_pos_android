@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -54,6 +55,9 @@ fun ReceiptScreen(
         item { ReceiptRow("Paid", content.paid) }
         item { ReceiptRow("Server change", content.changeAmount) }
         item { ReceiptRow("Status", content.status) }
+        items(content.items.size) { Text(content.items[it]) }
+        items(content.taxes.size) { Text(content.taxes[it]) }
+        items(content.payments.size) { Text(content.payments[it]) }
         item {
             Button(
                 onClick = onClose,
