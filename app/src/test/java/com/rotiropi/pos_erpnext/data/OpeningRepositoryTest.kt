@@ -84,6 +84,26 @@ class OpeningRepositoryTest {
         assertNull(repository.state.opening)
     }
 
+    @Test
+    fun `late old-profile current session is discarded after profile change`() {
+        server.enqueue(success(fixture("bootstrap-multiple-profiles.json")))
+        assertTrue(repository.bootstrap(null) is RepositoryResult.Success)
+        assertTrue(repository.selectProfile("OUTLET-01"))
+        server.takeRequest()
+        server.enqueue(success(fixture("session-current.json")).setBodyDelay(200, TimeUnit.MILLISECONDS))
+
+        var result: CurrentSessionResult? = null
+        val request = Thread { result = repository.currentSession("OUTLET-01") }
+        request.start()
+        server.takeRequest(1, TimeUnit.SECONDS)
+        assertTrue(repository.selectProfile("OUTLET-02"))
+        request.join(1_000)
+
+        assertEquals(CurrentSessionResult.Discarded, result)
+        assertEquals("OUTLET-02", repository.state.selectedProfile?.name)
+        assertNull(repository.state.opening)
+    }
+
     private fun fixture(name: String): String =
         javaClass.getResourceAsStream("/api/v1/$name")!!.bufferedReader().readText()
 

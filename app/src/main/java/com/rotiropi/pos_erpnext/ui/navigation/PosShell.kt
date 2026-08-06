@@ -59,6 +59,7 @@ fun PosShell(
     onAcknowledgeRecovery: (String) -> Unit = {},
     onReauthenticateRecovery: () -> Unit = {},
     openingState: OpeningUiState? = null,
+    startDestination: PosDestination = PosDestination.HOME,
     onOpeningAmountChanged: (String, String) -> Unit = { _, _ -> },
     onOpenSession: () -> Unit = {},
     cashierState: CashierUiState = CashierUiState.Unavailable,
@@ -161,6 +162,7 @@ fun PosShell(
         onSelectRegistered = onSelectRegistered,
         onCustomerRetry = onCustomerRetry,
         onCustomerLoadMore = onCustomerLoadMore,
+        startDestination = startDestination,
         modifier = modifier,
     )
 }
@@ -206,6 +208,7 @@ private fun AuthenticatedPosShell(
     onSelectRegistered: (CustomerRecord) -> Unit,
     onCustomerRetry: () -> Unit,
     onCustomerLoadMore: () -> Unit,
+    startDestination: PosDestination,
     modifier: Modifier,
 ) {
     val navController = rememberNavController()
@@ -243,7 +246,7 @@ private fun AuthenticatedPosShell(
             ) {
                 NavHost(
                     navController = navController,
-                    startDestination = PosDestination.HOME.route,
+                    startDestination = startDestination.route,
                     modifier = Modifier
                         .fillMaxSize()
                         .widthIn(max = 960.dp)

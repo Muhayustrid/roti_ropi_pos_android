@@ -14,11 +14,11 @@ import com.rotiropi.pos_erpnext.MobilePosApplication
 import com.rotiropi.pos_erpnext.auth.AuthenticationState
 import com.rotiropi.pos_erpnext.databinding.Task4RootBinding
 import com.rotiropi.pos_erpnext.ui.navigation.PosShell
-import com.rotiropi.pos_erpnext.ui.opening.OpeningDestination
-import com.rotiropi.pos_erpnext.ui.opening.OpeningFlowCoordinator
-import com.rotiropi.pos_erpnext.ui.opening.OpeningFlowResult
-import com.rotiropi.pos_erpnext.ui.opening.OpeningReconciliationRunner
 import com.rotiropi.pos_erpnext.ui.opening.OpeningViewModel
+import com.rotiropi.pos_erpnext.ui.opening.OpeningRoutingAuthority
+import com.rotiropi.pos_erpnext.ui.opening.OpeningRoutingDestination
+import com.rotiropi.pos_erpnext.ui.opening.OpeningRoutingGate
+import com.rotiropi.pos_erpnext.ui.opening.OpeningRoutingResult
 import com.rotiropi.pos_erpnext.ui.opening.RecoveredOpeningTerminal
 import com.rotiropi.pos_erpnext.ui.profile.ProfileSelectionUiState
 import com.rotiropi.pos_erpnext.ui.settings.PosThemeMode
@@ -27,6 +27,7 @@ import com.rotiropi.pos_erpnext.ui.theme.PosTheme
 import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchIdentity
 import com.rotiropi.pos_erpnext.ui.customer.CustomerSelection
 import com.rotiropi.pos_erpnext.ui.cashier.CashierIdentity
+import com.rotiropi.pos_erpnext.ui.navigation.PosDestination
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -40,13 +41,21 @@ class Task4RootHost(
     private val binding: Task4RootBinding,
 ) {
     private val logoutResult = MutableStateFlow<LogoutResult?>(null)
-    private val openingState = MutableStateFlow<com.rotiropi.pos_erpnext.ui.opening.OpeningUiState?>(null)
+    private val openingState = MutableStateFlow<com.rotiropi.pos_erpnext.ui.opening.OpeningUiState?>(
+        if (application.authenticationOwner.snapshot.state == AuthenticationState.Authenticated) {
+            com.rotiropi.pos_erpnext.ui.opening.OpeningUiState(reconciling = true)
+        } else {
+            null
+        },
+    )
     private val customerSheetVisible = MutableStateFlow(false)
     private val cashierCartVisible = MutableStateFlow(false)
     private var openingViewModel: OpeningViewModel? = null
-    private var openingFlow: OpeningFlowCoordinator? = null
-    private var openingReconciliation: OpeningReconciliationRunner? = null
+    private var openingGate: OpeningRoutingGate? = null
+    private var openingAuthority: OpeningRoutingAuthority? = null
+    private var openingDestination: OpeningRoutingDestination? = null
     private var handledOpeningTerminal: String? = null
+    private val observedOpeningTerminals = mutableSetOf<String>()
     private val recoveryViewModel = com.rotiropi.pos_erpnext.recovery.RecoveryViewModel(
         authenticationSnapshot = { application.authenticationOwner.snapshot },
         currentIdentity = application::currentRecoveryIdentity,
@@ -67,11 +76,13 @@ class Task4RootHost(
         if (it is LogoutResult.LoggedOut) {
             openingViewModel?.clear()
             openingViewModel = null
-            openingFlow = null
-            openingReconciliation = null
+            openingGate = null
+            openingAuthority = null
+            openingDestination = null
             openingState.value = null
             cashierCartVisible.value = false
             handledOpeningTerminal = null
+            synchronized(observedOpeningTerminals) { observedOpeningTerminals.clear() }
             application.recoveryCoordinator.clearUiState()
             recoveryViewModel.onAuthenticationChanged(application.authenticationOwner.snapshot)
         }
@@ -122,6 +133,11 @@ class Task4RootHost(
                         openingState.value = openingViewModel?.state?.value
                     },
                     onOpenSession = ::openSession,
+                    startDestination = if (openingDestination == OpeningRoutingDestination.CASHIER) {
+                        PosDestination.CASHIER
+                    } else {
+                        PosDestination.HOME
+                    },
                     cashierState = cashier,
                     onCashierQueryChanged = application.cashierViewModel::onQueryChanged,
                     onCashierBarcodeChanged = application.cashierViewModel::onBarcodeChanged,
@@ -233,6 +249,7 @@ class Task4RootHost(
     private fun synchronizeOpeningFlow(authentication: AuthenticationState, app: AppUiState) {
         if (authentication != AuthenticationState.Authenticated || app.route != AppRoute.AUTHENTICATED_SHELL) {
             openingState.value = null
+            openingDestination = null
             return
         }
         val repository = application.mobilePosRepository.state
@@ -244,25 +261,38 @@ class Task4RootHost(
             openingState.value = null
             return
         }
-        if (openingViewModel?.belongsTo(cashier, profile.name) != true) {
+        val authority = OpeningRoutingAuthority(
+            cashier = cashier,
+            posProfile = profile.name,
+            authenticationGeneration = application.authenticationOwner.snapshot.generation,
+            repositoryGeneration = application.mobilePosRepository.authorityGeneration,
+        )
+        if (authority != openingAuthority) {
             openingViewModel?.clear()
             openingViewModel = OpeningViewModel(cashier, profile, application.mobilePosRepository::openSession)
-            openingFlow = OpeningFlowCoordinator(
-                currentSession = { application.mobilePosRepository.currentSession(profile.name) },
-                submitOpening = application.mobilePosRepository::openSession,
-                refreshCapabilities = { application.appViewModel.refreshAfterOpeningCompletion() },
-            )
-            openingReconciliation = OpeningReconciliationRunner(
-                flow = requireNotNull(openingFlow),
-                dispatch = ::applicationScopeIo,
-                isCurrent = ::isCurrentOpeningTerminal,
-                onResult = ::completeOpeningReconciliation,
-            )
+            openingGate = application.openingRoutingGate()
+            openingAuthority = authority
+            openingDestination = null
+            handledOpeningTerminal = null
+            synchronized(observedOpeningTerminals) { observedOpeningTerminals.clear() }
+            openingState.value = openingViewModel?.state?.value?.copy(reconciling = true)
+            application.cashierViewModel.clear()
+            applicationScopeIo {
+                val result = openingGate?.afterAuthentication(authority) ?: return@applicationScopeIo
+                if (isCurrentOpeningAuthority(authority)) completeInitialOpeningReconciliation(result)
+            }
+            return
         }
-        openingState.value = if (repository.opening == null && repository.capabilities.openSession) {
-            openingViewModel?.state?.value
-        } else {
-            null
+        openingState.value = when (openingDestination) {
+            null -> openingViewModel?.state?.value?.copy(reconciling = true)
+            OpeningRoutingDestination.OPENING -> openingViewModel?.state?.value?.let { state ->
+                if (repository.capabilities.openSession) state else state.copy(
+                    unavailable = true,
+                    canSubmit = false,
+                    error = "Opening is not available for this POS Profile.",
+                )
+            }
+            OpeningRoutingDestination.CASHIER -> null
         }
     }
 
@@ -284,6 +314,8 @@ class Task4RootHost(
         val cashier = repository.bootstrap?.user?.name
         val opening = repository.opening
         if (authentication != AuthenticationState.Authenticated ||
+            openingDestination != OpeningRoutingDestination.CASHIER ||
+            !repository.capabilities.submitSale ||
             profile == null ||
             cashier == null ||
             opening == null ||
@@ -317,7 +349,8 @@ class Task4RootHost(
         applicationScopeIo {
             val execution = openingViewModel?.submit() ?: return@applicationScopeIo
             openingState.value = openingViewModel?.state?.value
-            openingReconciliation?.immediate(execution)
+            val completed = execution as? com.rotiropi.pos_erpnext.recovery.RecoveryExecution.Completed ?: return@applicationScopeIo
+            reconcileOpeningCompletion(completed.transactionId)
         }
     }
 
@@ -335,9 +368,9 @@ class Task4RootHost(
                     terminal.generation,
                     terminal.transactionId,
                     result.code,
-                )
+                ).takeIf { result.code == "SESSION_ALREADY_OPEN" } ?: return
         }
-        openingReconciliation?.recovered(recovered)
+        if (isCurrentOpeningTerminal(recovered)) reconcileOpeningCompletion(recovered.transactionId)
     }
 
     private fun isCurrentOpeningTerminal(terminal: RecoveredOpeningTerminal): Boolean {
@@ -347,13 +380,55 @@ class Task4RootHost(
             application.currentRecoveryIdentity() == terminal.identity
     }
 
-    private fun completeOpeningReconciliation(transactionId: String, result: OpeningFlowResult) {
-        if (result.destination == OpeningDestination.SHELL) {
+    private fun isCurrentOpeningAuthority(authority: OpeningRoutingAuthority): Boolean {
+        val snapshot = application.authenticationOwner.snapshot
+        val repository = application.mobilePosRepository.state
+        return snapshot.state == AuthenticationState.Authenticated &&
+            snapshot.generation == authority.authenticationGeneration &&
+            application.mobilePosRepository.authorityGeneration == authority.repositoryGeneration &&
+            repository.selectedProfile?.name == authority.posProfile &&
+            repository.bootstrap?.user?.name == authority.cashier
+    }
+
+    private fun reconcileOpeningCompletion(transactionId: String) {
+        if (!synchronized(observedOpeningTerminals) { observedOpeningTerminals.add(transactionId) }) return
+        val authority = openingAuthority ?: return
+        applicationScopeIo {
+            if (!isCurrentOpeningAuthority(authority)) return@applicationScopeIo
+            val result = openingGate?.afterOpeningSucceeded(authority) ?: return@applicationScopeIo
+            if (isCurrentOpeningAuthority(authority)) completeOpeningReconciliation(transactionId, result)
+        }
+    }
+
+    private fun completeInitialOpeningReconciliation(result: OpeningRoutingResult) {
+        openingDestination = result.destination
+        if (result.failure != null) openingViewModel?.currentSessionFailed()
+        openingState.value = when (result.destination) {
+            OpeningRoutingDestination.OPENING -> openingViewModel?.state?.value?.let { state ->
+                if (application.mobilePosRepository.state.capabilities.openSession) state else state.copy(
+                    unavailable = true,
+                    canSubmit = false,
+                    error = "Opening is not available for this POS Profile.",
+                )
+            }
+            OpeningRoutingDestination.CASHIER -> null
+        }
+        application.appViewModel.synchronizeRouteFromRepository()
+        if (result.destination == OpeningRoutingDestination.CASHIER) {
+            synchronizeCashier(AuthenticationState.Authenticated)
+        }
+    }
+
+    private fun completeOpeningReconciliation(transactionId: String, result: OpeningRoutingResult) {
+        if (result.destination == OpeningRoutingDestination.CASHIER) {
             handledOpeningTerminal = transactionId
+            openingDestination = OpeningRoutingDestination.CASHIER
             openingState.value = null
             application.appViewModel.synchronizeRouteFromRepository()
+            synchronizeCashier(AuthenticationState.Authenticated)
             return
         }
+        openingDestination = OpeningRoutingDestination.OPENING
         if (result.failure != null) {
             openingViewModel?.reconciliationFailed()
             openingState.value = openingViewModel?.state?.value

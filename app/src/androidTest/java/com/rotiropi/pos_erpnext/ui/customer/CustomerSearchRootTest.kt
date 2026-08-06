@@ -31,12 +31,16 @@ import com.rotiropi.pos_erpnext.auth.OAuthTokens
 import com.rotiropi.pos_erpnext.auth.TokenStore
 import com.rotiropi.pos_erpnext.data.BootstrapData
 import com.rotiropi.pos_erpnext.data.BootstrapUser
+import com.rotiropi.pos_erpnext.data.CurrentSessionResult
 import com.rotiropi.pos_erpnext.data.Customer
 import com.rotiropi.pos_erpnext.data.CustomerSearchPage
 import com.rotiropi.pos_erpnext.data.CustomerSearchResult
 import com.rotiropi.pos_erpnext.data.CustomerSearchFailure
 import com.rotiropi.pos_erpnext.data.PosCapabilities
 import com.rotiropi.pos_erpnext.data.PosProfile
+import com.rotiropi.pos_erpnext.data.OpeningSession
+import com.rotiropi.pos_erpnext.data.OpeningStatus
+import com.rotiropi.pos_erpnext.data.RepositoryResult
 import com.rotiropi.pos_erpnext.data.RepositoryState
 import com.rotiropi.pos_erpnext.data.api.ApiCallCancellation
 import org.junit.After
@@ -61,8 +65,14 @@ class CustomerSearchRootTest {
         tokens.write(OAuthTokens("customer-root", null, Long.MAX_VALUE, MobilePosApplication.CANONICAL_ORIGIN, MobilePosApplication.CLIENT_ID))
         rule.activityRule.scenario.onActivity { activity ->
             val app = activity.application as MobilePosApplication
-            app.authenticationOwner.restoreAuthenticationState()
             set(app.mobilePosRepository, "currentState", RepositoryState(bootstrap = bootstrap()))
+            app.openingRoutingGateFactory = { repository ->
+                com.rotiropi.pos_erpnext.ui.opening.OpeningRoutingGate(
+                    currentSession = { CurrentSessionResult.Success(repository.state.opening) },
+                    refreshCapabilities = { RepositoryResult.Success(repository.state) },
+                )
+            }
+            app.authenticationOwner.restoreAuthenticationState()
             set(app, "customerSearchViewModel", CustomerSearchViewModel(
                 dispatcher = kotlinx.coroutines.Dispatchers.IO,
                 search = { request, _ ->
@@ -78,7 +88,12 @@ class CustomerSearchRootTest {
         rule.activityRule.scenario.recreate()
     }
 
-    @After fun clearFixture() { tokens.clear() }
+    @After fun clearFixture() {
+        rule.activityRule.scenario.onActivity { activity ->
+            (activity.application as MobilePosApplication).openingRoutingGateFactory = null
+        }
+        tokens.clear()
+    }
 
     @Test fun productionRootFirstOpenRunsOneDebouncedBlankSearchAndReopenIsNoOp() {
         delayMillis = 800
@@ -261,8 +276,24 @@ class CustomerSearchRootTest {
         user = BootstrapUser("cashier@example.test", "Cashier"),
         profiles = listOf(profile()),
         selectedProfile = profile(),
-        opening = null,
-        capabilities = PosCapabilities.DISABLED,
+        opening = OpeningSession(
+            name = "OPENING-TEST-0001",
+            posProfile = "OUTLET-01",
+            company = "Roti Ropi",
+            user = "cashier@example.test",
+            status = OpeningStatus.OPEN,
+            postingDate = "2026-08-06",
+            periodStartDate = "2026-08-06T08:00:00+07:00",
+            openingBalances = emptyList(),
+            warnings = emptyList(),
+        ),
+        capabilities = PosCapabilities(
+            openSession = false,
+            submitSale = true,
+            createReturn = false,
+            cancelSale = false,
+            closeSession = false,
+        ),
         posMode = "POS Invoice",
     )
 
