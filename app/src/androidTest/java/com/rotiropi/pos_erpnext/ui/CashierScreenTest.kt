@@ -198,7 +198,7 @@ class CashierScreenTest {
         composeRule.onNodeWithText("Offline — sale not submitted").assertIsDisplayed()
         composeRule.onNodeWithTag("checkout-confirm").assertIsNotEnabled()
 
-        composeRule.runOnIdle { state.value = CheckoutUiState.PriceChanged("Server price changed") }
+        composeRule.runOnIdle { state.value = CheckoutUiState.PriceChanged("Server price changed", emptyMap()) }
         composeRule.onNodeWithText("Server price changed").assertIsDisplayed()
         composeRule.onNodeWithText("Retry").assertHasClickAction()
 

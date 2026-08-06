@@ -85,7 +85,7 @@ class DtoContractTest {
     @Test
     fun fixture_manifest_covers_every_payload_fixture() {
         val manifest = resource("fixture-manifest.json").let(json::parseToJsonElement).jsonObject
-        assertEquals("40d2f2b56c6aa92b363485487e58ccb3a62e334c", manifest.getValue("backend_sha").jsonPrimitive.content)
+        assertEquals("2b0ee79e5644d4b67b607c9627b4b2ba75260856", manifest.getValue("backend_sha").jsonPrimitive.content)
         assertEquals("docs/mobile-pos/api-contract.md", manifest.getValue("backend_contract_path").jsonPrimitive.content)
         assertEquals("contract_example", manifest.getValue("source_type").jsonPrimitive.content)
         assertFalse(manifest.getValue("contains_credentials").jsonPrimitive.boolean)

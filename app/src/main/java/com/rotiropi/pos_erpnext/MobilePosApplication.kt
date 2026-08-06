@@ -9,6 +9,9 @@ import com.rotiropi.pos_erpnext.auth.TokenStore
 import com.rotiropi.pos_erpnext.data.MobilePosRepository
 import com.rotiropi.pos_erpnext.data.RepositoryResult
 import com.rotiropi.pos_erpnext.data.openingRecoverySpec
+import com.rotiropi.pos_erpnext.data.saleRecoverySpec
+import com.rotiropi.pos_erpnext.data.api.FrappeResponse
+import com.rotiropi.pos_erpnext.data.api.SubmitSaleResponseDto
 import com.rotiropi.pos_erpnext.data.api.AuthenticatedMobilePosApiClient
 import com.rotiropi.pos_erpnext.session.LogoutCoordinator
 import com.rotiropi.pos_erpnext.data.AndroidConnectivityStatusProvider
@@ -21,6 +24,8 @@ import com.rotiropi.pos_erpnext.recovery.RetryScheduler
 import com.rotiropi.pos_erpnext.recovery.ColdRecovery
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.decodeFromJsonElement
 import com.rotiropi.pos_erpnext.recovery.PendingMutation
 import com.rotiropi.pos_erpnext.ui.AppViewModel
 import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchIdentity
@@ -139,6 +144,7 @@ class MobilePosApplication : Application() {
         mobilePosRepository = MobilePosRepository(
             mobilePosApiClient,
             openSession = { request -> recoveryCoordinator.execute(openingRecoverySpec(request, Json)) },
+            submitSale = { request -> recoveryCoordinator.execute(saleRecoverySpec(request, Json)) },
         )
         appViewModel = AppViewModel(mobilePosRepository)
         customerSearchViewModel = CustomerSearchViewModel(Dispatchers.IO, search = { request, cancellation ->
@@ -166,6 +172,28 @@ class MobilePosApplication : Application() {
             },
             quoteItem = { request, cancellation ->
                 mobilePosRepository.quoteItem(request, cancellation)
+            },
+            quoteCart = { request, cancellation -> mobilePosRepository.quoteCart(request, cancellation) },
+            submitSale = mobilePosRepository::submitSale,
+            completedSale = { transactionId ->
+                recoveryCoordinator.readTerminalResult(transactionId)?.let { result ->
+                    runCatching {
+                        Json.decodeFromString(FrappeResponse.serializer(), result.responseText).message.data
+                            ?.let { Json.decodeFromJsonElement(SubmitSaleResponseDto.serializer(), it).sale }
+                    }.getOrNull()
+                }
+            },
+            rejectedSale = { transactionId ->
+                recoveryCoordinator.readTerminalResult(transactionId)?.let { result ->
+                    runCatching {
+                        Json.decodeFromString(FrappeResponse.serializer(), result.responseText).message.error?.let { error ->
+                            com.rotiropi.pos_erpnext.ui.cashier.SaleSubmissionRejection(
+                                error.code,
+                                error.details.mapValues { it.value.toString() },
+                            )
+                        }
+                    }.getOrNull()
+                }
             },
         )
         profileSelectionViewModel = ProfileSelectionViewModel(mobilePosRepository) {

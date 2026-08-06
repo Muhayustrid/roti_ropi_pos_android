@@ -13,6 +13,43 @@ data class SubmitSaleRequestDto(
 )
 
 @Serializable
+data class QuoteCartRequestDto(
+    val pos_profile: String,
+    val customer: String? = null,
+    val walk_in_customer_name: String? = null,
+    val items: List<SaleItemInputDto>,
+)
+
+@Serializable
+data class QuoteCartResponseDto(
+    val grand_total: String,
+    val payable: String,
+    val currency: String,
+    val items: List<SaleItemDto>,
+    val taxes: List<SaleTaxDto>,
+    val payment_modes: List<PaymentModeDto>,
+    val payment_amount_policy: PaymentAmountPolicyDto,
+)
+
+@Serializable
+data class PaymentModeDto(
+    val mode_of_payment: String,
+    val default: Boolean,
+    val allow_in_returns: Boolean,
+    val currency: String,
+)
+
+@Serializable
+data class PaymentAmountPolicyDto(
+    val currency: String,
+    val decimal_places: Int,
+    val minimum: String,
+    val api_syntax: String,
+    val rounding: String,
+    val policy_version: String,
+)
+
+@Serializable
 data class SaleItemInputDto(
     val item_code: String,
     val qty: String,
@@ -72,7 +109,7 @@ data class SaleDetailDto(
 
 @Serializable
 data class SaleItemDto(
-    val row_id: String,
+    val row_id: String?,
     val item_code: String,
     val item_name: String,
     val qty: String,

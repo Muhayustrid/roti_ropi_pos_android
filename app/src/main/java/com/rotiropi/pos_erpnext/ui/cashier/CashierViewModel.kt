@@ -7,8 +7,20 @@ import com.rotiropi.pos_erpnext.data.CatalogQuoteRequest
 import com.rotiropi.pos_erpnext.data.CatalogQuoteResult
 import com.rotiropi.pos_erpnext.data.CatalogScanResult
 import com.rotiropi.pos_erpnext.data.CatalogSearchResult
+import com.rotiropi.pos_erpnext.data.CheckoutQuoteResult
+import com.rotiropi.pos_erpnext.data.api.QuoteCartRequestDto
+import com.rotiropi.pos_erpnext.data.api.SaleItemInputDto
+import com.rotiropi.pos_erpnext.data.api.PaymentDto
+import com.rotiropi.pos_erpnext.data.api.SubmitSaleRequestDto
+import com.rotiropi.pos_erpnext.data.api.SaleDetailDto
+import com.rotiropi.pos_erpnext.recovery.RecoveryExecution
 import com.rotiropi.pos_erpnext.data.api.ApiCallCancellation
 import com.rotiropi.pos_erpnext.ui.payment.CheckoutUiState
+import com.rotiropi.pos_erpnext.ui.payment.PaymentAmountValidator
+import com.rotiropi.pos_erpnext.ui.payment.PaymentRow
+import com.rotiropi.pos_erpnext.ui.payment.PaymentValidationResult
+import com.rotiropi.pos_erpnext.ui.payment.ReceiptMapper
+import com.rotiropi.pos_erpnext.ui.receipt.ReceiptContent
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -30,8 +42,11 @@ data class CashierIdentity(
     val sessionName: String?,
     val posProfile: String,
     val customer: String?,
+    val walkInCustomerName: String? = null,
     val warehouse: String = "",
 )
+
+data class SaleSubmissionRejection(val code: String, val details: Map<String, String>)
 
 data class CatalogSearchRequest(
     val query: String,
@@ -83,6 +98,10 @@ class CashierViewModel(
     private val searchCatalog: (CatalogSearchRequest, ApiCallCancellation) -> CatalogSearchResult,
     private val scanCatalog: (CatalogScanRequest, ApiCallCancellation) -> CatalogScanResult,
     private val quoteItem: (CatalogQuoteRequest, ApiCallCancellation) -> CatalogQuoteResult,
+    private val quoteCart: (QuoteCartRequestDto, ApiCallCancellation) -> CheckoutQuoteResult = { _, _ -> CheckoutQuoteResult.Failure(CatalogFailure.Unavailable) },
+    private val submitSale: (SubmitSaleRequestDto) -> RecoveryExecution = { RecoveryExecution.BlockedIdentity },
+    private val completedSale: (String) -> SaleDetailDto? = { null },
+    private val rejectedSale: (String) -> SaleSubmissionRejection? = { null },
     private val cancellationFactory: () -> ApiCallCancellation = ::ApiCallCancellation,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -105,6 +124,7 @@ class CashierViewModel(
     private var catalogGeneration = 0L
     private var scanGeneration = 0L
     private var quoteGeneration = 0L
+    private var checkoutGeneration = 0L
     private var nextRequestId = 0L
     private var catalogJob: Job? = null
     private var scanJob: Job? = null
@@ -119,6 +139,8 @@ class CashierViewModel(
     private var lastScanValue: String? = null
     private var invalidQuantityForLine: String? = null
     private val quoteQueue = ArrayDeque<CartLineDraft>()
+    private var checkoutState: CheckoutUiState = CheckoutUiState.Unavailable
+    private var receipt: ReceiptContent? = null
 
     val state: StateFlow<CashierUiState> = _state.asStateFlow()
 
@@ -161,8 +183,10 @@ class CashierViewModel(
             quoteQueue.clear()
             quoteQueue.addAll(drafts)
             quoteGeneration++
+            checkoutGeneration++
             cart = cart.invalidateQuotes()
             quoteError = null
+            checkoutState = CheckoutUiState.Unavailable
             publish()
             processQuoteQueue()
             return
@@ -266,6 +290,7 @@ class CashierViewModel(
         }
         val quantity = if (existing == null) "1" else QuantitySyntax.addUnit(existing.quantity)
         if (quantity == null) return
+        invalidateCheckout()
         requestQuote(
             CartLineDraft(
                 itemCode = product.itemCode,
@@ -308,6 +333,7 @@ class CashierViewModel(
             return
         }
         invalidQuantityForLine = null
+        invalidateCheckout()
         requestQuote(current.toDraft(parsed))
     }
 
@@ -317,6 +343,7 @@ class CashierViewModel(
         val quantity = QuantitySyntax.addUnit(current.quantity) ?: return
         scanGeneration++
         cancelScan()
+        invalidateCheckout()
         requestQuote(current.toDraft(quantity))
     }
 
@@ -334,17 +361,101 @@ class CashierViewModel(
             quoteQueue.clear()
             cancelQuote()
             cart = cart.removeLine(current.id)
+            invalidateCheckout()
             quoteError = null
             publish()
             return
         }
         scanGeneration++
         cancelScan()
+        invalidateCheckout()
         requestQuote(current.toDraft(quantity))
     }
 
     fun onRemoveLine(line: CartLine) {
         processEvent(CashierEvent.RemoveLine(line.id))
+    }
+
+    fun onOpenCheckout() {
+        val pending = synchronized(stateLock) {
+            val current = identity ?: return@synchronized null
+            if (cart.lines.isEmpty() || cart.lines.any { it.quote == null }) return@synchronized null
+            checkoutState = CheckoutUiState.Submitting
+            publish()
+            Triple(current, checkoutGeneration, QuoteCartRequestDto(current.posProfile, current.customer, current.walkInCustomerName, cart.lines.map {
+                SaleItemInputDto(it.itemCode, it.quantity, it.uom, it.batchNo, listOfNotNull(it.serialNo))
+            }))
+        } ?: return
+        scope.launch {
+            val result = quoteCart(pending.third, ApiCallCancellation())
+            synchronized(stateLock) {
+                if (identity != pending.first || checkoutGeneration != pending.second) return@synchronized
+                checkoutState = when (result) {
+                    is CheckoutQuoteResult.Success -> initialPaymentState(result.quote.copy(quoteGeneration = pending.second))
+                    is CheckoutQuoteResult.Failure -> CheckoutUiState.Error(result.reason.userMessage())
+                }
+                publish()
+            }
+        }
+    }
+
+    fun onUpdatePaymentAmount(mode: String, raw: String) = synchronized(stateLock) {
+        val current = checkoutState
+        val quote = when (current) { is CheckoutUiState.Ready -> current.quote; is CheckoutUiState.PaymentInvalid -> current.quote; else -> return@synchronized }
+        val priorRows = when (current) { is CheckoutUiState.Ready -> current.payments; is CheckoutUiState.PaymentInvalid -> current.payments; else -> return@synchronized }
+        val rows = priorRows.map { if (it.modeOfPayment == mode) it.copy(amount = raw) else it }
+        val activeRows = rows.filter { it.amount.isNotBlank() }
+        val individual = activeRows.map { PaymentAmountValidator.validate(it.amount, quote.paymentAmountPolicy) }.firstOrNull { it is PaymentValidationResult.Invalid }
+        val exact = runCatching { activeRows.isNotEmpty() && activeRows.sumOf { it.amount.toBigDecimal() } == quote.payable.toBigDecimal() }.getOrDefault(false)
+        checkoutState = if (individual == null && exact) CheckoutUiState.Ready(quote, rows, PaymentValidationResult.Valid)
+        else CheckoutUiState.PaymentInvalid((individual as? PaymentValidationResult.Invalid)?.reason ?: "Payment total must equal payable.", mode, quote, rows)
+        publish()
+    }
+
+    fun onSubmitPayment() {
+        val pending = synchronized(stateLock) {
+            val ready = checkoutState as? CheckoutUiState.Ready ?: return@synchronized null
+            if (ready.validation !is PaymentValidationResult.Valid) return@synchronized null
+            val current = identity ?: return@synchronized null
+            if (ready.quote.quoteGeneration != checkoutGeneration) {
+                checkoutState = CheckoutUiState.Error("Cart changed. Review checkout before submitting.")
+                publish()
+                return@synchronized null
+            }
+            checkoutState = CheckoutUiState.Submitting
+            publish()
+            current to SubmitSaleRequestDto(current.posProfile, current.customer, current.walkInCustomerName, ready.quote.grandTotal, cart.lines.map {
+                SaleItemInputDto(it.itemCode, it.quantity, it.uom, it.batchNo, listOfNotNull(it.serialNo))
+            }, ready.payments.filter { it.amount.isNotBlank() }.map { PaymentDto(it.modeOfPayment, it.amount, it.referenceNo) })
+        } ?: return
+        scope.launch {
+            val execution = submitSale(pending.second)
+            val sale = (execution as? RecoveryExecution.Completed)?.let { completedSale(it.transactionId) }
+            val rejection = (execution as? RecoveryExecution.Rejected)?.let { rejectedSale(it.transactionId) }
+            synchronized(stateLock) {
+                if (identity != pending.first || checkoutState != CheckoutUiState.Submitting) return@synchronized
+                checkoutState = when (execution) {
+                    is RecoveryExecution.Completed -> sale?.let {
+                        receipt = ReceiptMapper.map(it)
+                        CheckoutUiState.Unavailable
+                    } ?: CheckoutUiState.Error("Sale submitted; receipt will appear after recovery confirmation.")
+                    is RecoveryExecution.Rejected -> if (rejection?.code == "PRICE_CHANGED") {
+                        CheckoutUiState.PriceChanged("Server price changed. Review and retry.", rejection.details)
+                    } else CheckoutUiState.Error("Sale submission was rejected.")
+                    RecoveryExecution.NotStartedOffline -> CheckoutUiState.OfflineNotSubmitted
+                    else -> CheckoutUiState.Error("Sale submission requires recovery.")
+                }
+                publish()
+            }
+        }
+    }
+
+    fun closeReceipt() = synchronized(stateLock) {
+        receipt = null
+        cart = CartState()
+        checkoutGeneration++
+        checkoutState = CheckoutUiState.Unavailable
+        publish()
     }
 
     private fun handleRemoveLine(lineId: String) {
@@ -354,6 +465,8 @@ class CashierViewModel(
         quoteQueue.clear()
         cancelQuote()
         cart = cart.removeLine(lineId)
+        invalidateCheckout()
+        receipt = null
         quoteError = null
         if (invalidQuantityForLine == lineId) invalidQuantityForLine = null
         publish()
@@ -382,6 +495,7 @@ class CashierViewModel(
         cancelAll()
         identity = null
         resetWorkspace()
+        receipt = null
         _state.value = CashierUiState.Unavailable
     }
 
@@ -468,6 +582,7 @@ class CashierViewModel(
                     if (quantity == null) {
                         scanError = "Quantity cannot be increased safely."
                     } else {
+                        invalidateCheckout()
                         requestQuote(
                             CartLineDraft(
                                 itemCode = result.scan.itemCode,
@@ -600,6 +715,7 @@ class CashierViewModel(
             is CatalogQuoteResult.Success -> when (val mutation = cart.applyQuote(draft, result.quote, authority)) {
                 is CartMutation.Applied -> {
                     cart = mutation.state
+                    invalidateCheckout()
                     quoteError = null
                     activeQuoteDraft = null
                     publish()
@@ -642,6 +758,27 @@ class CashierViewModel(
         catalogGeneration++
         scanGeneration++
         quoteGeneration++
+        checkoutGeneration++
+        checkoutState = CheckoutUiState.Unavailable
+        receipt = null
+    }
+
+    private fun invalidateCheckout() {
+        checkoutGeneration++
+        if (checkoutState != CheckoutUiState.Unavailable) checkoutState = CheckoutUiState.Unavailable
+    }
+
+    private fun initialPaymentState(quote: com.rotiropi.pos_erpnext.ui.payment.CheckoutQuote): CheckoutUiState {
+        val defaults = quote.paymentModes.filter { it.isDefault }
+        val rows = quote.paymentModes.map { mode ->
+            PaymentRow(mode.modeOfPayment, if (defaults.size == 1 && mode.isDefault) quote.payable else "", isDefault = mode.isDefault)
+        }
+        val activeRows = rows.filter { it.amount.isNotBlank() }
+        val valid = activeRows.size == 1 &&
+            PaymentAmountValidator.validate(activeRows.single().amount, quote.paymentAmountPolicy) is PaymentValidationResult.Valid &&
+            runCatching { activeRows.single().amount.toBigDecimal() == quote.payable.toBigDecimal() }.getOrDefault(false)
+        return if (valid) CheckoutUiState.Ready(quote, rows, PaymentValidationResult.Valid)
+        else CheckoutUiState.PaymentInvalid("Payment total must equal payable.", null, quote, rows)
     }
 
     private fun cancelAll() {
@@ -683,6 +820,7 @@ class CashierViewModel(
             _state.value = CashierUiState.Unavailable
             return
         }
+        receipt?.let { _state.value = CashierUiState.Receipt(it); return }
         _state.value = CashierUiState.Active(
             CashierContent(
                 query = query,
@@ -691,7 +829,7 @@ class CashierViewModel(
                 selectedCategoryId = selectedCategoryId,
                 products = products.map { it.toUi(current.warehouse) },
                 cart = cart.snapshot(),
-                checkoutState = CheckoutUiState.Unavailable,
+                checkoutState = checkoutState,
                 demoData = false,
                 catalogLoading = catalogLoading,
                 catalogHasMore = catalogHasMore,
