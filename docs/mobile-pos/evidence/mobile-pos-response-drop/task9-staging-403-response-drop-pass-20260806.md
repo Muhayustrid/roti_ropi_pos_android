@@ -44,6 +44,9 @@ The isolated staging correction was one `Custom DocPerm` for `Mobile POS Cashier
 cancel and delete disabled. No Android, backend application, ERPNext, Frappe, or
 Docker Compose source was changed.
 
+This `Custom DocPerm` is staging environment configuration only; it does not define
+or change Android or backend application source behavior.
+
 ## Normal-sale control
 
 After the permission correction, one proxy-disabled Android sale completed normally:
