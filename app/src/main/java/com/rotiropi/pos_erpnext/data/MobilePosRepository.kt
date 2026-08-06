@@ -207,7 +207,7 @@ internal fun com.rotiropi.pos_erpnext.data.api.ProfileDto.toDomain(): PosProfile
 
 data class RepositoryState(
     val bootstrap: BootstrapData? = null,
-    val bootstrapFailure: BootstrapFailure? = null
+    val bootstrapFailure: BootstrapFailure? = null,
 ) {
     val selectedProfile: PosProfile?
         get() = bootstrap?.selectedProfile
@@ -306,6 +306,9 @@ class MobilePosRepository(
 
     val state: RepositoryState
         get() = currentState
+
+    val authorityGeneration: Long
+        get() = synchronized(lock) { epoch }
 
     /**
      * Initial bootstrap. [profileName] is the caller-requested profile, forwarded
@@ -485,7 +488,9 @@ class MobilePosRepository(
         )
         return when (val result = client.execute(request, SessionCurrentResponseDto.serializer())) {
             is ApiResult.Success -> synchronized(lock) {
-                if (epoch != requestEpoch) return@synchronized CurrentSessionResult.Discarded
+                if (epoch != requestEpoch ||
+                    currentState.selectedProfile?.name?.let { it != profileName } == true
+                ) return@synchronized CurrentSessionResult.Discarded
                 val opening = result.data.opening_session?.toDomain()
                 currentState = currentState.copy(
                     bootstrap = currentState.bootstrap?.copy(opening = opening),
@@ -542,11 +547,12 @@ class MobilePosRepository(
         synchronized(lock) {
             val bootstrap = currentState.bootstrap ?: return false
             val profile = bootstrap.profiles.firstOrNull { it.name == profileName } ?: return false
+            epoch++
             currentState = currentState.copy(
                 bootstrap = bootstrap.copy(
                     selectedProfile = profile,
                     capabilities = PosCapabilities.DISABLED
-                )
+                ),
             )
             return true
         }

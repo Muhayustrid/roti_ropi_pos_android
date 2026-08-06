@@ -32,7 +32,7 @@ fun OpeningScreen(
     onAcknowledgeRecovery: () -> Unit = {},
     onReauthenticateRecovery: () -> Unit = {},
 ) {
-    val fieldsEnabled = !state.submitting && !state.recoveryPending
+    val fieldsEnabled = !state.submitting && !state.recoveryPending && !state.reconciling
 
     Column(
         modifier = modifier
@@ -42,6 +42,13 @@ fun OpeningScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text("Open POS session", style = MaterialTheme.typography.headlineSmall)
+        if (state.reconciling) {
+            Text(
+                "Checking current POS session…",
+                modifier = Modifier.testTag("opening-reconciling"),
+            )
+            return@Column
+        }
         Surface(
             modifier = Modifier
                 .fillMaxWidth()

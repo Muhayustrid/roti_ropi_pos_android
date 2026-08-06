@@ -24,6 +24,7 @@ data class OpeningUiState(
     val submitting: Boolean = false,
     val recoveryPending: Boolean = false,
     val authenticationRequired: Boolean = false,
+    val reconciling: Boolean = false,
     val error: String? = null,
 )
 
@@ -104,6 +105,14 @@ class OpeningViewModel(
             authenticationRequired = false,
             canSubmit = false,
             error = "Opening recovery could not verify the current session. Please retry.",
+        )
+    }
+
+    fun currentSessionFailed() {
+        mutableState.value = mutableState.value.copy(
+            unavailable = true,
+            canSubmit = false,
+            error = "Opening session verification failed. Please retry after reconnecting.",
         )
     }
 

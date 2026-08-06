@@ -32,6 +32,7 @@ import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchIdentity
 import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchViewModel
 import com.rotiropi.pos_erpnext.ui.cashier.CashierViewModel
 import com.rotiropi.pos_erpnext.ui.profile.ProfileSelectionViewModel
+import com.rotiropi.pos_erpnext.ui.opening.OpeningRoutingGate
 import com.rotiropi.pos_erpnext.data.api.CanonicalBackendOrigin
 import com.rotiropi.pos_erpnext.data.api.CoordinatorAuthTokenProvider
 import okhttp3.OkHttpClient
@@ -115,6 +116,14 @@ class MobilePosApplication : Application() {
         private set
     lateinit var cashierViewModel: CashierViewModel
         private set
+
+    internal var openingRoutingGateFactory: ((MobilePosRepository) -> OpeningRoutingGate)? = null
+
+    internal fun openingRoutingGate(): OpeningRoutingGate =
+        openingRoutingGateFactory?.invoke(mobilePosRepository) ?: OpeningRoutingGate(
+            currentSession = mobilePosRepository::currentSession,
+            refreshCapabilities = mobilePosRepository::refreshCapabilities,
+        )
 
     override fun onCreate() {
         super.onCreate()
