@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,6 +38,13 @@ import com.rotiropi.pos_erpnext.ui.opening.OpeningScreen
 import com.rotiropi.pos_erpnext.ui.opening.OpeningUiState
 import com.rotiropi.pos_erpnext.ui.products.ProductsScreen
 import com.rotiropi.pos_erpnext.ui.products.ProductsUiState
+import com.rotiropi.pos_erpnext.ui.history.HistoryScreen
+import com.rotiropi.pos_erpnext.ui.history.HistoryUiState
+import com.rotiropi.pos_erpnext.ui.history.SaleDetailScreen
+import com.rotiropi.pos_erpnext.ui.history.SaleDetailUiState
+import com.rotiropi.pos_erpnext.ui.returning.ReturnScreen
+import com.rotiropi.pos_erpnext.ui.returning.ReturnUiState
+import com.rotiropi.pos_erpnext.data.api.SaleDetailDto
 import com.rotiropi.pos_erpnext.ui.reports.ReportsScreen
 import com.rotiropi.pos_erpnext.ui.reports.ReportsUiState
 import com.rotiropi.pos_erpnext.ui.settings.MoreScreen
@@ -91,6 +99,20 @@ fun PosShell(
     onSelectRegistered: (CustomerRecord) -> Unit = {},
     onCustomerRetry: () -> Unit = {},
     onCustomerLoadMore: () -> Unit = {},
+    historyState: HistoryUiState = HistoryUiState.Unavailable,
+    saleDetailState: SaleDetailUiState = SaleDetailUiState.Unavailable,
+    returnState: ReturnUiState = ReturnUiState.Unavailable,
+    onHistoryQueryChanged: (String) -> Unit = {},
+    onHistoryLoadMore: () -> Unit = {},
+    onHistoryRetry: () -> Unit = {},
+    onHistorySaleSelected: (String) -> Unit = {},
+    onStartReturn: (SaleDetailDto) -> Unit = {},
+    onReturnReasonChanged: (String) -> Unit = {},
+    onReturnQuantityChanged: (String, String) -> Unit = { _, _ -> },
+    onReturnRefundModeChanged: (String?) -> Unit = {},
+    onReturnQuote: () -> Unit = {},
+    onReturnSubmit: () -> Unit = {},
+    onCloseReturnReceipt: () -> Unit = {},
 ) {
     val authState = authenticationOwner?.state?.collectAsState()?.value
     if (authenticationOwner != null && authState != AuthenticationState.Authenticated) {
@@ -162,6 +184,20 @@ fun PosShell(
         onSelectRegistered = onSelectRegistered,
         onCustomerRetry = onCustomerRetry,
         onCustomerLoadMore = onCustomerLoadMore,
+        historyState = historyState,
+        saleDetailState = saleDetailState,
+        returnState = returnState,
+        onHistoryQueryChanged = onHistoryQueryChanged,
+        onHistoryLoadMore = onHistoryLoadMore,
+        onHistoryRetry = onHistoryRetry,
+        onHistorySaleSelected = onHistorySaleSelected,
+        onStartReturn = onStartReturn,
+        onReturnReasonChanged = onReturnReasonChanged,
+        onReturnQuantityChanged = onReturnQuantityChanged,
+        onReturnRefundModeChanged = onReturnRefundModeChanged,
+        onReturnQuote = onReturnQuote,
+        onReturnSubmit = onReturnSubmit,
+        onCloseReturnReceipt = onCloseReturnReceipt,
         startDestination = startDestination,
         modifier = modifier,
     )
@@ -208,6 +244,20 @@ private fun AuthenticatedPosShell(
     onSelectRegistered: (CustomerRecord) -> Unit,
     onCustomerRetry: () -> Unit,
     onCustomerLoadMore: () -> Unit,
+    historyState: HistoryUiState,
+    saleDetailState: SaleDetailUiState,
+    returnState: ReturnUiState,
+    onHistoryQueryChanged: (String) -> Unit,
+    onHistoryLoadMore: () -> Unit,
+    onHistoryRetry: () -> Unit,
+    onHistorySaleSelected: (String) -> Unit,
+    onStartReturn: (SaleDetailDto) -> Unit,
+    onReturnReasonChanged: (String) -> Unit,
+    onReturnQuantityChanged: (String, String) -> Unit,
+    onReturnRefundModeChanged: (String?) -> Unit,
+    onReturnQuote: () -> Unit,
+    onReturnSubmit: () -> Unit,
+    onCloseReturnReceipt: () -> Unit,
     startDestination: PosDestination,
     modifier: Modifier,
 ) {
@@ -308,11 +358,23 @@ private fun AuthenticatedPosShell(
                         )
                     }
                     composable(PosDestination.REPORTS.route) {
-                        ReportsScreen(
-                            state = if (demoActive) PosDemoStates.reports else ReportsUiState.Unavailable,
-                            layoutMode = layoutMode,
-                            modifier = Modifier.testTag("destination-content-reports"),
-                        )
+                        androidx.compose.foundation.layout.Column {
+                            Button(onClick = { navController.navigate("history") }, modifier = Modifier.testTag("open-history")) { androidx.compose.material3.Text("History") }
+                            ReportsScreen(
+                                state = if (demoActive) PosDemoStates.reports else ReportsUiState.Unavailable,
+                                layoutMode = layoutMode,
+                                modifier = Modifier.weight(1f).testTag("destination-content-reports"),
+                            )
+                        }
+                    }
+                    composable("history") {
+                        HistoryScreen(historyState, onHistoryQueryChanged, { name -> onHistorySaleSelected(name); navController.navigate("sale/$name") }, onHistoryLoadMore, onHistoryRetry, Modifier.testTag("destination-content-history"))
+                    }
+                    composable("sale/{name}") {
+                        SaleDetailScreen(saleDetailState, { sale -> onStartReturn(sale); navController.navigate("return/${sale.summary.name}") }, Modifier.testTag("destination-content-sale-detail"))
+                    }
+                    composable("return/{name}") {
+                        ReturnScreen(returnState, onReturnReasonChanged, onReturnQuantityChanged, onReturnRefundModeChanged, onReturnQuote, onReturnSubmit, { onCloseReturnReceipt(); navController.popBackStack("history", false) }, Modifier.testTag("destination-content-return"))
                     }
                     composable(PosDestination.MORE.route) {
                         MoreScreen(

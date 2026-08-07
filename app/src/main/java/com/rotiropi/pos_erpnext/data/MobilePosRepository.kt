@@ -20,6 +20,13 @@ import com.rotiropi.pos_erpnext.data.api.SubmitSaleRequestDto
 import com.rotiropi.pos_erpnext.data.api.SubmitSaleResponseDto
 import com.rotiropi.pos_erpnext.data.api.SaleDetailDto
 import com.rotiropi.pos_erpnext.data.api.SaleDetailResponseDto
+import com.rotiropi.pos_erpnext.data.api.SaleSummaryDto
+import com.rotiropi.pos_erpnext.data.api.SaleListResponseDto
+import com.rotiropi.pos_erpnext.data.api.QuoteReturnRequestDto
+import com.rotiropi.pos_erpnext.data.api.QuoteReturnResponseDto
+import com.rotiropi.pos_erpnext.data.api.ReturnQuoteDto
+import com.rotiropi.pos_erpnext.data.api.CreateReturnRequestDto
+import com.rotiropi.pos_erpnext.data.api.CreateReturnResponseDto
 import com.rotiropi.pos_erpnext.data.api.SessionCurrentResponseDto
 import com.rotiropi.pos_erpnext.data.api.TransportFailureKind
 import com.rotiropi.pos_erpnext.recovery.RecoveryExecution
@@ -236,6 +243,7 @@ enum class BootstrapRefreshTrigger {
     PROFILE_SELECTED,
     PROFILE_CHANGED,
     OPENING_COMPLETED,
+    RETURN_COMPLETED,
     RETRY
 }
 
@@ -270,6 +278,21 @@ internal fun saleRecoverySpec(request: SubmitSaleRequestDto, json: Json) = Recov
     json = json,
 )
 
+internal fun returnRecoverySpec(request: CreateReturnRequestDto, json: Json) = RecoverySpec(
+    endpoint = MobilePosEndpoint.SALES_CREATE_RETURN,
+    body = request,
+    bodySerializer = CreateReturnRequestDto.serializer(),
+    responseDeserializer = CreateReturnResponseDto.serializer(),
+    json = json,
+)
+
+data class SaleHistoryPage(val sales: List<SaleSummaryDto>, val page: com.rotiropi.pos_erpnext.data.api.PageDto)
+
+sealed interface SaleReadResult<out T> {
+    data class Success<T>(val data: T) : SaleReadResult<T>
+    data class Failure(val code: String) : SaleReadResult<Nothing>
+}
+
 sealed interface CheckoutQuoteResult {
     data class Success(val quote: CheckoutQuote) : CheckoutQuoteResult
     data class Failure(val reason: CatalogFailure) : CheckoutQuoteResult
@@ -297,6 +320,9 @@ class MobilePosRepository(
     private val submitSale: (SubmitSaleRequestDto) -> RecoveryExecution = {
         error("Sale recovery is not configured.")
     },
+    private val createReturn: (CreateReturnRequestDto) -> RecoveryExecution = {
+        error("Return recovery is not configured.")
+    },
 ) {
     private val lock = Any()
     @Volatile
@@ -322,6 +348,41 @@ class MobilePosRepository(
 
     fun openSession(request: OpenSessionRequestDto): RecoveryExecution = openSession.invoke(request)
     fun submitSale(request: SubmitSaleRequestDto): RecoveryExecution = submitSale.invoke(request)
+    fun createReturn(request: CreateReturnRequestDto): RecoveryExecution = createReturn.invoke(request)
+
+    fun listSales(
+        posProfile: String,
+        status: String = "all",
+        query: String = "",
+        start: Int = 0,
+        limit: Int = 20,
+        cancellation: ApiCallCancellation = ApiCallCancellation(),
+    ): SaleReadResult<SaleHistoryPage> {
+        require(start >= 0)
+        require(limit in 1..50)
+        val fields = linkedMapOf("pos_profile" to posProfile, "status" to status, "start" to start.toString(), "limit" to limit.toString())
+        if (query.isNotBlank()) fields["q"] = query
+        return when (val result = client.execute(MobilePosRequest.get(MobilePosEndpoint.SALES_LIST, fields), SaleListResponseDto.serializer(), cancellation)) {
+            is ApiResult.Success -> SaleReadResult.Success(SaleHistoryPage(result.data.sales, result.data.page))
+            is ApiResult.ExpectedFailure -> SaleReadResult.Failure(result.error.code)
+            is ApiResult.ProtocolFailure -> SaleReadResult.Failure("PROTOCOL_ERROR")
+            is ApiResult.TransportFailure -> SaleReadResult.Failure(if (result.kind == TransportFailureKind.AUTHENTICATION_REQUIRED) "AUTH_REQUIRED" else "UNAVAILABLE")
+        }
+    }
+
+    fun quoteReturn(
+        request: QuoteReturnRequestDto,
+        cancellation: ApiCallCancellation = ApiCallCancellation(),
+    ): SaleReadResult<ReturnQuoteDto> = when (val result = client.execute(
+        MobilePosRequest.post(MobilePosEndpoint.SALES_QUOTE_RETURN, request, QuoteReturnRequestDto.serializer(), Json),
+        QuoteReturnResponseDto.serializer(),
+        cancellation,
+    )) {
+        is ApiResult.Success -> SaleReadResult.Success(result.data.return_quote)
+        is ApiResult.ExpectedFailure -> SaleReadResult.Failure(result.error.code)
+        is ApiResult.ProtocolFailure -> SaleReadResult.Failure("PROTOCOL_ERROR")
+        is ApiResult.TransportFailure -> SaleReadResult.Failure(if (result.kind == TransportFailureKind.AUTHENTICATION_REQUIRED) "AUTH_REQUIRED" else "UNAVAILABLE")
+    }
 
     fun quoteCart(request: QuoteCartRequestDto, cancellation: ApiCallCancellation): CheckoutQuoteResult {
         val transport = MobilePosRequest.post(MobilePosEndpoint.SALES_QUOTE_CART, request, QuoteCartRequestDto.serializer(), Json)
@@ -334,8 +395,17 @@ class MobilePosRepository(
     }
 
     fun getSale(name: String, cancellation: ApiCallCancellation = ApiCallCancellation()): SaleDetailDto? {
+        return (getSaleResult(name, cancellation) as? SaleReadResult.Success)?.data
+    }
+
+    fun getSaleResult(name: String, cancellation: ApiCallCancellation = ApiCallCancellation()): SaleReadResult<SaleDetailDto> {
         val request = MobilePosRequest.get(MobilePosEndpoint.SALES_GET, mapOf("name" to name))
-        return (client.execute(request, SaleDetailResponseDto.serializer(), cancellation) as? ApiResult.Success)?.data?.sale
+        return when (val result = client.execute(request, SaleDetailResponseDto.serializer(), cancellation)) {
+            is ApiResult.Success -> SaleReadResult.Success(result.data.sale)
+            is ApiResult.ExpectedFailure -> SaleReadResult.Failure(result.error.code)
+            is ApiResult.ProtocolFailure -> SaleReadResult.Failure("PROTOCOL_ERROR")
+            is ApiResult.TransportFailure -> SaleReadResult.Failure(if (result.kind == TransportFailureKind.AUTHENTICATION_REQUIRED) "AUTH_REQUIRED" else "UNAVAILABLE")
+        }
     }
 
     fun searchCustomers(

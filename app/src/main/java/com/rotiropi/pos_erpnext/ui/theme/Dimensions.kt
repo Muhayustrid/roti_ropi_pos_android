@@ -5,4 +5,5 @@ import androidx.compose.ui.unit.dp
 object PosDimensions {
     val touchTarget = 48.dp
     val screenPadding = 16.dp
+    val sectionSpacing = 12.dp
 }

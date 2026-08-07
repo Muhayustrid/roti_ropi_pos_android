@@ -3,10 +3,11 @@
 set -eu
 
 TARGET_API="${1:-}"
+HARNESS="${2:-sale}"
 case "$TARGET_API" in
     api23) EXPECTED_API=23 ;;
     api36) EXPECTED_API=36 ;;
-    *) echo "Usage: $0 <api23|api36>" >&2; exit 1 ;;
+    *) echo "Usage: $0 <api23|api36> [sale|return]" >&2; exit 1 ;;
 esac
 
 ANDROID_SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}}"
@@ -17,8 +18,17 @@ ADB="$ANDROID_SDK_ROOT/platform-tools/adb"
 APP_ID="com.rotiropi.pos_erpnext"
 TEST_ID="$APP_ID.test"
 RUNNER="$TEST_ID/androidx.test.runner.AndroidJUnitRunner"
-TEST_CLASS="com.rotiropi.pos_erpnext.recovery.ProcessDeathHarnessTest"
-REPORT_DIR="app/build/reports/mobile-pos-recovery-process-death/$TARGET_API"
+case "$HARNESS" in
+    sale)
+        TEST_CLASS="com.rotiropi.pos_erpnext.recovery.ProcessDeathHarnessTest"
+        REPORT_DIR="app/build/reports/mobile-pos-recovery-process-death/$TARGET_API"
+        ;;
+    return)
+        TEST_CLASS="com.rotiropi.pos_erpnext.recovery.ReturnProcessDeathHarnessTest"
+        REPORT_DIR="app/build/reports/mobile-pos-return-process-death/$TARGET_API"
+        ;;
+    *) echo "Usage: $0 <api23|api36> [sale|return]" >&2; exit 1 ;;
+esac
 rm -rf "$REPORT_DIR"
 mkdir -p "$REPORT_DIR"
 COMMANDS_FILE="$REPORT_DIR/commands.txt"
@@ -77,6 +87,7 @@ run_boundary verifyMutationAfterProcessDeath "$REPORT_DIR/boundary2-verify.txt"
     echo "RESULT: PASS"
     echo "SERIAL: $SERIAL"
     echo "API_LEVEL: $EXPECTED_API"
+    echo "HARNESS: $HARNESS"
     echo "TEST_CLASS: $TEST_CLASS"
     echo "BOUNDARY_1: persistMutationBeforeProcessDeath"
     echo "BOUNDARY_2: verifyMutationAfterProcessDeath"

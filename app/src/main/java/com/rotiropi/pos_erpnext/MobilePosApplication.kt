@@ -10,8 +10,10 @@ import com.rotiropi.pos_erpnext.data.MobilePosRepository
 import com.rotiropi.pos_erpnext.data.RepositoryResult
 import com.rotiropi.pos_erpnext.data.openingRecoverySpec
 import com.rotiropi.pos_erpnext.data.saleRecoverySpec
+import com.rotiropi.pos_erpnext.data.returnRecoverySpec
 import com.rotiropi.pos_erpnext.data.api.FrappeResponse
 import com.rotiropi.pos_erpnext.data.api.SubmitSaleResponseDto
+import com.rotiropi.pos_erpnext.data.api.CreateReturnResponseDto
 import com.rotiropi.pos_erpnext.data.api.AuthenticatedMobilePosApiClient
 import com.rotiropi.pos_erpnext.session.LogoutCoordinator
 import com.rotiropi.pos_erpnext.data.AndroidConnectivityStatusProvider
@@ -33,6 +35,10 @@ import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchViewModel
 import com.rotiropi.pos_erpnext.ui.cashier.CashierViewModel
 import com.rotiropi.pos_erpnext.ui.profile.ProfileSelectionViewModel
 import com.rotiropi.pos_erpnext.ui.opening.OpeningRoutingGate
+import com.rotiropi.pos_erpnext.ui.history.HISTORY_PAGE_SIZE
+import com.rotiropi.pos_erpnext.ui.history.HistoryViewModel
+import com.rotiropi.pos_erpnext.ui.history.SaleDetailViewModel
+import com.rotiropi.pos_erpnext.ui.returning.ReturnViewModel
 import com.rotiropi.pos_erpnext.data.api.CanonicalBackendOrigin
 import com.rotiropi.pos_erpnext.data.api.CoordinatorAuthTokenProvider
 import okhttp3.OkHttpClient
@@ -116,6 +122,12 @@ class MobilePosApplication : Application() {
         private set
     lateinit var cashierViewModel: CashierViewModel
         private set
+    lateinit var historyViewModel: HistoryViewModel
+        private set
+    lateinit var returnViewModel: ReturnViewModel
+        private set
+    lateinit var saleDetailViewModel: SaleDetailViewModel
+        private set
 
     internal var openingRoutingGateFactory: ((MobilePosRepository) -> OpeningRoutingGate)? = null
 
@@ -154,6 +166,7 @@ class MobilePosApplication : Application() {
             mobilePosApiClient,
             openSession = { request -> recoveryCoordinator.execute(openingRecoverySpec(request, Json)) },
             submitSale = { request -> recoveryCoordinator.execute(saleRecoverySpec(request, Json)) },
+            createReturn = { request -> recoveryCoordinator.execute(returnRecoverySpec(request, Json)) },
         )
         appViewModel = AppViewModel(mobilePosRepository)
         customerSearchViewModel = CustomerSearchViewModel(Dispatchers.IO, search = { request, cancellation ->
@@ -205,6 +218,33 @@ class MobilePosApplication : Application() {
                 }
             },
         )
+        historyViewModel = HistoryViewModel(
+            dispatcher = Dispatchers.IO,
+            listSales = { identity, query, start, cancellation ->
+                mobilePosRepository.listSales(identity.posProfile, query = query, start = start, limit = HISTORY_PAGE_SIZE, cancellation = cancellation)
+            },
+        )
+        returnViewModel = ReturnViewModel(
+            dispatcher = Dispatchers.IO,
+            quoteReturn = mobilePosRepository::quoteReturn,
+            createReturn = mobilePosRepository::createReturn,
+            completedReturn = { transactionId ->
+                recoveryCoordinator.readTerminalResult(transactionId)?.let { terminal ->
+                    runCatching { Json.decodeFromString(FrappeResponse.serializer(), terminal.responseText).message.data
+                        ?.let { Json.decodeFromJsonElement(CreateReturnResponseDto.serializer(), it).return_sale } }.getOrNull()
+                }
+            },
+            rejectedReturn = { transactionId ->
+                recoveryCoordinator.readTerminalResult(transactionId)?.let { terminal ->
+                    runCatching { Json.decodeFromString(FrappeResponse.serializer(), terminal.responseText).message.error?.code }.getOrNull()
+                }
+            },
+            refreshRemaining = { sourceName ->
+                (mobilePosRepository.getSaleResult(sourceName) as? com.rotiropi.pos_erpnext.data.SaleReadResult.Success)
+                    ?.data?.items?.mapNotNull { it.returnability }
+            },
+        )
+        saleDetailViewModel = SaleDetailViewModel(Dispatchers.IO, mobilePosRepository::getSaleResult)
         profileSelectionViewModel = ProfileSelectionViewModel(mobilePosRepository) {
             val bootstrap = mobilePosRepository.state.bootstrap
             val profile = bootstrap?.selectedProfile
@@ -221,6 +261,9 @@ class MobilePosApplication : Application() {
             authenticationOwner = authenticationOwner,
             pendingMutations = pendingMutations,
             clearCashierUi = cashierViewModel::clear,
+            clearHistoryUi = historyViewModel::clear,
+            clearSaleDetailUi = saleDetailViewModel::clear,
+            clearReturnUi = returnViewModel::clear,
         )
     }
 

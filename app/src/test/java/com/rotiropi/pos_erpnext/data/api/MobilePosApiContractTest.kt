@@ -40,8 +40,8 @@ class MobilePosApiContractTest {
     fun contract_table_matches_closed_production_catalog() {
         val table = contractTable()
         assertEquals("v1", table.api_version)
-        assertEquals(15, table.endpoints.size)
-        assertEquals(15, table.endpoints.map { it.path }.toSet().size)
+        assertEquals(16, table.endpoints.size)
+        assertEquals(16, table.endpoints.map { it.path }.toSet().size)
         assertEquals(MobilePosEndpoint.entries.map { it.path }.toSet(), table.endpoints.map { it.path }.toSet())
 
         table.endpoints.forEach { row ->

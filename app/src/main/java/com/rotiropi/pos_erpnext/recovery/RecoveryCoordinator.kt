@@ -227,7 +227,10 @@ class RecoveryCoordinator(
             )
             is ApiResult.ExpectedFailure -> when {
                 response.error.code == "IDEMPOTENCY_KEY_REUSED" -> manual(sending)
-                response.error.code == "REQUEST_IN_PROGRESS" && sending.endpoint == MobilePosEndpoint.CLOSING_SUBMIT -> {
+                response.error.code == "REQUEST_IN_PROGRESS" && sending.endpoint in setOf(
+                    MobilePosEndpoint.CLOSING_SUBMIT,
+                    MobilePosEndpoint.SALES_CREATE_RETURN,
+                ) -> {
                     wait(
                         sending,
                         retryAfterSeconds(response.error.details["retry_after_seconds"]),

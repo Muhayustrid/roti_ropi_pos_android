@@ -104,7 +104,12 @@ data class SaleDetailDto(
     val summary: SaleSummaryDto,
     val items: List<SaleItemDto>,
     val taxes: List<SaleTaxDto>,
-    val payments: List<PaymentDto>
+    val payments: List<PaymentDto>,
+    val return_contract: ReturnContractDto? = null,
+    val return_against: String? = null,
+    val return_reason: String? = null,
+    val refund_amount: String? = null,
+    val refund_allocations: List<PaymentDto> = emptyList(),
 )
 
 @Serializable
@@ -118,7 +123,9 @@ data class SaleItemDto(
     val rate: String,
     val amount: String,
     val batch_no: String?,
-    val serial_numbers: List<String>
+    val batch_numbers: List<String> = emptyList(),
+    val serial_numbers: List<String>,
+    val returnability: ReturnabilityDto? = null,
 )
 
 @Serializable
@@ -136,8 +143,8 @@ data class SaleListResponseDto(val sales: List<SaleSummaryDto>, val page: PageDt
 data class CreateReturnRequestDto(
     val source_name: String,
     val items: List<ReturnItemInputDto>,
-    val payments: List<PaymentDto>,
-    val reason: String
+    val reason: String,
+    val refund_mode: String? = null,
 )
 
 @Serializable
@@ -145,3 +152,58 @@ data class ReturnItemInputDto(val source_item_row: String, val qty: String)
 
 @Serializable
 data class CreateReturnResponseDto(val return_sale: SaleDetailDto)
+
+@Serializable
+data class QuoteReturnRequestDto(
+    val source_name: String,
+    val items: List<ReturnItemInputDto>,
+    val refund_mode: String? = null,
+)
+
+@Serializable
+data class QuoteReturnResponseDto(val return_quote: ReturnQuoteDto)
+
+@Serializable
+data class ReturnQuoteDto(
+    val source_name: String,
+    val items: List<SaleItemDto>,
+    val grand_total: String,
+    val refund_amount: String,
+    val refund_allocations: List<PaymentDto>,
+    val selected_refund_mode: String,
+)
+
+@Serializable
+data class ReturnContractDto(
+    val quantity_policy: ReturnQuantityPolicyDto,
+    val allowed_refund_modes: List<ReturnRefundModeDto>,
+    val refund_mode_required: Boolean,
+    val eligibility_reason: String? = null,
+)
+
+@Serializable
+data class ReturnQuantityPolicyDto(
+    val decimal_places: Int,
+    val minimum: String,
+    val maximum: String,
+    val api_syntax: String,
+    val rounding: String,
+    val policy_version: String,
+)
+
+@Serializable
+data class ReturnRefundModeDto(val mode_of_payment: String)
+
+@Serializable
+data class ReturnabilityDto(
+    val original_row_id: String,
+    val item_code: String,
+    val original_qty: String,
+    val returned_qty: String,
+    val remaining_qty: String,
+    val uom: String,
+    val batch_numbers: List<String>,
+    val serial_numbers: List<String>,
+    val eligible: Boolean,
+    val rejection_reason: String? = null,
+)

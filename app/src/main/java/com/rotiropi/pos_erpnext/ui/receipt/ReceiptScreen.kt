@@ -46,6 +46,7 @@ fun ReceiptScreen(
                         modifier = Modifier.semantics { heading() },
                     )
                     Text(content.saleId, style = MaterialTheme.typography.titleMedium)
+                    content.sourceReference?.let { Text("Return against: $it") }
                 }
                 if (content.demoData) DemoBadge()
             }
