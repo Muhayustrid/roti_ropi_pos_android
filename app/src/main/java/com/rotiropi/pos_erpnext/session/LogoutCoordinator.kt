@@ -23,6 +23,9 @@ class LogoutCoordinator internal constructor(
     private val clearRepository: () -> Unit,
     private val clearProfileUi: () -> Unit = {},
     private val clearCashierUi: () -> Unit = {},
+    private val clearHistoryUi: () -> Unit = {},
+    private val clearSaleDetailUi: () -> Unit = {},
+    private val clearReturnUi: () -> Unit = {},
     private val clearAuthentication: () -> Unit,
     private val runCleanupIfNoRecovery: ((() -> Unit) -> RecoveryLogoutBlocker?)? = null,
 ) {
@@ -35,6 +38,9 @@ class LogoutCoordinator internal constructor(
         authenticationOwner: AuthenticationOwner,
         pendingMutations: SqlitePendingMutationStore,
         clearCashierUi: () -> Unit = {},
+        clearHistoryUi: () -> Unit = {},
+        clearSaleDetailUi: () -> Unit = {},
+        clearReturnUi: () -> Unit = {},
     ) : this(
         invalidateCustomerAuthority = invalidateCustomerAuthority,
         cancelCustomerRequest = cancelCustomerRequest,
@@ -42,6 +48,9 @@ class LogoutCoordinator internal constructor(
         clearRepository = repository::clear,
         clearProfileUi = profileSelectionViewModel::clear,
         clearCashierUi = clearCashierUi,
+        clearHistoryUi = clearHistoryUi,
+        clearSaleDetailUi = clearSaleDetailUi,
+        clearReturnUi = clearReturnUi,
         clearAuthentication = authenticationOwner::logout,
         runCleanupIfNoRecovery = pendingMutations::logoutIfNoRecords,
     )
@@ -55,6 +64,9 @@ class LogoutCoordinator internal constructor(
             clearRepository()
             clearProfileUi()
             clearCashierUi()
+            clearHistoryUi()
+            clearSaleDetailUi()
+            clearReturnUi()
             clearAuthentication()
         }
         val blocker = runCleanupIfNoRecovery?.invoke(cleanup).also {

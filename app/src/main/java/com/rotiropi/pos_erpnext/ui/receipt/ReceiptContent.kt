@@ -2,6 +2,7 @@ package com.rotiropi.pos_erpnext.ui.receipt
 
 data class ReceiptContent(
     val saleId: String,
+    val sourceReference: String? = null,
     val customerLabel: String,
     val total: String,
     val paid: String,

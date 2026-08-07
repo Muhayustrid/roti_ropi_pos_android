@@ -373,7 +373,7 @@ class AuthenticatedMobilePosApiClientTest {
         )
         MobilePosEndpoint.SALES_CREATE_RETURN -> MobilePosRequest.post(
             endpoint,
-            ReturnBody("SALE-01", emptyList(), emptyList(), "reason"),
+            ReturnBody("SALE-01", emptyList(), "reason"),
             ReturnBody.serializer(),
             json,
             "123e4567-e89b-12d3-a456-426614174000"
@@ -401,7 +401,6 @@ class AuthenticatedMobilePosApiClientTest {
     private data class ReturnBody(
         val source_name: String,
         val items: List<String>,
-        val payments: List<String>,
         val reason: String
     )
 

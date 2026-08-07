@@ -27,6 +27,7 @@ import com.rotiropi.pos_erpnext.ui.theme.PosTheme
 import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchIdentity
 import com.rotiropi.pos_erpnext.ui.customer.CustomerSelection
 import com.rotiropi.pos_erpnext.ui.cashier.CashierIdentity
+import com.rotiropi.pos_erpnext.ui.history.HistoryIdentity
 import com.rotiropi.pos_erpnext.ui.navigation.PosDestination
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,6 +57,8 @@ class Task4RootHost(
     private var openingDestination: OpeningRoutingDestination? = null
     private var handledOpeningTerminal: String? = null
     private val observedOpeningTerminals = mutableSetOf<String>()
+    private val observedReturnTerminals = mutableSetOf<String>()
+    private var historyIdentity: HistoryIdentity? = null
     private val recoveryViewModel = com.rotiropi.pos_erpnext.recovery.RecoveryViewModel(
         authenticationSnapshot = { application.authenticationOwner.snapshot },
         currentIdentity = application::currentRecoveryIdentity,
@@ -83,6 +86,7 @@ class Task4RootHost(
             cashierCartVisible.value = false
             handledOpeningTerminal = null
             synchronized(observedOpeningTerminals) { observedOpeningTerminals.clear() }
+            synchronized(observedReturnTerminals) { observedReturnTerminals.clear() }
             application.recoveryCoordinator.clearUiState()
             recoveryViewModel.onAuthenticationChanged(application.authenticationOwner.snapshot)
         }
@@ -119,6 +123,9 @@ class Task4RootHost(
             val opening = openingState.collectAsState().value
             val customer = application.customerSearchViewModel.state.collectAsState().value
             val cashier = application.cashierViewModel.state.collectAsState().value
+            val history = application.historyViewModel.state.collectAsState().value
+            val saleDetail = application.saleDetailViewModel.state.collectAsState().value
+            val returning = application.returnViewModel.state.collectAsState().value
             PosTheme(darkTheme = darkTheme, accent = selection.accent) {
                 PosShell(
                     authenticationOwner = application.authenticationOwner,
@@ -170,6 +177,36 @@ class Task4RootHost(
                     onSelectRegistered = application.customerSearchViewModel::selectCustomer,
                     onCustomerRetry = application.customerSearchViewModel::retry,
                     onCustomerLoadMore = application.customerSearchViewModel::loadMore,
+                    historyState = history,
+                    saleDetailState = saleDetail,
+                    returnState = returning,
+                    onHistoryQueryChanged = application.historyViewModel::onQueryChanged,
+                    onHistoryLoadMore = application.historyViewModel::loadMore,
+                    onHistoryRetry = application.historyViewModel::retry,
+                    onHistorySaleSelected = application.saleDetailViewModel::load,
+                    onStartReturn = { sale ->
+                        val contract = sale.return_contract ?: return@PosShell
+                        application.returnViewModel.show(
+                            sourceName = sale.summary.name,
+                            rows = sale.items.mapNotNull { it.returnability },
+                            policy = com.rotiropi.pos_erpnext.ui.returning.ReturnQuantityPolicy(
+                                contract.quantity_policy.decimal_places,
+                                contract.quantity_policy.minimum,
+                                contract.quantity_policy.maximum,
+                                contract.quantity_policy.api_syntax,
+                                contract.quantity_policy.rounding,
+                                contract.quantity_policy.policy_version,
+                            ),
+                            allowedRefundModes = contract.allowed_refund_modes.map { it.mode_of_payment },
+                            refundModeRequired = contract.refund_mode_required,
+                        )
+                    },
+                    onReturnReasonChanged = application.returnViewModel::updateReason,
+                    onReturnQuantityChanged = application.returnViewModel::updateQuantity,
+                    onReturnRefundModeChanged = application.returnViewModel::updateRefundMode,
+                    onReturnQuote = application.returnViewModel::requestQuote,
+                    onReturnSubmit = application.returnViewModel::submit,
+                    onCloseReturnReceipt = application.returnViewModel::closeReceipt,
                     themeMode = selection.mode,
                     accent = selection.accent,
                     onThemeModeSelected = { mode ->
@@ -234,8 +271,10 @@ class Task4RootHost(
                         }
                         synchronizeOpeningFlow(authentication, application.appViewModel.state.value)
                         synchronizeCustomerSearch(authentication)
+                        synchronizeHistory(authentication)
                         synchronizeCashier(authentication)
                         synchronizeRecoveredOpening(recoveryViewModel.state.value)
+                        synchronizeRecoveredReturn(recoveryViewModel.state.value)
                         controller.render(
                             authentication,
                             application.appViewModel.state.value,
@@ -343,6 +382,47 @@ class Task4RootHost(
                 warehouse = profile.warehouse,
             ),
         )
+    }
+
+    private fun synchronizeHistory(authentication: AuthenticationState) {
+        val bootstrap = application.mobilePosRepository.state.bootstrap
+        val profile = bootstrap?.selectedProfile
+        val cashier = bootstrap?.user?.name
+        if (authentication != AuthenticationState.Authenticated || profile == null || cashier == null) {
+            application.historyViewModel.clear()
+            application.saleDetailViewModel.clear()
+            application.returnViewModel.clear()
+            historyIdentity = null
+            return
+        }
+        val identity = HistoryIdentity(cashier, profile.name)
+        if (historyIdentity != identity) {
+            application.saleDetailViewModel.clear()
+            application.returnViewModel.clear()
+            historyIdentity = identity
+        }
+        application.historyViewModel.bind(identity)
+    }
+
+    private fun synchronizeRecoveredReturn(state: com.rotiropi.pos_erpnext.recovery.RecoveryScreenState) {
+        val terminal = state as? com.rotiropi.pos_erpnext.recovery.RecoveryScreenState.Terminal ?: return
+        if (terminal.identity != application.currentRecoveryIdentity()) return
+        val completed = terminal.result as? com.rotiropi.pos_erpnext.recovery.RecoveryTerminalResult.Completed
+        val rejected = terminal.result as? com.rotiropi.pos_erpnext.recovery.RecoveryTerminalResult.Rejected
+        if (rejected?.code == "RETURN_LIMIT_EXCEEDED") {
+            application.returnViewModel.rejected(terminal.transactionId)
+            return
+        }
+        if (completed?.operation != "Return") return
+        if (!synchronized(observedReturnTerminals) { observedReturnTerminals.add(terminal.transactionId) }) return
+        application.returnViewModel.completed(terminal.transactionId)
+        applicationScopeIo {
+            if (terminal.identity == application.currentRecoveryIdentity()) {
+                application.mobilePosRepository.refreshCapabilities(
+                    com.rotiropi.pos_erpnext.data.BootstrapRefreshTrigger.RETURN_COMPLETED,
+                )
+            }
+        }
     }
 
     private fun openSession() {
