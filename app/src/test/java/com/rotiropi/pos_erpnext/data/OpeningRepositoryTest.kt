@@ -75,6 +75,23 @@ class OpeningRepositoryTest {
     }
 
     @Test
+    fun `current session publishes authoritative Closing projection`() {
+        server.enqueue(success(fixture("bootstrap-one-profile.json")))
+        assertTrue(repository.bootstrap("OUTLET-01") is RepositoryResult.Success)
+        server.takeRequest()
+        val body = fixture("session-current.json").replace(
+            "\n}",
+            ",\n  \"closing\": {\"name\":\"CLOSING-1\",\"status\":\"queued\",\"phase\":\"consolidating\",\"status_endpoint\":\"/api/method/roti_ropi_pos.api.v1.closing.status\"}\n}",
+        )
+        server.enqueue(success(body))
+
+        repository.currentSession("OUTLET-01")
+
+        assertEquals("CLOSING-1", repository.state.closing?.name)
+        assertEquals(ClosingProjectionState.QUEUED, repository.state.closing?.status)
+    }
+
+    @Test
     fun `no current session publishes null without inventing opening`() {
         server.enqueue(success("""{"opening_session":null}"""))
 

@@ -11,9 +11,12 @@ import com.rotiropi.pos_erpnext.data.RepositoryResult
 import com.rotiropi.pos_erpnext.data.openingRecoverySpec
 import com.rotiropi.pos_erpnext.data.saleRecoverySpec
 import com.rotiropi.pos_erpnext.data.returnRecoverySpec
+import com.rotiropi.pos_erpnext.data.closingRecoverySpec
+import com.rotiropi.pos_erpnext.data.toClosingReceipt
 import com.rotiropi.pos_erpnext.data.api.FrappeResponse
 import com.rotiropi.pos_erpnext.data.api.SubmitSaleResponseDto
 import com.rotiropi.pos_erpnext.data.api.CreateReturnResponseDto
+import com.rotiropi.pos_erpnext.data.api.SubmitClosingResponseDto
 import com.rotiropi.pos_erpnext.data.api.AuthenticatedMobilePosApiClient
 import com.rotiropi.pos_erpnext.session.LogoutCoordinator
 import com.rotiropi.pos_erpnext.data.AndroidConnectivityStatusProvider
@@ -39,6 +42,7 @@ import com.rotiropi.pos_erpnext.ui.history.HISTORY_PAGE_SIZE
 import com.rotiropi.pos_erpnext.ui.history.HistoryViewModel
 import com.rotiropi.pos_erpnext.ui.history.SaleDetailViewModel
 import com.rotiropi.pos_erpnext.ui.returning.ReturnViewModel
+import com.rotiropi.pos_erpnext.ui.closing.ClosingViewModel
 import com.rotiropi.pos_erpnext.data.api.CanonicalBackendOrigin
 import com.rotiropi.pos_erpnext.data.api.CoordinatorAuthTokenProvider
 import okhttp3.OkHttpClient
@@ -126,6 +130,8 @@ class MobilePosApplication : Application() {
         private set
     lateinit var returnViewModel: ReturnViewModel
         private set
+    lateinit var closingViewModel: ClosingViewModel
+        private set
     lateinit var saleDetailViewModel: SaleDetailViewModel
         private set
 
@@ -167,6 +173,7 @@ class MobilePosApplication : Application() {
             openSession = { request -> recoveryCoordinator.execute(openingRecoverySpec(request, Json)) },
             submitSale = { request -> recoveryCoordinator.execute(saleRecoverySpec(request, Json)) },
             createReturn = { request -> recoveryCoordinator.execute(returnRecoverySpec(request, Json)) },
+            submitClosing = { request -> recoveryCoordinator.execute(closingRecoverySpec(request, Json)) },
         )
         appViewModel = AppViewModel(mobilePosRepository)
         customerSearchViewModel = CustomerSearchViewModel(Dispatchers.IO, search = { request, cancellation ->
@@ -244,6 +251,40 @@ class MobilePosApplication : Application() {
                     ?.data?.items?.mapNotNull { it.returnability }
             },
         )
+        closingViewModel = ClosingViewModel(
+            dispatcher = Dispatchers.IO,
+            previewClosing = mobilePosRepository::previewClosing,
+            submitClosing = mobilePosRepository::submitClosing,
+            completedClosing = { transactionId ->
+                recoveryCoordinator.readClosingResult(transactionId)
+                    ?.responseText
+                    ?.let(::decodeClosingReceipt)
+            },
+            rejectedClosing = { transactionId ->
+                recoveryCoordinator.readTerminalResult(transactionId)?.let { terminal ->
+                    runCatching {
+                        Json.decodeFromString(FrappeResponse.serializer(), terminal.responseText)
+                            .message.error?.code
+                    }.getOrNull()
+                }
+            },
+            closingStatus = mobilePosRepository::closingStatus,
+            persistTerminal = { transactionId, receipt, response ->
+                recoveryCoordinator.persistClosingTerminal(
+                    transactionId,
+                    receipt.status,
+                    response,
+                    receipt.name,
+                )
+            },
+            onQueued = { appViewModel.refreshAfterClosingCompletion() },
+            onTerminal = { appViewModel.refreshAfterClosingCompletion() },
+            onCancelled = { appViewModel.refreshAfterClosingCompletion() },
+            acknowledge = { transactionId ->
+                recoveryCoordinator.acknowledge(transactionId) is
+                    com.rotiropi.pos_erpnext.recovery.RecoveryAcknowledgement.Acknowledged
+            },
+        )
         saleDetailViewModel = SaleDetailViewModel(Dispatchers.IO, mobilePosRepository::getSaleResult)
         profileSelectionViewModel = ProfileSelectionViewModel(mobilePosRepository) {
             val bootstrap = mobilePosRepository.state.bootstrap
@@ -264,10 +305,25 @@ class MobilePosApplication : Application() {
             clearHistoryUi = historyViewModel::clear,
             clearSaleDetailUi = saleDetailViewModel::clear,
             clearReturnUi = returnViewModel::clear,
+            clearClosingUi = closingViewModel::clear,
         )
     }
 
     companion object {
+        internal fun decodeClosingReceipt(responseText: String) = runCatching {
+            val envelope = Json.decodeFromString(
+                FrappeResponse.serializer(),
+                responseText,
+            ).message
+            if (!envelope.ok || envelope.meta.api_version != "v1") return@runCatching null
+            envelope.data?.let {
+                Json.decodeFromJsonElement(
+                    SubmitClosingResponseDto.serializer(),
+                    it,
+                ).closing.toClosingReceipt()
+            }
+        }.getOrNull()
+
         lateinit var instance: MobilePosApplication
             private set
 

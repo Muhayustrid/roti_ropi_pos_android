@@ -27,6 +27,13 @@ import com.rotiropi.pos_erpnext.data.api.QuoteReturnResponseDto
 import com.rotiropi.pos_erpnext.data.api.ReturnQuoteDto
 import com.rotiropi.pos_erpnext.data.api.CreateReturnRequestDto
 import com.rotiropi.pos_erpnext.data.api.CreateReturnResponseDto
+import com.rotiropi.pos_erpnext.data.api.ClosingCountedAmountPolicyDto
+import com.rotiropi.pos_erpnext.data.api.ClosingDto
+import com.rotiropi.pos_erpnext.data.api.ClosingPreviewResponseDto
+import com.rotiropi.pos_erpnext.data.api.ClosingStatusResponseDto
+import com.rotiropi.pos_erpnext.data.api.ExpectedPaymentDto
+import com.rotiropi.pos_erpnext.data.api.SubmitClosingRequestDto
+import com.rotiropi.pos_erpnext.data.api.SubmitClosingResponseDto
 import com.rotiropi.pos_erpnext.data.api.SessionCurrentResponseDto
 import com.rotiropi.pos_erpnext.data.api.TransportFailureKind
 import com.rotiropi.pos_erpnext.recovery.RecoveryExecution
@@ -135,6 +142,30 @@ data class PosCapabilities(
 
 data class BootstrapUser(val name: String, val fullName: String)
 
+data class ClosingProjection(
+    val name: String?,
+    val status: ClosingProjectionState,
+    val phase: String?,
+    val statusEndpoint: String?,
+    val failureCode: String?,
+    val failureMessage: String?,
+)
+
+enum class ClosingProjectionState {
+    PROCESSING,
+    DRAFT,
+    QUEUED,
+    SUBMITTED,
+    FAILED,
+    CANCELLED,
+    UNSUPPORTED;
+
+    companion object {
+        fun from(dto: com.rotiropi.pos_erpnext.data.api.ClosingProjectionStatus): ClosingProjectionState =
+            valueOf(dto.name)
+    }
+}
+
 data class CustomerSearchPage(
     val customers: List<Customer>,
     val start: Int,
@@ -171,7 +202,8 @@ data class BootstrapData(
     val selectedProfile: PosProfile?,
     val opening: OpeningSession?,
     val capabilities: PosCapabilities,
-    val posMode: String
+    val posMode: String,
+    val closing: ClosingProjection? = null,
 )
 
 sealed interface BootstrapFailure {
@@ -222,6 +254,9 @@ data class RepositoryState(
     val opening: OpeningSession?
         get() = bootstrap?.opening
 
+    val closing: ClosingProjection?
+        get() = bootstrap?.closing
+
     val capabilities: PosCapabilities
         get() = bootstrap?.capabilities ?: PosCapabilities.DISABLED
 
@@ -243,6 +278,7 @@ enum class BootstrapRefreshTrigger {
     PROFILE_SELECTED,
     PROFILE_CHANGED,
     OPENING_COMPLETED,
+    CLOSING_COMPLETED,
     RETURN_COMPLETED,
     RETRY
 }
@@ -286,6 +322,116 @@ internal fun returnRecoverySpec(request: CreateReturnRequestDto, json: Json) = R
     json = json,
 )
 
+internal fun closingRecoverySpec(request: SubmitClosingRequestDto, json: Json) = RecoverySpec(
+    endpoint = MobilePosEndpoint.CLOSING_SUBMIT,
+    body = request,
+    bodySerializer = SubmitClosingRequestDto.serializer(),
+    responseDeserializer = SubmitClosingResponseDto.serializer(),
+    json = json,
+)
+
+data class ClosingPreviewBinding(
+    val openingEntry: String,
+    val posProfile: String,
+    val cashier: String,
+    val invoiceCount: Int,
+    val paymentModes: List<String>,
+)
+
+data class ExpectedClosingPayment(
+    val modeOfPayment: String,
+    val openingAmount: String,
+    val expectedAmount: String,
+)
+
+data class ClosingCountedAmountPolicy(
+    val currency: String,
+    val decimalPlaces: Int,
+    val maxScale: Int,
+    val apiSyntax: String,
+    val minimum: String,
+    val maximum: String,
+    val rounding: String,
+    val policyVersion: String,
+)
+
+data class ClosingPreview(
+    val opening: OpeningSession,
+    val previewId: String,
+    val previewVersion: String,
+    val binding: ClosingPreviewBinding,
+    val invoiceCount: Int,
+    val grandTotal: String,
+    val netTotal: String,
+    val totalQuantity: String,
+    val totalTaxesAndCharges: String,
+    val expectedPayments: List<ExpectedClosingPayment>,
+    val countedAmountPolicy: ClosingCountedAmountPolicy,
+)
+
+data class ClosingPayment(
+    val modeOfPayment: String,
+    val openingAmount: String,
+    val expectedAmount: String,
+    val countedAmount: String,
+    val difference: String,
+)
+
+data class ClosingReconciliation(
+    val expectedTotal: String,
+    val countedTotal: String,
+    val differenceTotal: String,
+)
+
+data class ClosingReceipt(
+    val name: String,
+    val openingEntry: String,
+    val posProfile: String,
+    val status: com.rotiropi.pos_erpnext.data.api.ClosingStatus,
+    val invoiceCount: Int,
+    val grandTotal: String,
+    val netTotal: String,
+    val totalQuantity: String,
+    val totalTaxesAndCharges: String,
+    val payments: List<ClosingPayment>,
+    val reconciliation: ClosingReconciliation,
+    val failureCode: String?,
+    val failureMessage: String?,
+)
+
+sealed interface ClosingReadResult<out T> {
+    data class Success<T>(val data: T, val rawResponse: ByteArray? = null) : ClosingReadResult<T>
+    data class Failure(val code: String) : ClosingReadResult<Nothing>
+}
+
+internal fun ClosingDto.toClosingReceipt() = ClosingReceipt(
+    name = name,
+    openingEntry = opening_entry,
+    posProfile = pos_profile,
+    status = status,
+    invoiceCount = invoice_count,
+    grandTotal = grand_total,
+    netTotal = net_total,
+    totalQuantity = total_quantity,
+    totalTaxesAndCharges = total_taxes_and_charges,
+    payments = payments.map {
+        ClosingPayment(
+            modeOfPayment = it.mode_of_payment,
+            openingAmount = it.opening_amount,
+            expectedAmount = it.expected_amount,
+            countedAmount = it.counted_amount,
+            difference = it.difference,
+        )
+    },
+    reconciliation = ClosingReconciliation(
+        expectedTotal = reconciliation.expected_total,
+        countedTotal = reconciliation.counted_total,
+        differenceTotal = reconciliation.difference_total,
+    ),
+    failureCode = failure?.code,
+    failureMessage = failure?.message,
+)
+
 data class SaleHistoryPage(val sales: List<SaleSummaryDto>, val page: com.rotiropi.pos_erpnext.data.api.PageDto)
 
 sealed interface SaleReadResult<out T> {
@@ -323,6 +469,9 @@ class MobilePosRepository(
     private val createReturn: (CreateReturnRequestDto) -> RecoveryExecution = {
         error("Return recovery is not configured.")
     },
+    private val submitClosing: (SubmitClosingRequestDto) -> RecoveryExecution = {
+        error("Closing recovery is not configured.")
+    },
 ) {
     private val lock = Any()
     @Volatile
@@ -349,6 +498,39 @@ class MobilePosRepository(
     fun openSession(request: OpenSessionRequestDto): RecoveryExecution = openSession.invoke(request)
     fun submitSale(request: SubmitSaleRequestDto): RecoveryExecution = submitSale.invoke(request)
     fun createReturn(request: CreateReturnRequestDto): RecoveryExecution = createReturn.invoke(request)
+    fun submitClosing(request: SubmitClosingRequestDto): RecoveryExecution = submitClosing.invoke(request)
+
+    fun previewClosing(
+        posProfile: String,
+        cancellation: ApiCallCancellation = ApiCallCancellation(),
+    ): ClosingReadResult<ClosingPreview> = when (val result = client.execute(
+        MobilePosRequest.get(MobilePosEndpoint.CLOSING_PREVIEW, mapOf("pos_profile" to posProfile)),
+        ClosingPreviewResponseDto.serializer(),
+        cancellation,
+    )) {
+        is ApiResult.Success -> ClosingReadResult.Success(result.data.toDomain(), result.rawResponse)
+        is ApiResult.ExpectedFailure -> ClosingReadResult.Failure(result.error.code)
+        is ApiResult.ProtocolFailure -> ClosingReadResult.Failure("PROTOCOL_ERROR")
+        is ApiResult.TransportFailure -> ClosingReadResult.Failure(
+            if (result.kind == TransportFailureKind.AUTHENTICATION_REQUIRED) "AUTH_REQUIRED" else "UNAVAILABLE",
+        )
+    }
+
+    fun closingStatus(
+        name: String,
+        cancellation: ApiCallCancellation = ApiCallCancellation(),
+    ): ClosingReadResult<ClosingReceipt> = when (val result = client.execute(
+        MobilePosRequest.get(MobilePosEndpoint.CLOSING_STATUS, mapOf("name" to name)),
+        ClosingStatusResponseDto.serializer(),
+        cancellation,
+    )) {
+        is ApiResult.Success -> ClosingReadResult.Success(result.data.closing.toDomain(), result.rawResponse)
+        is ApiResult.ExpectedFailure -> ClosingReadResult.Failure(result.error.code)
+        is ApiResult.ProtocolFailure -> ClosingReadResult.Failure("PROTOCOL_ERROR")
+        is ApiResult.TransportFailure -> ClosingReadResult.Failure(
+            if (result.kind == TransportFailureKind.AUTHENTICATION_REQUIRED) "AUTH_REQUIRED" else "UNAVAILABLE",
+        )
+    }
 
     fun listSales(
         posProfile: String,
@@ -563,7 +745,10 @@ class MobilePosRepository(
                 ) return@synchronized CurrentSessionResult.Discarded
                 val opening = result.data.opening_session?.toDomain()
                 currentState = currentState.copy(
-                    bootstrap = currentState.bootstrap?.copy(opening = opening),
+                    bootstrap = currentState.bootstrap?.copy(
+                        opening = opening,
+                        closing = result.data.closing?.toDomain(),
+                    ),
                 )
                 CurrentSessionResult.Success(opening)
             }
@@ -717,9 +902,49 @@ class MobilePosRepository(
             selectedProfile = selected,
             opening = opening_session?.toDomain(),
             capabilities = capabilities,
-            posMode = pos_mode
+            posMode = pos_mode,
+            closing = closing?.toDomain(),
         )
     }
+
+    private fun ClosingPreviewResponseDto.toDomain(): ClosingPreview = ClosingPreview(
+        opening = opening_session.toDomain(),
+        previewId = preview_id,
+        previewVersion = preview_version,
+        binding = ClosingPreviewBinding(
+            openingEntry = preview_binding.opening_entry,
+            posProfile = preview_binding.pos_profile,
+            cashier = preview_binding.cashier,
+            invoiceCount = preview_binding.invoice_count,
+            paymentModes = preview_binding.payment_modes,
+        ),
+        invoiceCount = invoice_count,
+        grandTotal = grand_total,
+        netTotal = net_total,
+        totalQuantity = total_quantity,
+        totalTaxesAndCharges = total_taxes_and_charges,
+        expectedPayments = expected_payments.map { it.toDomain() },
+        countedAmountPolicy = counted_amount_policy.toDomain(),
+    )
+
+    private fun ExpectedPaymentDto.toDomain() = ExpectedClosingPayment(
+        modeOfPayment = mode_of_payment,
+        openingAmount = opening_amount,
+        expectedAmount = expected_amount,
+    )
+
+    private fun ClosingCountedAmountPolicyDto.toDomain() = ClosingCountedAmountPolicy(
+        currency = currency,
+        decimalPlaces = decimal_places,
+        maxScale = max_scale,
+        apiSyntax = api_syntax,
+        minimum = minimum,
+        maximum = maximum,
+        rounding = rounding,
+        policyVersion = policy_version,
+    )
+
+    private fun ClosingDto.toDomain() = toClosingReceipt()
 
     private fun ApiResult<*>.catalogFailure(): CatalogFailure = when (this) {
         is ApiResult.ExpectedFailure -> CatalogFailure.Stable(error.code)
@@ -731,6 +956,15 @@ class MobilePosRepository(
         }
         is ApiResult.Success -> error("Success cannot be mapped to catalog failure")
     }
+
+    private fun com.rotiropi.pos_erpnext.data.api.ClosingProjectionDto.toDomain() = ClosingProjection(
+        name = name,
+        status = ClosingProjectionState.from(status),
+        phase = phase,
+        statusEndpoint = status_endpoint,
+        failureCode = failure?.code,
+        failureMessage = failure?.message,
+    )
 
     private fun com.rotiropi.pos_erpnext.data.api.OpeningSessionDto.toDomain(): OpeningSession = OpeningSession(
         name = name,

@@ -3,7 +3,11 @@ package com.rotiropi.pos_erpnext.recovery
 import com.rotiropi.pos_erpnext.data.ConnectivityStatus
 import com.rotiropi.pos_erpnext.data.api.ApiMeta
 import com.rotiropi.pos_erpnext.data.api.ApiResult
+import com.rotiropi.pos_erpnext.data.api.ClosingDto
+import com.rotiropi.pos_erpnext.data.api.ClosingReconciliationDto
+import com.rotiropi.pos_erpnext.data.api.ClosingStatus
 import com.rotiropi.pos_erpnext.data.api.MobilePosEndpoint
+import com.rotiropi.pos_erpnext.data.api.SubmitClosingResponseDto
 import com.rotiropi.pos_erpnext.data.api.TransportFailureKind
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
@@ -59,6 +63,122 @@ class RecoveryCoordinatorTest {
         assertTrue(coordinator(store, transport).execute(spec("sale")) is RecoveryExecution.Completed)
 
         assertEquals("ok", store.records.single().terminalResponse!!.decodeToString())
+    }
+
+    @Test
+    fun queuedClosingRemainsUnresolvedUntilStatusTerminalIsPersisted() {
+        val store = MemoryStore()
+        val transactionId = "123e4567-e89b-42d3-a456-426614174000"
+        val queued = closingEnvelope("queued")
+        val transport = RecordingTransport(
+            ApiResult.Success(
+                data = closingResponse(ClosingStatus.QUEUED),
+                meta = ApiMeta("v1", "request", "now"),
+                rawResponse = queued,
+            ),
+        )
+        val coordinator = coordinator(store, transport)
+
+        assertEquals(RecoveryExecution.ClosingQueued(transactionId), coordinator.execute(validClosingSpec()))
+        assertEquals(PendingMutationState.CLOSING_QUEUED, store.records.single().state)
+        assertEquals(queued.toList(), store.records.single().terminalResponse?.toList())
+        assertEquals(queued.decodeToString(), coordinator.readClosingResult(transactionId)?.responseText)
+        assertTrue(store.unresolved(store.records.single().identity).single().transactionId == transactionId)
+
+        val terminal = closingEnvelope("submitted")
+        assertTrue(coordinator.persistClosingTerminal(transactionId, ClosingStatus.SUBMITTED, terminal, "CLOSING-1"))
+        assertEquals(PendingMutationState.COMPLETED, store.records.single().state)
+        assertEquals(terminal.toList(), store.records.single().terminalResponse?.toList())
+    }
+
+    @Test
+    fun bareDraftClosingResponseEntersManualRecoveryWithoutStatusPollingAuthority() {
+        val store = MemoryStore()
+        val transport = RecordingTransport(
+            ApiResult.Success(
+                data = closingResponse(ClosingStatus.DRAFT),
+                meta = ApiMeta("v1", "request", "now"),
+                rawResponse = closingEnvelope("draft"),
+            ),
+        )
+
+        val result = coordinator(store, transport).execute(validClosingSpec())
+
+        assertEquals(
+            RecoveryExecution.ManualRecovery("123e4567-e89b-42d3-a456-426614174000"),
+            result,
+        )
+        assertEquals(PendingMutationState.MANUAL_RECOVERY, store.records.single().state)
+        assertEquals(null, coordinator(store, transport).uiState.value.closingQueuedTransactionId)
+    }
+
+    @Test
+    fun routeFailuresEnterManualRecoveryWithoutSchedulingRetry() {
+        listOf(
+            TransportFailureKind.ROUTE_FORBIDDEN to 403,
+            TransportFailureKind.ROUTE_NOT_FOUND to 404,
+        ).forEach { (kind, status) ->
+            val store = MemoryStore()
+            val transport = RecordingTransport(ApiResult.TransportFailure(kind, status))
+
+            val result = coordinator(store, transport).execute(validClosingSpec())
+
+            assertEquals(
+                RecoveryExecution.ManualRecovery("123e4567-e89b-42d3-a456-426614174000"),
+                result,
+            )
+            assertEquals(PendingMutationState.MANUAL_RECOVERY, store.records.single().state)
+            assertEquals(1, transport.calls)
+        }
+    }
+
+    @Test
+    fun startupExposesQueuedClosingWithoutSchedulingSubmitReplay() {
+        val store = MemoryStore()
+        val transport = RecordingTransport(
+            ApiResult.Success(
+                data = closingResponse(ClosingStatus.QUEUED),
+                meta = ApiMeta("v1", "request", "now"),
+                rawResponse = closingEnvelope("queued"),
+            ),
+        )
+        val coordinator = coordinator(store, transport)
+        val execution = coordinator.execute(validClosingSpec()) as RecoveryExecution.ClosingQueued
+        val dispatches = transport.calls
+
+        assertTrue(coordinator.recoverAtAuthenticatedStartup().isEmpty())
+        assertEquals(dispatches, transport.calls)
+        assertEquals(execution.transactionId, coordinator.uiState.value.closingQueuedTransactionId)
+    }
+
+    @Test
+    fun queuedClosingTerminalPersistenceRejectsWrongIdentityAndNonClosingRows() {
+        val store = MemoryStore()
+        val transactionId = "123e4567-e89b-42d3-a456-426614174000"
+        val transport = RecordingTransport(
+            ApiResult.Success(
+                data = closingResponse(ClosingStatus.QUEUED),
+                meta = ApiMeta("v1", "request", "now"),
+                rawResponse = closingEnvelope("queued"),
+            ),
+        )
+        coordinator(store, transport).execute(validClosingSpec())
+        val terminal = closingEnvelope("submitted")
+
+        assertFalse(coordinator(store, RecordingTransport(), cashier = "other").persistClosingTerminal(
+            transactionId,
+            ClosingStatus.SUBMITTED,
+            terminal,
+            "CLOSING-1",
+        ))
+        store.records[0] = store.records.single().copy(endpoint = MobilePosEndpoint.SALES_SUBMIT)
+        assertFalse(coordinator(store, RecordingTransport()).persistClosingTerminal(
+            transactionId,
+            ClosingStatus.SUBMITTED,
+            terminal,
+            "CLOSING-1",
+        ))
+        assertEquals(PendingMutationState.CLOSING_QUEUED, store.records.single().state)
     }
 
     @Test
@@ -763,6 +883,25 @@ class RecoveryCoordinatorTest {
     }
 
     @Test
+    fun queuedClosingRetryNeverReplaysSubmit() {
+        val store = MemoryStore().apply {
+            records += preparedStoreRecord(PendingMutationState.CLOSING_QUEUED).copy(
+                endpoint = MobilePosEndpoint.CLOSING_SUBMIT,
+                terminalResponse = closingEnvelope("queued"),
+                reference = "CLOSING-1",
+            )
+        }
+        val transport = RecordingTransport()
+
+        assertEquals(
+            RecoveryExecution.ClosingQueued(store.records.single().transactionId),
+            coordinator(store, transport).retry(store.records.single().transactionId, nowMillis = Long.MAX_VALUE),
+        )
+        assertEquals(0, transport.calls)
+        assertEquals(PendingMutationState.CLOSING_QUEUED, store.records.single().state)
+    }
+
+    @Test
     fun retryUsesPersistedRequestInProgressState() {
         val store = MemoryStore().apply {
             records += preparedStoreRecord(PendingMutationState.REQUEST_IN_PROGRESS).copy(
@@ -1002,13 +1141,35 @@ class RecoveryCoordinatorTest {
         body = JsonObject(
             mapOf(
                 "pos_profile" to JsonPrimitive("OUTLET-01"),
+                "preview_id" to JsonPrimitive("preview-1"),
                 "closing_balances" to kotlinx.serialization.json.JsonArray(emptyList()),
             ),
         ),
         bodySerializer = JsonObject.serializer(),
-        responseDeserializer = String.serializer(),
+        responseDeserializer = SubmitClosingResponseDto.serializer(),
         json = json,
     )
+
+    private fun closingResponse(status: ClosingStatus) = SubmitClosingResponseDto(
+        ClosingDto(
+            name = "CLOSING-1",
+            opening_entry = "OPENING-1",
+            pos_profile = "OUTLET-01",
+            status = status,
+            invoice_count = 0,
+            grand_total = "0.00",
+            net_total = "0.00",
+            total_quantity = "0.00",
+            total_taxes_and_charges = "0.00",
+            payments = emptyList(),
+            reconciliation = ClosingReconciliationDto("0.00", "0.00", "0.00"),
+            failure = null,
+        ),
+    )
+
+    private fun closingEnvelope(status: String) = """
+        {"message":{"ok":true,"data":{"closing":{"name":"CLOSING-1","opening_entry":"OPENING-1","pos_profile":"OUTLET-01","status":"$status","invoice_count":0,"grand_total":"0.00","net_total":"0.00","total_quantity":"0.00","total_taxes_and_charges":"0.00","payments":[],"reconciliation":{"expected_total":"0.00","counted_total":"0.00","difference_total":"0.00"},"failure":null}},"meta":{"api_version":"v1","request_id":"request","server_time":"now","replayed":false}}}
+    """.trimIndent().encodeToByteArray()
 
     private fun invalidSpec(value: String) = RecoverySpec(
         endpoint = MobilePosEndpoint.SALES_SUBMIT,
@@ -1094,6 +1255,57 @@ class RecoveryCoordinatorTest {
             return true
         }
 
+        override fun persistClosingQueued(
+            transactionId: String,
+            expectedIdentity: RecoveryIdentity,
+            response: ByteArray,
+            reference: String,
+        ): Boolean = replaceClosingEvidence(
+            transactionId,
+            expectedIdentity,
+            PendingMutationState.SENDING,
+            PendingMutationState.CLOSING_QUEUED,
+            response,
+            reference,
+        )
+
+        override fun persistClosingStatusTerminal(
+            transactionId: String,
+            expectedIdentity: RecoveryIdentity,
+            response: ByteArray,
+            reference: String,
+        ): Boolean = replaceClosingEvidence(
+            transactionId,
+            expectedIdentity,
+            PendingMutationState.CLOSING_QUEUED,
+            PendingMutationState.COMPLETED,
+            response,
+            reference,
+        )
+
+        private fun replaceClosingEvidence(
+            transactionId: String,
+            expectedIdentity: RecoveryIdentity,
+            expectedState: PendingMutationState,
+            targetState: PendingMutationState,
+            response: ByteArray,
+            reference: String,
+        ): Boolean {
+            val index = records.indexOfFirst {
+                it.transactionId == transactionId &&
+                    it.identity == expectedIdentity &&
+                    it.endpoint == MobilePosEndpoint.CLOSING_SUBMIT &&
+                    it.state == expectedState
+            }
+            if (index == -1) return false
+            records[index] = records[index].copy(
+                state = targetState,
+                terminalResponse = response,
+                reference = reference,
+            )
+            return true
+        }
+
         override fun find(transactionId: String, expectedIdentity: RecoveryIdentity): PendingMutation? =
             records.firstOrNull { it.transactionId == transactionId && it.identity == expectedIdentity }
 
@@ -1117,6 +1329,22 @@ class RecoveryCoordinatorTest {
                 it.reference,
                 it.terminalResponse?.decodeToString() ?: "terminal",
                 TerminalReadToken(it.transactionId, TERMINAL_RESULT_FORMAT_VERSION),
+            )
+        }
+
+        override fun readClosingResult(
+            transactionId: String,
+            expectedIdentity: RecoveryIdentity,
+        ): ValidatedClosingResult? = records.firstOrNull {
+            it.transactionId == transactionId &&
+                it.identity == expectedIdentity &&
+                it.endpoint == MobilePosEndpoint.CLOSING_SUBMIT &&
+                it.state in setOf(PendingMutationState.CLOSING_QUEUED, PendingMutationState.COMPLETED)
+        }?.let {
+            ValidatedClosingResult(
+                it.transactionId,
+                it.reference ?: return null,
+                it.terminalResponse?.decodeToString() ?: return null,
             )
         }
 
@@ -1168,7 +1396,7 @@ class RecoveryCoordinatorTest {
     }
 
     private class RecordingTransport(
-        private val result: ApiResult<String> = ApiResult.Success("ok", ApiMeta("v1", "request", "now"), "ok".encodeToByteArray())
+        private val result: ApiResult<*> = ApiResult.Success("ok", ApiMeta("v1", "request", "now"), "ok".encodeToByteArray())
     ) : RecoveryTransport {
         var calls = 0
         var beforeResult: (() -> Unit)? = null

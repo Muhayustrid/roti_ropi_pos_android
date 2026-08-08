@@ -163,6 +163,19 @@ class AppViewModelTest {
     }
 
     @Test
+    fun closingCompletionRefreshesAuthoritativeBootstrap() {
+        val harness = Harness()
+        val viewModel = harness.viewModel
+        viewModel.onAuthenticationStateChanged(AuthenticationState.Authenticated)
+        harness.triggers.clear()
+
+        viewModel.refreshAfterClosingCompletion()
+
+        assertEquals(listOf(BootstrapRefreshTrigger.CLOSING_COMPLETED), harness.triggers)
+        assertEquals(AppRoute.AUTHENTICATED_SHELL, viewModel.uiState.route)
+    }
+
+    @Test
     fun stateReadsDoNotRefresh() {
         val harness = Harness()
         val viewModel = harness.viewModel

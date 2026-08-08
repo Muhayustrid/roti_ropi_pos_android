@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +45,8 @@ import com.rotiropi.pos_erpnext.ui.history.SaleDetailScreen
 import com.rotiropi.pos_erpnext.ui.history.SaleDetailUiState
 import com.rotiropi.pos_erpnext.ui.returning.ReturnScreen
 import com.rotiropi.pos_erpnext.ui.returning.ReturnUiState
+import com.rotiropi.pos_erpnext.ui.closing.ClosingScreen
+import com.rotiropi.pos_erpnext.ui.closing.ClosingUiState
 import com.rotiropi.pos_erpnext.data.api.SaleDetailDto
 import com.rotiropi.pos_erpnext.ui.reports.ReportsScreen
 import com.rotiropi.pos_erpnext.ui.reports.ReportsUiState
@@ -113,6 +116,14 @@ fun PosShell(
     onReturnQuote: () -> Unit = {},
     onReturnSubmit: () -> Unit = {},
     onCloseReturnReceipt: () -> Unit = {},
+    closingAvailable: Boolean = false,
+    closingState: ClosingUiState = ClosingUiState.Unavailable,
+    onOpenClosing: () -> Unit = {},
+    onClosingAmountChanged: (String, String) -> Unit = { _, _ -> },
+    onSubmitClosing: () -> Unit = {},
+    onCheckClosingStatus: () -> Unit = {},
+    onRetryClosingPreview: (String) -> Unit = {},
+    onCloseClosingReceipt: () -> Boolean = { true },
 ) {
     val authState = authenticationOwner?.state?.collectAsState()?.value
     if (authenticationOwner != null && authState != AuthenticationState.Authenticated) {
@@ -198,6 +209,14 @@ fun PosShell(
         onReturnQuote = onReturnQuote,
         onReturnSubmit = onReturnSubmit,
         onCloseReturnReceipt = onCloseReturnReceipt,
+        closingAvailable = closingAvailable,
+        closingState = closingState,
+        onOpenClosing = onOpenClosing,
+        onClosingAmountChanged = onClosingAmountChanged,
+        onSubmitClosing = onSubmitClosing,
+        onCheckClosingStatus = onCheckClosingStatus,
+        onRetryClosingPreview = onRetryClosingPreview,
+        onCloseClosingReceipt = onCloseClosingReceipt,
         startDestination = startDestination,
         modifier = modifier,
     )
@@ -258,6 +277,14 @@ private fun AuthenticatedPosShell(
     onReturnQuote: () -> Unit,
     onReturnSubmit: () -> Unit,
     onCloseReturnReceipt: () -> Unit,
+    closingAvailable: Boolean,
+    closingState: ClosingUiState,
+    onOpenClosing: () -> Unit,
+    onClosingAmountChanged: (String, String) -> Unit,
+    onSubmitClosing: () -> Unit,
+    onCheckClosingStatus: () -> Unit,
+    onRetryClosingPreview: (String) -> Unit,
+    onCloseClosingReceipt: () -> Boolean,
     startDestination: PosDestination,
     modifier: Modifier,
 ) {
@@ -268,6 +295,16 @@ private fun AuthenticatedPosShell(
     } ?: PosDestination.HOME
     var demoData by rememberSaveable { mutableStateOf(false) }
     val demoActive = PosDemoStates.supported && demoData
+    val closingTerminal = closingState is ClosingUiState.Receipt ||
+        closingState is ClosingUiState.Failed
+
+    LaunchedEffect(closingTerminal) {
+        if (closingTerminal && backStackEntry?.destination?.route != "closing") {
+            navController.navigate("closing") {
+                launchSingleTop = true
+            }
+        }
+    }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val layoutMode = posLayoutModeForWidth(maxWidth.value.toInt())
@@ -388,6 +425,7 @@ private fun AuthenticatedPosShell(
                                     "Sign out blocked: ${it.cashier} has ${it.state.name.lowercase()} recovery."
                                 },
                                 recovery = recoveryState,
+                                closingAvailable = closingAvailable,
                             ),
                             layoutMode = layoutMode,
                             modifier = Modifier.testTag("destination-content-more"),
@@ -397,8 +435,30 @@ private fun AuthenticatedPosShell(
                             onAccentSelected = onAccentSelected,
                             onDemoDataToggled = { demoData = it },
                             onLogout = { onLogout() },
+                            onOpenClosing = {
+                                onOpenClosing()
+                                navController.navigate("closing")
+                            },
                             onAcknowledgeRecovery = onAcknowledgeRecovery,
                             onReauthenticateRecovery = onReauthenticateRecovery,
+                        )
+                    }
+                    composable("closing") {
+                        ClosingScreen(
+                            state = closingState,
+                            onCountedAmountChanged = onClosingAmountChanged,
+                            onSubmit = onSubmitClosing,
+                            onCheckStatus = onCheckClosingStatus,
+                            onReauthenticate = onReauthenticateRecovery,
+                            onRetryPreview = onRetryClosingPreview,
+                            onDone = {
+                                if (onCloseClosingReceipt()) {
+                                    navController.popBackStack(PosDestination.MORE.route, false)
+                                }
+                            },
+                            onBack = {
+                                navController.popBackStack(PosDestination.MORE.route, false)
+                            },
                         )
                     }
                 }

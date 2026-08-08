@@ -67,6 +67,7 @@ class OpeningViewModel(
         val execution = submit(OpenSessionRequestDto(profile.name, canonical))
         mutableState.value = when (execution) {
             is RecoveryExecution.Completed -> mutableState.value.copy(submitting = false, recoveryPending = true)
+            is RecoveryExecution.ClosingQueued -> error("Closing result cannot complete Opening")
             is RecoveryExecution.WaitingRetry,
             is RecoveryExecution.RetrySchedulingFailed,
             is RecoveryExecution.ManualRecovery -> mutableState.value.copy(submitting = false, recoveryPending = true)

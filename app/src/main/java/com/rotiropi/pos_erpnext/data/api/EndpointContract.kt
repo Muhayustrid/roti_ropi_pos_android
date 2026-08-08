@@ -61,7 +61,7 @@ enum class MobilePosEndpoint(
     SALES_QUOTE_RETURN(HttpMethod.POST, endpointPath("sales", "quote_return"), RequestLocation.JSON, setOf("source_name", "items"), setOf("refund_mode"), isMutation = false, retryClass = RetryClass.ONE_READ_RETRY, serializerIdentity = "QuoteReturnResponseDto"),
     SALES_CREATE_RETURN(HttpMethod.POST, endpointPath("sales", "create_return"), RequestLocation.JSON, setOf("source_name", "items", "reason"), setOf("refund_mode"), requiresIdempotency = true, isMutation = true, retryClass = RetryClass.RECOVERY_ONLY, serializerIdentity = "CreateReturnResponseDto"),
     CLOSING_PREVIEW(HttpMethod.GET, endpointPath("closing", "preview"), RequestLocation.QUERY, setOf("pos_profile"), isMutation = false, retryClass = RetryClass.ONE_READ_RETRY, serializerIdentity = "ClosingPreviewResponseDto"),
-    CLOSING_SUBMIT(HttpMethod.POST, endpointPath("closing", "submit"), RequestLocation.JSON, setOf("pos_profile", "closing_balances"), requiresIdempotency = true, isMutation = true, retryClass = RetryClass.RECOVERY_ONLY, serializerIdentity = "SubmitClosingResponseDto"),
+    CLOSING_SUBMIT(HttpMethod.POST, endpointPath("closing", "submit"), RequestLocation.JSON, setOf("pos_profile", "preview_id", "closing_balances"), requiresIdempotency = true, isMutation = true, retryClass = RetryClass.RECOVERY_ONLY, serializerIdentity = "SubmitClosingResponseDto"),
     CLOSING_STATUS(HttpMethod.GET, endpointPath("closing", "status"), RequestLocation.QUERY, setOf("name"), isMutation = false, retryClass = RetryClass.ONE_READ_RETRY, serializerIdentity = "ClosingStatusResponseDto");
 
     companion object {

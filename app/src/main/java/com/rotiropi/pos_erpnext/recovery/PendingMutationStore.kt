@@ -30,6 +30,12 @@ data class ValidatedTerminalResult(
     val token: TerminalReadToken,
 )
 
+data class ValidatedClosingResult(
+    val transactionId: String,
+    val reference: String,
+    val responseText: String,
+)
+
 const val TERMINAL_RESULT_FORMAT_VERSION = 1
 
 /** Identity must be supplied before this boundary decrypts a row. */
@@ -61,12 +67,26 @@ interface PendingMutationStore {
         terminalResponse: ByteArray,
         reference: String?,
     ): Boolean
+    fun persistClosingQueued(
+        transactionId: String,
+        expectedIdentity: RecoveryIdentity,
+        response: ByteArray,
+        reference: String,
+    ): Boolean
+    fun persistClosingStatusTerminal(
+        transactionId: String,
+        expectedIdentity: RecoveryIdentity,
+        response: ByteArray,
+        reference: String,
+    ): Boolean
     fun find(transactionId: String, expectedIdentity: RecoveryIdentity): PendingMutation?
     fun unresolved(expectedIdentity: RecoveryIdentity): List<PendingMutation>
     /** Metadata-only summary. It never decrypts terminal evidence. */
     fun terminalRecovery(expectedIdentity: RecoveryIdentity): TerminalRecovery?
     /** Same-identity terminal decrypt, AAD, format, UTF-8, and bounded-safe-text validation. */
     fun readTerminalResult(transactionId: String, expectedIdentity: RecoveryIdentity): ValidatedTerminalResult?
+    /** Reads queued Closing response without exposing it as generic terminal recovery. */
+    fun readClosingResult(transactionId: String, expectedIdentity: RecoveryIdentity): ValidatedClosingResult?
     /** Process restart only: transition exactly one persisted sending record to waiting retry. */
     fun recoverStaleSending(transactionId: String, expectedIdentity: RecoveryIdentity): Boolean
     /** Revalidates terminal evidence under one transaction before deleting reviewed terminal evidence. */

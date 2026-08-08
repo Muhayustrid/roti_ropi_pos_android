@@ -214,6 +214,37 @@ class ReportsMoreScreenTest {
     }
 
     @Test
+    fun more_exposes_Closing_only_when_authoritative_capability_is_enabled() {
+        var opened = false
+        val state = mutableStateOf(false)
+        composeRule.setContent {
+            PosTheme {
+                MoreScreen(
+                    state = MoreUiState(
+                        outletLabel = "OUTLET-01",
+                        userSessionLabel = "cashier@example.test",
+                        themeMode = PosThemeMode.SYSTEM,
+                        accent = PosAccent.BLUE,
+                        demoData = false,
+                        closingAvailable = state.value,
+                    ),
+                    layoutMode = PosLayoutMode.COMPACT,
+                    onOpenClosing = { opened = true },
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("more-closing").assertDoesNotExist()
+        composeRule.runOnIdle { state.value = true }
+        composeRule.onNodeWithTag("more-closing")
+            .performScrollTo()
+            .assertHasClickAction()
+            .assertHeightIsAtLeast(48.dp)
+            .performClick()
+        composeRule.runOnIdle { assertTrue(opened) }
+    }
+
+    @Test
     fun unsupported_more_capabilities_are_disabled_without_actions() {
         composeRule.setContent {
             PosTheme {

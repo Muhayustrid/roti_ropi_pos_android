@@ -380,7 +380,7 @@ class AuthenticatedMobilePosApiClientTest {
         )
         MobilePosEndpoint.CLOSING_SUBMIT -> MobilePosRequest.post(
             endpoint,
-            ClosingBody("OUTLET-01", emptyList()),
+            ClosingBody("OUTLET-01", "preview-1", emptyList()),
             ClosingBody.serializer(),
             json,
             "123e4567-e89b-12d3-a456-426614174000"
@@ -405,7 +405,11 @@ class AuthenticatedMobilePosApiClientTest {
     )
 
     @Serializable
-    private data class ClosingBody(val pos_profile: String, val closing_balances: List<String>)
+    private data class ClosingBody(
+        val pos_profile: String,
+        val preview_id: String,
+        val closing_balances: List<String>,
+    )
 
     private fun stableSuccess(value: String) = MockResponse()
         .setResponseCode(200)

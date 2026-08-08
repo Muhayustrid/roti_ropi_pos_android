@@ -172,7 +172,7 @@ class RecoveryViewModelTest {
     )
 
     private fun closingEnvelope() = successEnvelope(
-        """{"closing":{"name":"CLOSE-1","opening_entry":"OPEN-1","pos_profile":"OUTLET","status":"queued","invoice_count":1,"failure":null}}""",
+        """{"closing":{"name":"CLOSE-1","opening_entry":"OPEN-1","pos_profile":"OUTLET","status":"queued","invoice_count":1,"grand_total":"100.00","net_total":"90.00","total_quantity":"1.00","total_taxes_and_charges":"10.00","payments":[{"mode_of_payment":"Cash","opening_amount":"0.00","expected_amount":"100.00","counted_amount":"100.00","difference":"0.00"}],"reconciliation":{"expected_total":"100.00","counted_total":"100.00","difference_total":"0.00"},"failure":null}}""",
     )
 
     private fun successEnvelope(data: String) =

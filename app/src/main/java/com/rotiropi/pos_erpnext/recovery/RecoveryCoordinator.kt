@@ -2,8 +2,10 @@ package com.rotiropi.pos_erpnext.recovery
 
 import com.rotiropi.pos_erpnext.data.ConnectivityStatus
 import com.rotiropi.pos_erpnext.data.api.ApiResult
+import com.rotiropi.pos_erpnext.data.api.ClosingStatus
 import com.rotiropi.pos_erpnext.data.api.MobilePosEndpoint
 import com.rotiropi.pos_erpnext.data.api.MobilePosRequest
+import com.rotiropi.pos_erpnext.data.api.SubmitClosingResponseDto
 import com.rotiropi.pos_erpnext.data.api.RetryAfter
 import com.rotiropi.pos_erpnext.data.api.TransportFailureKind
 import java.text.SimpleDateFormat
@@ -22,6 +24,7 @@ sealed interface RecoveryExecution {
     data object AuthRequired : RecoveryExecution
     data object BlockedIdentity : RecoveryExecution
     data class Completed(val transactionId: String) : RecoveryExecution
+    data class ClosingQueued(val transactionId: String) : RecoveryExecution
     data class Rejected(val transactionId: String) : RecoveryExecution
     data class WaitingRetry(val transactionId: String) : RecoveryExecution
     data class RetrySchedulingFailed(val transactionId: String) : RecoveryExecution
@@ -36,6 +39,7 @@ sealed interface RecoveryAcknowledgement {
 data class RecoveryUiState(
     val identity: RecoveryIdentity? = null,
     val terminal: TerminalRecovery? = null,
+    val closingQueuedTransactionId: String? = null,
     val authenticationRequiredTransactionId: String? = null,
     val retrySchedulingFailedTransactionId: String? = null,
     val retrySchedulingFailure: RecoveryExecution.RetrySchedulingFailed? = null,
@@ -173,6 +177,22 @@ class RecoveryCoordinator(
     fun readTerminalResult(transactionId: String): ValidatedTerminalResult? =
         identity()?.let { store.readTerminalResult(transactionId, it) }
 
+    fun readClosingResult(transactionId: String): ValidatedClosingResult? =
+        identity()?.let { store.readClosingResult(transactionId, it) }
+
+    fun persistClosingTerminal(
+        transactionId: String,
+        status: ClosingStatus,
+        response: ByteArray,
+        reference: String,
+    ): Boolean {
+        if (status !in setOf(ClosingStatus.SUBMITTED, ClosingStatus.FAILED, ClosingStatus.CANCELLED)) return false
+        val owner = identity() ?: return false
+        val persisted = store.persistClosingStatusTerminal(transactionId, owner, response, reference)
+        if (persisted) refreshUiState(owner)
+        return persisted
+    }
+
     fun refreshUiState() {
         identity()?.let(::refreshUiState) ?: clearUiState()
     }
@@ -196,6 +216,7 @@ class RecoveryCoordinator(
         val record = store.find(transactionId, owner) ?: return RecoveryExecution.BlockedIdentity
         if (record.state == PendingMutationState.MANUAL_RECOVERY) return RecoveryExecution.ManualRecovery(record.transactionId)
         if (record.state == PendingMutationState.SENDING) return RecoveryExecution.WaitingRetry(record.transactionId)
+        if (record.state == PendingMutationState.CLOSING_QUEUED) return RecoveryExecution.ClosingQueued(record.transactionId)
         if (record.state.terminal) return RecoveryExecution.BlockedIdentity
         if (record.attemptCount >= MAX_DISPATCHES) return manual(record)
         if (nowMillis < record.nextEligibleAtMillis) {
@@ -219,12 +240,25 @@ class RecoveryCoordinator(
             return RecoveryExecution.ManualRecovery(sending.transactionId)
         }
         return when (val response = transport.execute(sending, deserializer)) {
-            is ApiResult.Success -> persistTerminal(
-                sending,
-                PendingMutationState.COMPLETED,
-                response.rawResponse,
-                response.meta.request_id,
-            )
+            is ApiResult.Success -> {
+                val closing = (response.data as? SubmitClosingResponseDto)?.closing
+                if (sending.endpoint == MobilePosEndpoint.CLOSING_SUBMIT &&
+                    closing?.status == ClosingStatus.QUEUED
+                ) {
+                    persistClosingQueued(sending, response.rawResponse, closing.name)
+                } else if (sending.endpoint == MobilePosEndpoint.CLOSING_SUBMIT &&
+                    closing?.status == ClosingStatus.DRAFT
+                ) {
+                    manual(sending)
+                } else {
+                    persistTerminal(
+                        sending,
+                        PendingMutationState.COMPLETED,
+                        response.rawResponse,
+                        response.meta.request_id,
+                    )
+                }
+            }
             is ApiResult.ExpectedFailure -> when {
                 response.error.code == "IDEMPOTENCY_KEY_REUSED" -> manual(sending)
                 response.error.code == "REQUEST_IN_PROGRESS" && sending.endpoint in setOf(
@@ -250,7 +284,13 @@ class RecoveryCoordinator(
             }
             is ApiResult.TransportFailure -> when (response.kind) {
                 TransportFailureKind.AUTHENTICATION_REQUIRED -> pauseForAuthentication(sending)
-                else -> wait(sending, httpRetryAfter = response.retryAfter)
+                TransportFailureKind.ROUTE_FORBIDDEN,
+                TransportFailureKind.ROUTE_NOT_FOUND,
+                TransportFailureKind.CANCELLED -> manual(sending)
+                TransportFailureKind.RATE_LIMITED,
+                TransportFailureKind.SERVER_UNAVAILABLE,
+                TransportFailureKind.NETWORK_FAILURE,
+                TransportFailureKind.TIMEOUT -> wait(sending, httpRetryAfter = response.retryAfter)
             }
             is ApiResult.ProtocolFailure -> manual(sending)
         }
@@ -267,6 +307,20 @@ class RecoveryCoordinator(
         ))
         refreshUiState(record.identity)
         return RecoveryExecution.AuthRequired
+    }
+
+    private fun persistClosingQueued(
+        record: PendingMutation,
+        response: ByteArray?,
+        reference: String,
+    ): RecoveryExecution {
+        val bytes = response ?: return manual(record)
+        return if (store.persistClosingQueued(record.transactionId, record.identity, bytes, reference)) {
+            refreshUiState(record.identity)
+            RecoveryExecution.ClosingQueued(record.transactionId)
+        } else {
+            durableState(record.transactionId, record.identity)
+        }
     }
 
     private fun persistTerminal(
@@ -341,10 +395,14 @@ class RecoveryCoordinator(
         owner: RecoveryIdentity,
         schedulingFailure: RecoveryExecution.RetrySchedulingFailed? = null,
     ) {
+        val unresolved = store.unresolved(owner)
         _uiState.value = RecoveryUiState(
             identity = owner,
             terminal = store.terminalRecovery(owner),
-            authenticationRequiredTransactionId = store.unresolved(owner)
+            closingQueuedTransactionId = unresolved
+                .firstOrNull { it.state == PendingMutationState.CLOSING_QUEUED }
+                ?.transactionId,
+            authenticationRequiredTransactionId = unresolved
                 .firstOrNull { it.state == PendingMutationState.AUTH_REQUIRED }
                 ?.transactionId,
             retrySchedulingFailedTransactionId = schedulingFailure?.transactionId
@@ -379,6 +437,7 @@ class RecoveryCoordinator(
         PendingMutationState.MANUAL_RECOVERY -> RecoveryExecution.ManualRecovery(transactionId)
         PendingMutationState.AUTH_REQUIRED -> RecoveryExecution.AuthRequired
         PendingMutationState.WAITING_RETRY, PendingMutationState.SENDING -> RecoveryExecution.WaitingRetry(transactionId)
+        PendingMutationState.CLOSING_QUEUED -> RecoveryExecution.ClosingQueued(transactionId)
         PendingMutationState.REJECTED -> RecoveryExecution.Rejected(transactionId)
         PendingMutationState.COMPLETED -> RecoveryExecution.Completed(transactionId)
         else -> RecoveryExecution.BlockedIdentity

@@ -137,10 +137,13 @@ class OpeningRecoveryCoordinatorTest {
             return true
         }
 
+        override fun persistClosingQueued(transactionId: String, expectedIdentity: RecoveryIdentity, response: ByteArray, reference: String) = false
+        override fun persistClosingStatusTerminal(transactionId: String, expectedIdentity: RecoveryIdentity, response: ByteArray, reference: String) = false
         override fun find(transactionId: String, expectedIdentity: RecoveryIdentity) = record?.takeIf { it.transactionId == transactionId && it.identity == expectedIdentity }
         override fun unresolved(expectedIdentity: RecoveryIdentity) = listOfNotNull(record?.takeIf { it.identity == expectedIdentity })
         override fun terminalRecovery(expectedIdentity: RecoveryIdentity) = record?.takeIf { it.identity == expectedIdentity && it.state.terminal }?.let { TerminalRecovery(it.transactionId, it.state) }
         override fun readTerminalResult(transactionId: String, expectedIdentity: RecoveryIdentity): ValidatedTerminalResult? = null
+        override fun readClosingResult(transactionId: String, expectedIdentity: RecoveryIdentity): ValidatedClosingResult? = null
         override fun recoverStaleSending(transactionId: String, expectedIdentity: RecoveryIdentity) = false
         override fun acknowledge(token: TerminalReadToken, expectedIdentity: RecoveryIdentity) = false
         override fun logoutIfNoRecords(cleanup: () -> Unit): RecoveryLogoutBlocker? = null

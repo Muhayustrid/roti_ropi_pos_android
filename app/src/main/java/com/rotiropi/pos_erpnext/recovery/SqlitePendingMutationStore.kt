@@ -36,6 +36,7 @@ class SqlitePendingMutationStore(
     private data class EncryptedEvidenceRow(
         val transactionId: String,
         val identity: RecoveryIdentity?,
+        val unresolved: Boolean,
         val body: EncryptedMutationBody,
         val terminal: EncryptedMutationBody?,
         val bodyAad: ByteArray?,
@@ -44,7 +45,7 @@ class SqlitePendingMutationStore(
     )
 
     private fun SQLiteDatabase.unresolvedEvidence(identity: RecoveryIdentity): List<EncryptedEvidenceRow> =
-        encryptedEvidence().filter { it.identity == identity && it.terminalAad == null }
+        encryptedEvidence().filter { it.identity == identity && it.unresolved }
 
     private fun SQLiteDatabase.encryptedEvidence(): List<EncryptedEvidenceRow> = query(
         "mutations", null, null, null, null, null, "id",
@@ -57,12 +58,15 @@ class SqlitePendingMutationStore(
                 add(EncryptedEvidenceRow(
                     transactionId = cursor.string("id"),
                     identity = record?.identity,
+                    unresolved = record?.state?.terminal == false,
                     body = EncryptedMutationBody(cursor.blob("body_iv"), cursor.blob("body_ciphertext"), cursor.blob("body_tag")),
                     terminal = if (terminalPresent == terminalColumns.size) {
                         EncryptedMutationBody(cursor.blob("terminal_iv"), cursor.blob("terminal_ciphertext"), cursor.blob("terminal_tag"))
                     } else null,
                     bodyAad = record?.let(PendingMutationAad::request),
-                    terminalAad = record?.takeIf { it.state.terminal }?.let { PendingMutationAad.terminal(it, it.state) },
+                    terminalAad = record?.takeIf {
+                        it.state.terminal || it.state == PendingMutationState.CLOSING_QUEUED
+                    }?.let { PendingMutationAad.terminal(it, it.state) },
                     terminalMalformed = terminalPresent != 0 && terminalPresent != terminalColumns.size,
                 ))
             }
@@ -289,6 +293,71 @@ class SqlitePendingMutationStore(
         }
     }
 
+    override fun persistClosingQueued(
+        transactionId: String,
+        expectedIdentity: RecoveryIdentity,
+        response: ByteArray,
+        reference: String,
+    ): Boolean = persistClosingEvidence(
+        transactionId,
+        expectedIdentity,
+        PendingMutationState.SENDING,
+        PendingMutationState.CLOSING_QUEUED,
+        response,
+        reference,
+    )
+
+    override fun persistClosingStatusTerminal(
+        transactionId: String,
+        expectedIdentity: RecoveryIdentity,
+        response: ByteArray,
+        reference: String,
+    ): Boolean = persistClosingEvidence(
+        transactionId,
+        expectedIdentity,
+        PendingMutationState.CLOSING_QUEUED,
+        PendingMutationState.COMPLETED,
+        response,
+        reference,
+    )
+
+    private fun persistClosingEvidence(
+        transactionId: String,
+        expectedIdentity: RecoveryIdentity,
+        expectedState: PendingMutationState,
+        targetState: PendingMutationState,
+        response: ByteArray,
+        reference: String,
+    ): Boolean {
+        val terminal = try {
+            val record = findMetadata(transactionId, expectedIdentity)
+                ?.takeIf { it.endpoint == MobilePosEndpoint.CLOSING_SUBMIT && it.state == expectedState }
+                ?: return false
+            (existingCrypto() ?: throw PendingMutationCryptoException(IllegalStateException("Pending mutation key missing")))
+                .encrypt(response, PendingMutationAad.terminal(record, targetState))
+        } catch (_: Exception) {
+            markManualRecovery(transactionId, expectedIdentity)
+            return false
+        }
+        return writableDatabase.transactionResult {
+            update(
+                "mutations",
+                ContentValues().apply {
+                    put("state", targetState.name)
+                    put("reference", reference)
+                    put("terminal_iv", terminal.iv)
+                    put("terminal_ciphertext", terminal.ciphertext)
+                    put("terminal_tag", terminal.tag)
+                },
+                "${identityWhere(transactionId)} AND endpoint=? AND state=?",
+                identityArgs(transactionId, expectedIdentity) + arrayOf(
+                    MobilePosEndpoint.CLOSING_SUBMIT.name,
+                    expectedState.name,
+                ),
+            ) == 1
+        }
+    }
+
     override fun find(transactionId: String, expectedIdentity: RecoveryIdentity): PendingMutation? = readableDatabase.query(
         "mutations", null, identityWhere(transactionId), identityArgs(transactionId, expectedIdentity), null, null, null,
     ).use { if (it.moveToFirst()) decodeOrManualRecovery(it) else null }
@@ -296,6 +365,37 @@ class SqlitePendingMutationStore(
     private fun findMetadata(transactionId: String, expectedIdentity: RecoveryIdentity): PendingMutation? = readableDatabase.query(
         "mutations", null, identityWhere(transactionId), identityArgs(transactionId, expectedIdentity), null, null, null,
     ).use { if (it.moveToFirst()) runCatching { it.metadata(expectedIdentity) }.getOrNull() else null }
+
+    override fun readClosingResult(
+        transactionId: String,
+        expectedIdentity: RecoveryIdentity,
+    ): ValidatedClosingResult? = writableDatabase.transactionResult {
+        val record = findMetadata(transactionId, expectedIdentity)
+            ?.takeIf {
+                it.endpoint == MobilePosEndpoint.CLOSING_SUBMIT &&
+                    it.state in setOf(PendingMutationState.CLOSING_QUEUED, PendingMutationState.COMPLETED)
+            }
+            ?: return@transactionResult null
+        val response = query(
+            "mutations", null, identityWhere(transactionId), identityArgs(transactionId, expectedIdentity), null, null, null,
+        ).use { cursor ->
+            if (!cursor.moveToFirst()) return@use null
+            runCatching {
+                val bytes = (existingCrypto() ?: error("Pending mutation key missing"))
+                    .decrypt(cursor.requiredTerminalBlob(), PendingMutationAad.terminal(record, record.state))
+                bytes.decodeToSafeTerminalText()
+            }.getOrNull()
+        }
+        if (response == null) {
+            quarantineEvidence(transactionId)
+            return@transactionResult null
+        }
+        ValidatedClosingResult(
+            transactionId = transactionId,
+            reference = record.reference ?: return@transactionResult null,
+            responseText = response,
+        )
+    }
 
     override fun readTerminalResult(
         transactionId: String,

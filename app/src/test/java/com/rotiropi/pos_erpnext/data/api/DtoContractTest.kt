@@ -20,7 +20,9 @@ class DtoContractTest {
     @Test
     fun parses_contract_snapshot_dtos_and_preserves_decimal_strings() {
         assertEquals("cashier@example.com", decode<BootstrapResponseDto>("bootstrap").user.name)
+        assertEquals(ClosingProjectionStatus.QUEUED, decode<BootstrapResponseDto>("bootstrap").closing?.status)
         assertEquals(null, decode<SessionCurrentResponseDto>("session_current").opening_session)
+        assertEquals(ClosingProjectionStatus.QUEUED, decode<SessionCurrentResponseDto>("session_current").closing?.status)
         assertEquals(20, decode<CustomerSearchResponseDto>("customers").page.limit)
         assertEquals("15000.0000", decode<CatalogSearchResponseDto>("catalog").items.single().price_list_rate)
         assertEquals("6.000", decode<CatalogScanResponseDto>("scan").scan.conversion_factor)
@@ -85,7 +87,7 @@ class DtoContractTest {
     @Test
     fun fixture_manifest_covers_every_payload_fixture() {
         val manifest = resource("fixture-manifest.json").let(json::parseToJsonElement).jsonObject
-        assertEquals("2b0ee79e5644d4b67b607c9627b4b2ba75260856", manifest.getValue("backend_sha").jsonPrimitive.content)
+        assertEquals("186d2e927963a38dc408437f08dfcf10712f5e26", manifest.getValue("backend_sha").jsonPrimitive.content)
         assertEquals("docs/mobile-pos/api-contract.md", manifest.getValue("backend_contract_path").jsonPrimitive.content)
         assertEquals("contract_example", manifest.getValue("source_type").jsonPrimitive.content)
         assertFalse(manifest.getValue("contains_credentials").jsonPrimitive.boolean)
@@ -214,6 +216,78 @@ class DtoContractTest {
         assertEquals(OpeningStatus.OPEN, bootstrap.opening_session?.status)
         assertEquals("STALE_OPENING", bootstrap.opening_session?.warnings?.single()?.code)
         assertTrue(bootstrap.capabilities.submit_sale)
+    }
+
+    @Test
+    fun closing_preview_parses_authoritative_identity_totals_and_counted_policy() {
+        val preview = json.decodeFromString<ClosingPreviewResponseDto>(
+            """
+            {
+              "opening_session": {
+                "name": "OPENING-1", "pos_profile": "OUTLET-01", "company": "Roti Ropi",
+                "user": "cashier@example.com", "status": "open", "lifecycle_state": "active",
+                "closing": null, "posting_date": "2026-08-07", "period_start_date": "2026-08-07T08:00:00+00:00",
+                "opening_balances": [], "warnings": []
+              },
+              "preview_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "preview_version": "closing-preview/v1",
+              "preview_binding": {
+                "opening_entry": "OPENING-1", "pos_profile": "OUTLET-01", "cashier": "cashier@example.com",
+                "invoice_count": 10, "payment_modes": ["Cash", "Bank"]
+              },
+              "invoice_count": 10,
+              "grand_total": "100000.00", "net_total": "90909.09", "total_quantity": "10.00",
+              "total_taxes_and_charges": "9090.91",
+              "expected_payments": [{"mode_of_payment":"Cash","opening_amount":"10000.00","expected_amount":"70000.00"}],
+              "counted_amount_policy": {
+                "currency": "IDR", "decimal_places": 2, "max_scale": 2, "api_syntax": "ascii_decimal_dot",
+                "minimum": "0.00", "maximum": "999999999999.99", "rounding": "reject",
+                "policy_version": "closing-counted-amount/v1"
+              }
+            }
+            """.trimIndent(),
+        )
+
+        assertEquals("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", preview.preview_id)
+        assertEquals(listOf("Cash", "Bank"), preview.preview_binding.payment_modes)
+        assertEquals("90909.09", preview.net_total)
+        assertEquals(2, preview.counted_amount_policy.max_scale)
+        assertEquals("999999999999.99", preview.counted_amount_policy.maximum)
+    }
+
+    @Test
+    fun closing_terminal_receipt_preserves_authoritative_reconciliation() {
+        val receipt = json.decodeFromString<ClosingStatusResponseDto>(
+            """
+            {"closing":{
+              "name":"CLOSING-1","opening_entry":"OPENING-1","pos_profile":"OUTLET-01","status":"submitted",
+              "invoice_count":10,"grand_total":"100000.00","net_total":"90909.09","total_quantity":"10.00",
+              "total_taxes_and_charges":"9090.91",
+              "payments":[{"mode_of_payment":"Cash","opening_amount":"10000.00","expected_amount":"70000.00","counted_amount":"69000.00","difference":"-1000.00"}],
+              "reconciliation":{"expected_total":"70000.00","counted_total":"69000.00","difference_total":"-1000.00"},
+              "failure":null
+            }}
+            """.trimIndent(),
+        ).closing
+
+        assertEquals(ClosingStatus.SUBMITTED, receipt.status)
+        assertEquals("-1000.00", receipt.payments.single().difference)
+        assertEquals("-1000.00", receipt.reconciliation.difference_total)
+    }
+
+    @Test
+    fun closing_submit_requires_preview_identity_in_serialized_body() {
+        val request = SubmitClosingRequestDto(
+            pos_profile = "OUTLET-01",
+            preview_id = "preview-id",
+            closing_balances = listOf(ClosingBalanceInputDto("Cash", "69000.00")),
+        )
+
+        val encoded = json.encodeToString(SubmitClosingRequestDto.serializer(), request)
+
+        assertTrue(encoded.contains("\"preview_id\":\"preview-id\""))
+        assertFalse(encoded.contains("expected_amount"))
+        assertFalse(encoded.contains("difference"))
     }
 
     private inline fun <reified T> decode(key: String): T =

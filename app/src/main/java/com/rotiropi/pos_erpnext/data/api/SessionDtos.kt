@@ -3,7 +3,10 @@ package com.rotiropi.pos_erpnext.data.api
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class SessionCurrentResponseDto(val opening_session: OpeningSessionDto?)
+data class SessionCurrentResponseDto(
+    val opening_session: OpeningSessionDto?,
+    val closing: ClosingProjectionDto? = null,
+)
 
 @Serializable
 data class OpeningBalanceInputDto(val mode_of_payment: String, val amount: String)
@@ -11,7 +14,7 @@ data class OpeningBalanceInputDto(val mode_of_payment: String, val amount: Strin
 @Serializable
 data class OpenSessionRequestDto(
     val pos_profile: String,
-    val opening_balances: List<OpeningBalanceInputDto>
+    val opening_balances: List<OpeningBalanceInputDto>,
 )
 
 @Serializable
