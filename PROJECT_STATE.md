@@ -1,5 +1,28 @@
 # Project State
 
+## Android Task 11 — Closing Flow and Recovery
+
+- Status: MERGED AND COMPLETE, INCLUDING STAGING EVIDENCE
+- Backend Task 11 status: MERGED AND COMPLETE (authority `186d2e927963a38dc408437f08dfcf10712f5e26`)
+- Note: Independent post-merge read-only audit with GPT Sol for Backend Task 11 planned before Task 12.
+- Pull request: #28
+- Implementation commit: `d684d72ea7fb74386219b16ce8b96fc3977b0e2b`
+- Evidence/docs commit: `3a665ee844922c4834d821a1c8bdf4c42877d165`
+- Final Android main: `da52ce84e6ed0b4d4554b3a4a0cf6689d1ee2d79`
+- Local verification: Gradle gate PASS (unit/lint/assemble)
+- Device verification: API 23 — 153/153 tests PASS; API 36 — 153/153 tests PASS.
+- Process-death verification: Closing process-death API 23/API 36 PASS.
+- Staging verification: `v1.closing.submit` response-drop EVIDENCE VERIFIED PASS (`docs/mobile-pos/evidence/mobile-pos-response-drop/task11-closing-response-drop-pass-20260808.md`).
+- Server-side proof: Exactly one Mobile POS Request, exactly one POS Closing Entry.
+- Session & terminal proof: Terminal receipt recovered after process death, final session/bootstrap has no active Opening, zero automatic new Openings.
+- Proxy final state: DISARMED; normal Caddy/upstream routing restored.
+- Secret scan: PASS (no tokens/credentials retained).
+
+## Next Gate
+
+- Task 12 status: NOT STARTED.
+- Next step: Independent GPT Sol read-only post-merge audit of Backend Task 11, then Task 12 only after audit disposition.
+
 ## Opening post-login routing hotfix
 
 - Status: Merged

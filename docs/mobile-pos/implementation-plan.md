@@ -44,13 +44,13 @@ below, records current completion.
 | 6 | Completed | PR #15 merged as `c96ade7f`. Candidate `acd6769c` adds opening UI/repository behavior, server-driven payment modes, decimal validation, durable opening recovery, session reconciliation, capability refresh, fixtures, and tests. Main-thread recovered reconciliation defect evidence remains preserved as FAIL; corrected API 25 `mobile-pos-response-drop/v1` evidence records exact UUID/body replay, one backend logical result, one `sessions.current`, one capability refresh, no new crash, and targeted staging cleanup PASS. Fresh verification passed debug unit/lint/assemble, exposed release unit task, release lint/assemble, Android-test assembly, API 23/API 36 suites (103 tests each), API 25 focused thread test, and API 23 process-death harness. |
 | 7 | Completed | Customer search is debounced, cancellable, offset-paginated, bounded to 100 distinct records, scoped to profile/cashier, clears on logout and profile change, and has API 23/API 36 coverage. |
 | 8 | Completed | Catalog, scan, quote, and cart UI/repository behavior, tests, fixtures, and accessibility harness merged via PR #20 (`2c213f8`); Task 8 documentation merged via PR #21 (`25e9f459`). |
-| 9 | Not Started | Payment/receipt UI/repository behavior, tests, and fixtures are absent. |
-| 10 | Not Started | History/return UI/repository behavior, tests, and fixtures are absent. |
-| 11 | Not Started | Closing UI/repository behavior, tests, and fixtures are absent. |
+| 9 | Completed | Payment/receipt UI/repository behavior, exact settlement, durable sales mutation, replay recovery, and receipt display merged via PR #24 (`8c9735d`). |
+| 10 | Completed | History/return UI/repository behavior, remaining-returnable quantities, return quote, durable return mutation replay, and receipt display merged via PR #27 (`703da84`). |
+| 11 | Completed | PR #28 merged as `da52ce84e6ed0b4d4554b3a4a0cf6689d1ee2d79`. Candidate `d684d72ea7fb74386219b16ce8b96fc3977b0e2b`, docs commit `3a665ee844922c4834d821a1c8bdf4c42877d165`. Backend main authority `186d2e927963a38dc408437f08dfcf10712f5e26`. Local Gradle gate PASS, API 23 (153/153 PASS), API 36 (153/153 PASS), Closing process-death API 23/API 36 PASS, secret scan PASS. Staging response-drop EVIDENCE VERIFIED PASS (`docs/mobile-pos/evidence/mobile-pos-response-drop/task11-closing-response-drop-pass-20260808.md`). Exactly-once verified (1 request, 1 Closing Entry), proxy DISARMED, upstream restored, no automatic new Opening. |
 | 12 | Not Started | Final lifecycle, performance, accessibility, release-inspection tests and harnesses are absent. |
 
-Task 7 is complete through PR #18. Task 8 is complete through PR #20 with
-documentation merged through PR #21; later tasks remain unauthorized.
+Task 11 is complete through PR #28; Task 12 remains explicitly Not Started.
+Independent post-merge read-only audit with GPT Sol for Backend Task 11 planned before Task 12.
 
 ## Global Constraints
 
