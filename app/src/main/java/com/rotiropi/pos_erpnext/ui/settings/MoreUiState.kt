@@ -22,4 +22,5 @@ data class MoreUiState(
     val demoData: Boolean,
     val logoutMessage: String? = null,
     val recovery: RecoveryScreenState = RecoveryScreenState.Hidden,
+    val closingAvailable: Boolean = false,
 )

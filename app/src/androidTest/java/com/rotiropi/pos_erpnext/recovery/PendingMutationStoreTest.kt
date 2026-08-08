@@ -85,6 +85,66 @@ class PendingMutationStoreTest {
     }
 
     @Test
+    fun queuedClosingPersistsResponseThenAtomicallyPromotesStatusReceipt() {
+        val record = prepared("closing").copy(
+            endpoint = MobilePosEndpoint.CLOSING_SUBMIT,
+            serializerIdentity = MobilePosEndpoint.CLOSING_SUBMIT.serializerIdentity,
+        )
+        assertEquals(PendingMutationAdmission.ACCEPTED, store.prepare(record))
+        val bodyBefore = store.encryptedEvidenceForTest(record.transactionId)!!
+        assertTrue(store.beginSending(record.transactionId, identity, PendingMutationState.PREPARED, 0, 0L) != null)
+
+        assertTrue(store.persistClosingQueued(
+            record.transactionId,
+            identity,
+            "queued".encodeToByteArray(),
+            "CLOSING-1",
+        ))
+        assertEquals(PendingMutationState.CLOSING_QUEUED, store.find(record.transactionId, identity)!!.state)
+        assertEquals("queued", store.find(record.transactionId, identity)!!.terminalResponse!!.decodeToString())
+        assertEquals(record.transactionId, store.unresolved(identity).single().transactionId)
+
+        assertTrue(store.persistClosingStatusTerminal(
+            record.transactionId,
+            identity,
+            "submitted".encodeToByteArray(),
+            "CLOSING-1",
+        ))
+        val terminal = store.find(record.transactionId, identity)!!
+        val bodyAfter = store.encryptedEvidenceForTest(record.transactionId)!!
+        assertEquals(PendingMutationState.COMPLETED, terminal.state)
+        assertEquals("submitted", terminal.terminalResponse!!.decodeToString())
+        assertEquals(bodyBefore.bodyCiphertext.toList(), bodyAfter.bodyCiphertext.toList())
+        assertTrue(store.unresolved(identity).isEmpty())
+    }
+
+    @Test
+    fun queuedClosingPromotionRejectsWrongIdentityAndNonClosingEndpoint() {
+        val record = prepared("closing").copy(
+            endpoint = MobilePosEndpoint.CLOSING_SUBMIT,
+            serializerIdentity = MobilePosEndpoint.CLOSING_SUBMIT.serializerIdentity,
+        )
+        assertEquals(PendingMutationAdmission.ACCEPTED, store.prepare(record))
+        assertTrue(store.beginSending(record.transactionId, identity, PendingMutationState.PREPARED, 0, 0L) != null)
+        assertTrue(store.persistClosingQueued(record.transactionId, identity, "queued".encodeToByteArray(), "CLOSING-1"))
+
+        assertFalse(store.persistClosingStatusTerminal(
+            record.transactionId,
+            identity.copy(cashier = "other"),
+            "submitted".encodeToByteArray(),
+            "CLOSING-1",
+        ))
+        store.tamperMetadataForTest(record.transactionId, "endpoint", MobilePosEndpoint.SALES_SUBMIT.name)
+        assertFalse(store.persistClosingStatusTerminal(
+            record.transactionId,
+            identity,
+            "submitted".encodeToByteArray(),
+            "CLOSING-1",
+        ))
+        assertEquals(PendingMutationState.MANUAL_RECOVERY, store.find(record.transactionId, identity)!!.state)
+    }
+
+    @Test
     fun concurrentAdmissionAllowsOnlyOneUnresolvedMutationPerIdentity() {
         val start = CountDownLatch(1)
         val done = CountDownLatch(2)

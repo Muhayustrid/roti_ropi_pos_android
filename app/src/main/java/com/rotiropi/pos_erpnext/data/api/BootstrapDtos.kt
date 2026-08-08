@@ -12,6 +12,7 @@ data class BootstrapResponseDto(
     val profiles: List<ProfileDto>,
     val selected_profile: ProfileDto?,
     val opening_session: OpeningSessionDto?,
+    val closing: ClosingProjectionDto? = null,
     val capabilities: CapabilitiesDto,
     val pos_mode: String
 )
@@ -67,7 +68,9 @@ data class OpeningSessionDto(
     val posting_date: String,
     val period_start_date: String,
     val opening_balances: List<OpeningBalanceDto>,
-    val warnings: List<ApiWarningDto>
+    val warnings: List<ApiWarningDto>,
+    val lifecycle_state: String = "active",
+    val closing: ClosingProjectionDto? = null,
 )
 
 @Serializable(with = OpeningStatusSerializer::class)

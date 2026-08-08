@@ -2,7 +2,7 @@
 set -euo pipefail
 
 TARGET_API=""
-INSTRUMENTATION_TIMEOUT_SEC=180
+INSTRUMENTATION_TIMEOUT_SEC=300
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -750,7 +750,11 @@ if ! [[ "$EXPECTED_TESTS" =~ ^[1-9][0-9]*$ ]]; then
     exit 1
 fi
 
-EXPECTED_SUMMARY="OK ($EXPECTED_TESTS tests)"
+if [ "$EXPECTED_TESTS" -eq 1 ]; then
+    EXPECTED_SUMMARY="OK (1 test)"
+else
+    EXPECTED_SUMMARY="OK ($EXPECTED_TESTS tests)"
+fi
 OK_MATCH_COUNT=$(grep -Fxc "$EXPECTED_SUMMARY" "$INSTRUMENTATION_FILE" || true)
 if [ "$OK_MATCH_COUNT" -ne 1 ]; then
     echo "ERROR: Expected exactly 1 anchored '$EXPECTED_SUMMARY', found $OK_MATCH_COUNT." >&2

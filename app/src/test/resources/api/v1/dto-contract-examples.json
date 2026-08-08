@@ -2,12 +2,13 @@
   "bootstrap": {
     "user": {"name":"cashier@example.com","full_name":"Cashier One"},
     "profiles": [{"name":"OUTLET-01","company":"Roti Ropi","warehouse":"Outlet 01 - RR","currency":"IDR","selling_price_list":"PG-Outlet 01","customer":"Walk In Customer","allow_partial_payment":false,"invoice_mode":"POS Invoice"}],
-    "selected_profile": null,
+    "selected_profile": {"name":"OUTLET-01","company":"Roti Ropi","warehouse":"Outlet 01 - RR","currency":"IDR","selling_price_list":"PG-Outlet 01","customer":"Walk In Customer","allow_partial_payment":false,"invoice_mode":"POS Invoice"},
     "opening_session": null,
-    "capabilities": {"open_session":true,"submit_sale":false,"create_return":false,"cancel_sale":false,"close_session":false},
+    "closing": {"name":"POS-CLO-1","status":"queued","phase":"queue","status_endpoint":"/api/method/roti_ropi_pos.api.v1.closing.status","failure":null},
+    "capabilities": {"open_session":false,"submit_sale":false,"create_return":false,"cancel_sale":false,"close_session":false},
     "pos_mode":"POS Invoice"
   },
-  "session_current": {"opening_session":null},
+  "session_current": {"opening_session":null,"closing":{"name":"POS-CLO-1","status":"queued","phase":"queue","status_endpoint":"/api/method/roti_ropi_pos.api.v1.closing.status","failure":null}},
   "customers": {"customers":[{"name":"CUST-1","customer_name":"Ayu Bakery","mobile_no":null,"is_default_walk_in":false}],"page":{"start":0,"limit":20,"has_more":false}},
   "catalog": {"items":[{"item_code":"CROISSANT","item_name":"Croissant","description":"Butter croissant","image":null,"uom":"Nos","price_list_rate":"15000.0000","currency":"IDR","available_qty":"18.000"}],"page":{"start":0,"limit":20,"has_more":false}},
   "scan": {"scan":{"item_code":"CROISSANT-PACK","barcode":null,"batch_no":"BATCH-1","serial_no":null,"uom":"Pack","conversion_factor":"6.000","warehouse":"Outlet 01 - RR"},"warnings":[]},
@@ -15,6 +16,6 @@
   "sale": {"sale":{"summary":{"doctype":"POS Invoice","name":"ACC-PSINV-1","status":"paid","customer":"Walk In Customer","walk_in_customer_name":"Ayu","currency":"IDR","grand_total":"55000","paid_amount":"55000","change_amount":"0","posting_date":"2026-07-23","posting_time":"14:25:00"},"items":[],"taxes":[],"payments":[]}},
   "sale_list": {"sales":[],"page":{"start":0,"limit":20,"has_more":false}},
   "return_sale": {"return_sale":{"summary":{"doctype":"POS Invoice","name":"ACC-RET-1","status":"return","customer":"Walk In Customer","walk_in_customer_name":null,"currency":"IDR","grand_total":"-30000","paid_amount":"-30000","change_amount":"0","posting_date":"2026-07-23","posting_time":"15:00:00"},"items":[],"taxes":[],"payments":[]}},
-  "closing": {"closing":{"name":"POS-CLO-1","opening_entry":"POS-OPE-1","pos_profile":"OUTLET-01","status":"queued","invoice_count":12,"failure":null}},
+  "closing": {"closing":{"name":"POS-CLO-1","opening_entry":"POS-OPE-1","pos_profile":"OUTLET-01","status":"queued","invoice_count":12,"grand_total":"100000.00","net_total":"90909.09","total_quantity":"10.00","total_taxes_and_charges":"9090.91","payments":[{"mode_of_payment":"Cash","opening_amount":"10000.00","expected_amount":"70000.00","counted_amount":"69000.00","difference":"-1000.00"}],"reconciliation":{"expected_total":"70000.00","counted_total":"69000.00","difference_total":"-1000.00"},"failure":null}},
   "unknown_sale_status": {"doctype":"POS Invoice","name":"ACC-PSINV-2","status":"future_status","customer":"Walk In Customer","walk_in_customer_name":null,"currency":"IDR","grand_total":"1","paid_amount":"1","change_amount":"0","posting_date":"2026-07-23","posting_time":"15:00:00"}
 }

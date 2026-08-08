@@ -28,6 +28,8 @@ import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchIdentity
 import com.rotiropi.pos_erpnext.ui.customer.CustomerSelection
 import com.rotiropi.pos_erpnext.ui.cashier.CashierIdentity
 import com.rotiropi.pos_erpnext.ui.history.HistoryIdentity
+import com.rotiropi.pos_erpnext.ui.closing.ClosingAuthority
+import com.rotiropi.pos_erpnext.ui.closing.ClosingRecoverySynchronizer
 import com.rotiropi.pos_erpnext.ui.navigation.PosDestination
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,6 +60,12 @@ class Task4RootHost(
     private var handledOpeningTerminal: String? = null
     private val observedOpeningTerminals = mutableSetOf<String>()
     private val observedReturnTerminals = mutableSetOf<String>()
+    private var serverClosingReference: String? = null
+    private var recoveredClosingTransactionId: String? = null
+    private var observedClosingAuthority: ClosingAuthority? = null
+    private val closingRecovery = ClosingRecoverySynchronizer(
+        application.closingViewModel::recover,
+    )
     private var historyIdentity: HistoryIdentity? = null
     private val recoveryViewModel = com.rotiropi.pos_erpnext.recovery.RecoveryViewModel(
         authenticationSnapshot = { application.authenticationOwner.snapshot },
@@ -87,6 +95,7 @@ class Task4RootHost(
             handledOpeningTerminal = null
             synchronized(observedOpeningTerminals) { observedOpeningTerminals.clear() }
             synchronized(observedReturnTerminals) { observedReturnTerminals.clear() }
+            closingRecovery.synchronize(null, null)
             application.recoveryCoordinator.clearUiState()
             recoveryViewModel.onAuthenticationChanged(application.authenticationOwner.snapshot)
         }
@@ -126,6 +135,7 @@ class Task4RootHost(
             val history = application.historyViewModel.state.collectAsState().value
             val saleDetail = application.saleDetailViewModel.state.collectAsState().value
             val returning = application.returnViewModel.state.collectAsState().value
+            val closing = application.closingViewModel.state.collectAsState().value
             PosTheme(darkTheme = darkTheme, accent = selection.accent) {
                 PosShell(
                     authenticationOwner = application.authenticationOwner,
@@ -207,6 +217,18 @@ class Task4RootHost(
                     onReturnQuote = application.returnViewModel::requestQuote,
                     onReturnSubmit = application.returnViewModel::submit,
                     onCloseReturnReceipt = application.returnViewModel::closeReceipt,
+                    closingAvailable = application.mobilePosRepository.state.capabilities.closeSession &&
+                        application.mobilePosRepository.state.opening != null,
+                    closingState = closing,
+                    onOpenClosing = {
+                        application.mobilePosRepository.state.selectedProfile?.name
+                            ?.let(application.closingViewModel::load)
+                    },
+                    onClosingAmountChanged = application.closingViewModel::updateCountedAmount,
+                    onSubmitClosing = application.closingViewModel::submit,
+                    onCheckClosingStatus = application.closingViewModel::checkStatus,
+                    onRetryClosingPreview = application.closingViewModel::load,
+                    onCloseClosingReceipt = application.closingViewModel::closeReceipt,
                     themeMode = selection.mode,
                     accent = selection.accent,
                     onThemeModeSelected = { mode ->
@@ -221,24 +243,67 @@ class Task4RootHost(
             }
         }
         activity.lifecycleScope.launch {
+            application.closingViewModel.setForeground(false)
             activity.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                combine(
+                application.closingViewModel.setForeground(true)
+                try {
+                    combine(
                     application.authenticationOwner.state,
                     application.appViewModel.state,
                     application.profileSelectionViewModel.state,
                     application.recoveryCoordinator.uiState,
                 ) { authentication, app, profile, recovery ->
                     RootState(authentication, app, profile, recovery)
-                }.collect { (authentication, app, profile, _) ->
+                }.collect { (authentication, app, profile, recovery) ->
                         application.appViewModel.onAuthenticationStateChanged(authentication)
                         val currentApp = application.appViewModel.state.value
                         val snapshot = application.authenticationOwner.snapshot
                         recoveryViewModel.onAuthenticationChanged(snapshot)
                         if (authentication != AuthenticationState.Authenticated) {
+                            closingRecovery.synchronize(null, null)
+                            serverClosingReference = null
+                            recoveredClosingTransactionId = null
                             application.recoveryCoordinator.clearUiState()
                             application.profileSelectionViewModel.setRecoveryState(null, com.rotiropi.pos_erpnext.recovery.RecoveryUiState())
                         }
                         val repositoryState = application.mobilePosRepository.state
+                        val closingAuthority = repositoryState.selectedProfile?.let { profile ->
+                            repositoryState.bootstrap?.user?.name?.let { cashier ->
+                                ClosingAuthority(
+                                    cashier = cashier,
+                                    posProfile = profile.name,
+                                    authenticationGeneration = snapshot.generation,
+                                    repositoryGeneration = application.mobilePosRepository.authorityGeneration,
+                                )
+                            }
+                        }.takeIf { authentication == AuthenticationState.Authenticated }
+                        if (closingAuthority != observedClosingAuthority) {
+                            observedClosingAuthority = closingAuthority
+                            serverClosingReference = null
+                            recoveredClosingTransactionId = null
+                        }
+                        application.closingViewModel.synchronizeAuthority(closingAuthority)
+                        if (authentication == AuthenticationState.Authenticated) {
+                            closingRecovery.synchronize(
+                                recovery.closingQueuedTransactionId,
+                                closingAuthority,
+                            )
+                        }
+                        val closingProjection = repositoryState.closing
+                        val closingReference = closingProjection?.name?.takeIf {
+                            closingProjection.status in setOf(
+                                com.rotiropi.pos_erpnext.data.ClosingProjectionState.PROCESSING,
+                                com.rotiropi.pos_erpnext.data.ClosingProjectionState.DRAFT,
+                                com.rotiropi.pos_erpnext.data.ClosingProjectionState.QUEUED,
+                            )
+                        }
+                        if (recovery.closingQueuedTransactionId == null &&
+                            closingReference != null &&
+                            closingReference != serverClosingReference
+                        ) {
+                            serverClosingReference = closingReference
+                            application.closingViewModel.recoverProjection(closingReference)
+                        }
                         val recoveryIdentity = application.currentRecoveryIdentity()
                         if (recoveryBootstrapReady(authentication, currentApp, repositoryState, recoveryIdentity)) {
                             val readyIdentity = requireNotNull(recoveryIdentity)
@@ -275,12 +340,16 @@ class Task4RootHost(
                         synchronizeCashier(authentication)
                         synchronizeRecoveredOpening(recoveryViewModel.state.value)
                         synchronizeRecoveredReturn(recoveryViewModel.state.value)
+                        synchronizeRecoveredClosing(recoveryViewModel.state.value)
                         controller.render(
                             authentication,
                             application.appViewModel.state.value,
                             application.profileSelectionViewModel.state.value,
                         )
                     }
+                } finally {
+                    application.closingViewModel.setForeground(false)
+                }
             }
         }
     }
@@ -402,6 +471,18 @@ class Task4RootHost(
             historyIdentity = identity
         }
         application.historyViewModel.bind(identity)
+    }
+
+    private fun synchronizeRecoveredClosing(state: com.rotiropi.pos_erpnext.recovery.RecoveryScreenState) {
+        val terminal = state as? com.rotiropi.pos_erpnext.recovery.RecoveryScreenState.Terminal ?: return
+        if (terminal.identity != application.currentRecoveryIdentity()) return
+        val completed = terminal.result as? com.rotiropi.pos_erpnext.recovery.RecoveryTerminalResult.Completed
+            ?: return
+        if (completed.operation != "Closing" ||
+            terminal.transactionId == recoveredClosingTransactionId
+        ) return
+        recoveredClosingTransactionId = terminal.transactionId
+        application.closingViewModel.recover(terminal.transactionId)
     }
 
     private fun synchronizeRecoveredReturn(state: com.rotiropi.pos_erpnext.recovery.RecoveryScreenState) {

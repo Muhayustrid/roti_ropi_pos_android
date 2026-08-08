@@ -130,6 +130,22 @@ class BootstrapRepositoryTest {
     }
 
     @Test
+    fun `bootstrap maps authoritative queued Closing projection`() {
+        val body = fixture("bootstrap-one-profile.json").replace(
+            "\"capabilities\": {",
+            "\"closing\": {\"name\":\"CLOSING-1\",\"status\":\"queued\",\"phase\":\"consolidating\",\"status_endpoint\":\"/api/method/roti_ropi_pos.api.v1.closing.status\"},\"capabilities\": {",
+        )
+        server.enqueue(response(body))
+        val repo = repository()
+
+        repo.bootstrap("OUTLET-01")
+
+        assertEquals("CLOSING-1", repo.state.closing?.name)
+        assertEquals(ClosingProjectionState.QUEUED, repo.state.closing?.status)
+        assertEquals("consolidating", repo.state.closing?.phase)
+    }
+
+    @Test
     fun `legacy profile without opening contract maps to empty modes and null policy`() {
         val legacyProfile = """
             {

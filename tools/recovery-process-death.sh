@@ -1,5 +1,5 @@
 #!/bin/bash
-# Task 5 two-process durable mutation recovery harness.
+# Two-process durable mutation recovery harness.
 set -eu
 
 TARGET_API="${1:-}"
@@ -7,7 +7,7 @@ HARNESS="${2:-sale}"
 case "$TARGET_API" in
     api23) EXPECTED_API=23 ;;
     api36) EXPECTED_API=36 ;;
-    *) echo "Usage: $0 <api23|api36> [sale|return]" >&2; exit 1 ;;
+    *) echo "Usage: $0 <api23|api36> [sale|return|closing]" >&2; exit 1 ;;
 esac
 
 ANDROID_SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}}"
@@ -27,7 +27,11 @@ case "$HARNESS" in
         TEST_CLASS="com.rotiropi.pos_erpnext.recovery.ReturnProcessDeathHarnessTest"
         REPORT_DIR="app/build/reports/mobile-pos-return-process-death/$TARGET_API"
         ;;
-    *) echo "Usage: $0 <api23|api36> [sale|return]" >&2; exit 1 ;;
+    closing)
+        TEST_CLASS="com.rotiropi.pos_erpnext.recovery.ClosingProcessDeathHarnessTest"
+        REPORT_DIR="app/build/reports/mobile-pos-closing-process-death/$TARGET_API"
+        ;;
+    *) echo "Usage: $0 <api23|api36> [sale|return|closing]" >&2; exit 1 ;;
 esac
 rm -rf "$REPORT_DIR"
 mkdir -p "$REPORT_DIR"

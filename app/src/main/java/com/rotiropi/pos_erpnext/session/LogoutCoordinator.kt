@@ -26,6 +26,7 @@ class LogoutCoordinator internal constructor(
     private val clearHistoryUi: () -> Unit = {},
     private val clearSaleDetailUi: () -> Unit = {},
     private val clearReturnUi: () -> Unit = {},
+    private val clearClosingUi: () -> Unit = {},
     private val clearAuthentication: () -> Unit,
     private val runCleanupIfNoRecovery: ((() -> Unit) -> RecoveryLogoutBlocker?)? = null,
 ) {
@@ -41,6 +42,7 @@ class LogoutCoordinator internal constructor(
         clearHistoryUi: () -> Unit = {},
         clearSaleDetailUi: () -> Unit = {},
         clearReturnUi: () -> Unit = {},
+        clearClosingUi: () -> Unit = {},
     ) : this(
         invalidateCustomerAuthority = invalidateCustomerAuthority,
         cancelCustomerRequest = cancelCustomerRequest,
@@ -51,6 +53,7 @@ class LogoutCoordinator internal constructor(
         clearHistoryUi = clearHistoryUi,
         clearSaleDetailUi = clearSaleDetailUi,
         clearReturnUi = clearReturnUi,
+        clearClosingUi = clearClosingUi,
         clearAuthentication = authenticationOwner::logout,
         runCleanupIfNoRecovery = pendingMutations::logoutIfNoRecords,
     )
@@ -67,6 +70,7 @@ class LogoutCoordinator internal constructor(
             clearHistoryUi()
             clearSaleDetailUi()
             clearReturnUi()
+            clearClosingUi()
             clearAuthentication()
         }
         val blocker = runCleanupIfNoRecovery?.invoke(cleanup).also {

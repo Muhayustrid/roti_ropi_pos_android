@@ -38,6 +38,7 @@ class RecoveryLogoutCoordinatorTest {
             clearCustomerUi = { events += "customer-ui-cleared" },
             clearRepository = { events += "repository" },
             clearProfileUi = { events += "profile" },
+            clearClosingUi = { events += "closing-ui-cleared" },
             clearAuthentication = { events += "authentication" },
             runCleanupIfNoRecovery = { cleanup -> cleanup(); null },
         )
@@ -50,6 +51,7 @@ class RecoveryLogoutCoordinatorTest {
                 "customer-ui-cleared",
                 "repository",
                 "profile",
+                "closing-ui-cleared",
                 "authentication",
             ),
             events,

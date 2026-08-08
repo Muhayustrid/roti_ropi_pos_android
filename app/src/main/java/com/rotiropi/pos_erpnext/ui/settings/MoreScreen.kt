@@ -39,6 +39,7 @@ fun MoreScreen(
     onAccentSelected: (PosAccent) -> Unit = {},
     onDemoDataToggled: (Boolean) -> Unit = {},
     onLogout: () -> Unit = {},
+    onOpenClosing: () -> Unit = {},
     onAcknowledgeRecovery: (String) -> Unit = {},
     onReauthenticateRecovery: () -> Unit = {},
 ) {
@@ -63,6 +64,7 @@ fun MoreScreen(
                 ) {
                     OutletGroup(state.outletLabel)
                     UserSessionGroup(state.userSessionLabel)
+                    if (state.closingAvailable) ClosingGroup(onOpenClosing)
                     if (logoutVisible) {
                         LogoutGroup(state.logoutMessage, state.recovery, onLogout, onAcknowledgeRecovery, onReauthenticateRecovery)
                     }
@@ -87,6 +89,7 @@ fun MoreScreen(
         } else {
             OutletGroup(state.outletLabel)
             UserSessionGroup(state.userSessionLabel)
+            if (state.closingAvailable) ClosingGroup(onOpenClosing)
             if (logoutVisible) {
                 LogoutGroup(state.logoutMessage, state.recovery, onLogout, onAcknowledgeRecovery, onReauthenticateRecovery)
             }
@@ -188,6 +191,32 @@ private fun UserSessionGroup(userSessionLabel: String?) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
             )
+        }
+    }
+}
+
+@Composable
+private fun ClosingGroup(onOpenClosing: () -> Unit) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("Session", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Review authoritative totals and count each payment mode before closing.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Button(
+                onClick = onOpenClosing,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = PosDimensions.touchTarget)
+                    .testTag("more-closing"),
+            ) {
+                Text("Closing")
+            }
         }
     }
 }

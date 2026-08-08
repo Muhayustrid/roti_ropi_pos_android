@@ -87,6 +87,23 @@ class MobilePosApiContractTest {
     }
 
     @Test
+    fun closing_submit_binds_to_preview_and_forbids_authoritative_fields() {
+        val row = contractTable().endpoints.single { it.module == "closing" && it.method_name == "submit" }
+
+        assertEquals(setOf("pos_profile", "preview_id", "closing_balances"), row.required_request_fields)
+        assertTrue(row.forbidden_request_fields.containsAll(setOf(
+            "opening_amount", "expected_amount", "difference", "accounts", "invoices", "totals", "taxes",
+        )))
+        assertEquals(setOf(
+            "closing.grand_total", "closing.net_total", "closing.total_quantity",
+            "closing.total_taxes_and_charges", "closing.payments[].opening_amount",
+            "closing.payments[].expected_amount", "closing.payments[].counted_amount",
+            "closing.payments[].difference", "closing.reconciliation.expected_total",
+            "closing.reconciliation.counted_total", "closing.reconciliation.difference_total",
+        ), row.decimal_string_paths)
+    }
+
+    @Test
     fun quote_contract_forbids_serial_fields() {
         val row = contractTable().endpoints.single { it.method_name == "quote_item" }
         assertEquals(setOf("serial_numbers"), row.forbidden_request_fields)
