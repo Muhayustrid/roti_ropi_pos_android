@@ -49,6 +49,7 @@ sealed interface RecoveryScreenState {
         val transactionId: String,
         val message: String,
         val canAcknowledge: Boolean = false,
+        val canRecoverClosing: Boolean = false,
     ) : RecoveryScreenState
 }
 
@@ -88,6 +89,13 @@ class RecoveryViewModel(
         if (terminal == null) {
             mutableState.value = recovery.authenticationRequiredTransactionId?.let(RecoveryScreenState::AuthenticationRequired)
                 ?: recovery.retrySchedulingFailedTransactionId?.let(RecoveryScreenState::RetrySchedulingFailed)
+                ?: recovery.manualClosingTransactionId?.let {
+                    RecoveryScreenState.ManualRecovery(
+                        it,
+                        "Closing result needs authoritative recovery.",
+                        canRecoverClosing = true,
+                    )
+                }
                 ?: RecoveryScreenState.Hidden
             return
         }

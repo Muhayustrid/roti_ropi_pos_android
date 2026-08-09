@@ -75,6 +75,23 @@ class RecoveryViewModelTest {
     }
 
     @Test
+    fun manualClosingRecoveryPublishesExplicitSafeRecoveryAction() {
+        val snapshot = AuthenticationSnapshot(1, AuthenticationState.Authenticated)
+        val viewModel = viewModel(
+            snapshot = { snapshot },
+            identity = { identityA },
+            recovery = { RecoveryUiState(identityA, manualClosingTransactionId = transactionId) },
+        )
+
+        viewModel.refresh(snapshot, identityA)
+
+        val state = viewModel.state.value as RecoveryScreenState.ManualRecovery
+        assertEquals(transactionId, state.transactionId)
+        assertTrue(state.canRecoverClosing)
+        assertFalse(state.canAcknowledge)
+    }
+
+    @Test
     fun schedulingFailureSurvivesRepeatedSameGenerationStateAndClearsOnNewGeneration() {
         var snapshot = AuthenticationSnapshot(1, AuthenticationState.Authenticated)
         val viewModel = viewModel(

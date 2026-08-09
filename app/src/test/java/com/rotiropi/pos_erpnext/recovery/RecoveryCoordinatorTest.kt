@@ -223,6 +223,123 @@ class RecoveryCoordinatorTest {
     }
 
     @Test
+    fun explicitManualClosingRecoveryReusesPersistedRequestAndPersistsReplayedTerminalBeforePublish() {
+        val record = manualClosingRecord()
+        val store = MemoryStore().apply { records += record }
+        val terminal = closingEnvelope("submitted")
+        val transport = RecordingTransport(
+            ApiResult.Success(
+                data = closingResponse(ClosingStatus.SUBMITTED),
+                meta = ApiMeta("v1", "request", "now", replayed = true),
+                rawResponse = terminal,
+            ),
+        )
+        val coordinator = coordinator(store, transport)
+
+        assertEquals(
+            RecoveryExecution.Completed(record.transactionId),
+            coordinator.recoverManualClosing(record.transactionId, "OUTLET-01"),
+        )
+        assertEquals(listOf(record.transactionId), transport.keys)
+        assertEquals(record.body.toList(), transport.bodies.single().toList())
+        assertEquals(PendingMutationState.COMPLETED, store.records.single().state)
+        assertEquals(terminal.toList(), store.records.single().terminalResponse?.toList())
+        assertEquals(
+            TerminalRecovery(record.transactionId, PendingMutationState.COMPLETED),
+            coordinator.uiState.value.terminal,
+        )
+        assertEquals(RecoveryAcknowledgement.Acknowledged(record.transactionId), coordinator.acknowledge(record.transactionId))
+        assertTrue(store.records.isEmpty())
+    }
+
+    @Test
+    fun explicitManualClosingRecoveryRejectsWrongAuthorityProfileAndUnsafeMetadataWithoutDispatch() {
+        listOf(
+            manualClosingRecord().copy(endpoint = MobilePosEndpoint.SALES_SUBMIT),
+            manualClosingRecord().copy(body = "not-json".encodeToByteArray()),
+            manualClosingRecord().copy(attemptCount = 0),
+        ).forEach { record ->
+            val store = MemoryStore().apply { records += record }
+            val transport = RecordingTransport()
+            assertEquals(
+                RecoveryExecution.ManualRecovery(record.transactionId),
+                coordinator(store, transport).recoverManualClosing(record.transactionId, "OUTLET-01"),
+            )
+            assertEquals(0, transport.calls)
+        }
+
+        val valid = manualClosingRecord()
+        val store = MemoryStore().apply { records += valid }
+        val transport = RecordingTransport()
+        assertEquals(
+            RecoveryExecution.BlockedIdentity,
+            coordinator(store, transport, cashier = "other").recoverManualClosing(valid.transactionId, "OUTLET-01"),
+        )
+        assertEquals(
+            RecoveryExecution.ManualRecovery(valid.transactionId),
+            coordinator(store, transport).recoverManualClosing(valid.transactionId, "OUTLET-02"),
+        )
+        assertEquals(0, transport.calls)
+    }
+
+    @Test
+    fun explicitManualClosingRecoveryDoesNotTrustFreshOrNonterminalBackendResult() {
+        listOf(
+            ApiResult.Success(
+                data = closingResponse(ClosingStatus.SUBMITTED),
+                meta = ApiMeta("v1", "request", "now", replayed = false),
+                rawResponse = closingEnvelope("submitted"),
+            ),
+            ApiResult.Success(
+                data = closingResponse(ClosingStatus.QUEUED),
+                meta = ApiMeta("v1", "request", "now", replayed = true),
+                rawResponse = closingEnvelope("queued"),
+            ),
+        ).forEach { backendResult ->
+            val record = manualClosingRecord()
+            val store = MemoryStore().apply { records += record }
+            val coordinator = coordinator(store, RecordingTransport(backendResult))
+
+            assertEquals(
+                RecoveryExecution.ManualRecovery(record.transactionId),
+                coordinator.recoverManualClosing(record.transactionId, "OUTLET-01"),
+            )
+            assertEquals(PendingMutationState.MANUAL_RECOVERY, store.records.single().state)
+            assertEquals(null, store.records.single().terminalResponse)
+            assertEquals(null, coordinator.uiState.value.terminal)
+        }
+    }
+
+    @Test
+    fun explicitManualClosingRecoveryRejectsResponseOrActiveProfileRaceBeforePersistence() {
+        val wrongResponse = manualClosingRecord()
+        val wrongResponseStore = MemoryStore().apply { records += wrongResponse }
+        val response = closingResponse(ClosingStatus.SUBMITTED).let {
+            it.copy(closing = it.closing.copy(pos_profile = "OUTLET-02"))
+        }
+        assertEquals(
+            RecoveryExecution.ManualRecovery(wrongResponse.transactionId),
+            coordinator(
+                wrongResponseStore,
+                RecordingTransport(ApiResult.Success(response, ApiMeta("v1", "request", "now", true), closingEnvelope("submitted"))),
+            ).recoverManualClosing(wrongResponse.transactionId, "OUTLET-01"),
+        )
+        assertEquals(PendingMutationState.MANUAL_RECOVERY, wrongResponseStore.records.single().state)
+
+        val raced = manualClosingRecord()
+        val racedStore = MemoryStore().apply { records += raced }
+        var profile = "OUTLET-01"
+        val transport = RecordingTransport(
+            ApiResult.Success(closingResponse(ClosingStatus.SUBMITTED), ApiMeta("v1", "request", "now", true), closingEnvelope("submitted")),
+        ).apply { beforeResult = { profile = "OUTLET-02" } }
+        assertEquals(
+            RecoveryExecution.BlockedIdentity,
+            coordinator(racedStore, transport).recoverManualClosing(raced.transactionId, "OUTLET-01") { profile },
+        )
+        assertEquals(PendingMutationState.MANUAL_RECOVERY, racedStore.records.single().state)
+    }
+
+    @Test
     fun stableRejectionReturnsRejectedAfterTerminalPersistence() {
         val store = MemoryStore()
         val transport = RecordingTransport(
@@ -1121,6 +1238,13 @@ class RecoveryCoordinatorTest {
         state = state,
     )
 
+    private fun manualClosingRecord() = preparedStoreRecord(PendingMutationState.MANUAL_RECOVERY).copy(
+        endpoint = MobilePosEndpoint.CLOSING_SUBMIT,
+        body = """{"pos_profile":"OUTLET-01","preview_id":"preview-1","closing_balances":[]}""".encodeToByteArray(),
+        serializerIdentity = MobilePosEndpoint.CLOSING_SUBMIT.serializerIdentity,
+        attemptCount = 3,
+    )
+
     private fun spec(value: String) = RecoverySpec(
         endpoint = MobilePosEndpoint.SALES_SUBMIT,
         body = JsonObject(
@@ -1274,14 +1398,20 @@ class RecoveryCoordinatorTest {
             expectedIdentity: RecoveryIdentity,
             response: ByteArray,
             reference: String,
-        ): Boolean = replaceClosingEvidence(
-            transactionId,
-            expectedIdentity,
-            PendingMutationState.CLOSING_QUEUED,
-            PendingMutationState.COMPLETED,
-            response,
-            reference,
-        )
+        ): Boolean {
+            val expectedState = records.firstOrNull {
+                it.transactionId == transactionId && it.identity == expectedIdentity
+            }?.state ?: return false
+            if (expectedState !in setOf(PendingMutationState.CLOSING_QUEUED, PendingMutationState.MANUAL_RECOVERY)) return false
+            return replaceClosingEvidence(
+                transactionId,
+                expectedIdentity,
+                expectedState,
+                PendingMutationState.COMPLETED,
+                response,
+                reference,
+            )
+        }
 
         private fun replaceClosingEvidence(
             transactionId: String,

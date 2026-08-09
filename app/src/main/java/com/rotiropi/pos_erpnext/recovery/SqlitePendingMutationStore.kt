@@ -312,14 +312,19 @@ class SqlitePendingMutationStore(
         expectedIdentity: RecoveryIdentity,
         response: ByteArray,
         reference: String,
-    ): Boolean = persistClosingEvidence(
-        transactionId,
-        expectedIdentity,
-        PendingMutationState.CLOSING_QUEUED,
-        PendingMutationState.COMPLETED,
-        response,
-        reference,
-    )
+    ): Boolean {
+        val expectedState = findMetadata(transactionId, expectedIdentity)?.state
+            ?.takeIf { it in setOf(PendingMutationState.CLOSING_QUEUED, PendingMutationState.MANUAL_RECOVERY) }
+            ?: return false
+        return persistClosingEvidence(
+            transactionId,
+            expectedIdentity,
+            expectedState,
+            PendingMutationState.COMPLETED,
+            response,
+            reference,
+        )
+    }
 
     private fun persistClosingEvidence(
         transactionId: String,
@@ -542,9 +547,6 @@ class SqlitePendingMutationStore(
         if (record.bodyFormatVersion != PendingMutation.BODY_FORMAT_VERSION) {
             markManualRecovery(record.transactionId, identity)
             return record.copy(state = PendingMutationState.MANUAL_RECOVERY, body = ByteArray(0))
-        }
-        if (record.state == PendingMutationState.MANUAL_RECOVERY) {
-            return record.copy(body = ByteArray(0))
         }
         return try {
             val crypto = existingCrypto() ?: throw PendingMutationCryptoException(IllegalStateException("Pending mutation key missing"))
