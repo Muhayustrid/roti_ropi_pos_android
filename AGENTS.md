@@ -12,10 +12,15 @@ Read this file before changing the Android repository. These rules apply to the 
 ## Approved Android Stack
 
 - Use Kotlin for application code.
-- Use XML layouts and ViewBinding for UI implementation.
+- Jetpack Compose is approved for Mobile POS feature UI and the pre-Task-12
+  Stitch design refresh. No per-screen Compose approval is required within
+  that scope.
+- Reuse the existing Compose, Material 3, theme, navigation, and testing stack.
+  Do not add another UI framework.
+- Keep existing XML/ViewBinding platform, authentication, and legacy host
+  surfaces unless their migration is separately approved. Do not perform a
+  broad XML-to-Compose migration as part of a feature redesign.
 - Keep `minSdk 23` support.
-- Do not use Jetpack Compose without explicit user approval.
-- The current generated Compose starter is not approved application architecture and must not be extended as the Mobile POS UI.
 - Prefer Android platform and AndroidX APIs. Add only lightweight, maintained dependencies with a clear measurable need.
 - Design for low-end devices: bounded lists, paginated data, limited allocations, no unnecessary polling, efficient image loading, and no large in-memory ERPNext document graphs.
 
@@ -86,6 +91,11 @@ Read this file before changing the Android repository. These rules apply to the 
 - No general OAuth 2.0/OIDC/PKCE Android skill is currently present. `identity/verified-email/SKILL.md` concerns Credential Manager verified-email/OpenID4VP and must not replace the approved ERPNext OAuth PKCE flow.
 - For an approved R8/release-hardening task, use `performance/r8-analyzer/SKILL.md`. The current release build has optimization disabled, so do not describe it as optimized.
 - For low-end profiling when a Perfetto trace exists, use `profilers/perfetto-trace-analysis/SKILL.md` and `profilers/perfetto-sql/SKILL.md`, then verify on representative constrained hardware and API 23.
-- Read `camera/camerax/SKILL.md` only when camera-based scanning is explicitly approved; retain XML/`PreviewView` unless Compose is separately approved.
-- Do not use skills under `jetpack-compose/` unless Jetpack Compose is explicitly approved.
+- Read `camera/camerax/SKILL.md` only when camera-based scanning is explicitly approved; retain the current XML/`PreviewView` camera surface unless its migration is separately approved.
+- For approved Mobile POS Compose UI work, use
+  `jetpack-compose/theming/styles/SKILL.md` for design-system translation and
+  `jetpack-compose/adaptive/SKILL.md` for compact/expanded layouts when relevant.
+- `jetpack-compose/migration/migrate-xml-views-to-jetpack-compose/SKILL.md`
+  requires separate explicit approval and must not be used for unrelated
+  screens or broad migration.
 - Android skills are guidance only. These project rules, actual Gradle configuration, Android source, official Android behavior, and executable tests remain authoritative.
