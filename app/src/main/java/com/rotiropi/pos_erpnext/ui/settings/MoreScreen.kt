@@ -42,6 +42,7 @@ fun MoreScreen(
     onOpenClosing: () -> Unit = {},
     onAcknowledgeRecovery: (String) -> Unit = {},
     onReauthenticateRecovery: () -> Unit = {},
+    onRecoverManualClosing: (String) -> Unit = {},
 ) {
     val rootTag = if (layoutMode == PosLayoutMode.EXPANDED) "more-expanded" else "more-compact"
     Column(
@@ -66,7 +67,7 @@ fun MoreScreen(
                     UserSessionGroup(state.userSessionLabel)
                     if (state.closingAvailable) ClosingGroup(onOpenClosing)
                     if (logoutVisible) {
-                        LogoutGroup(state.logoutMessage, state.recovery, onLogout, onAcknowledgeRecovery, onReauthenticateRecovery)
+                        LogoutGroup(state.logoutMessage, state.recovery, onLogout, onAcknowledgeRecovery, onReauthenticateRecovery, onRecoverManualClosing)
                     }
                     AppearanceGroup(
                         themeMode = state.themeMode,
@@ -91,7 +92,7 @@ fun MoreScreen(
             UserSessionGroup(state.userSessionLabel)
             if (state.closingAvailable) ClosingGroup(onOpenClosing)
             if (logoutVisible) {
-                LogoutGroup(state.logoutMessage, state.recovery, onLogout, onAcknowledgeRecovery, onReauthenticateRecovery)
+                LogoutGroup(state.logoutMessage, state.recovery, onLogout, onAcknowledgeRecovery, onReauthenticateRecovery, onRecoverManualClosing)
             }
             AppearanceGroup(
                 themeMode = state.themeMode,
@@ -228,6 +229,7 @@ private fun LogoutGroup(
     onLogout: () -> Unit,
     onAcknowledgeRecovery: (String) -> Unit,
     onReauthenticateRecovery: () -> Unit,
+    onRecoverManualClosing: (String) -> Unit,
 ) {
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -251,6 +253,12 @@ private fun LogoutGroup(
                         ?.let(onAcknowledgeRecovery)
                 },
                 onReauthenticate = onReauthenticateRecovery,
+                onRecoverClosing = {
+                    (recovery as? com.rotiropi.pos_erpnext.recovery.RecoveryScreenState.ManualRecovery)
+                        ?.takeIf { it.canRecoverClosing }
+                        ?.transactionId
+                        ?.let(onRecoverManualClosing)
+                },
             )
         }
     }

@@ -31,6 +31,7 @@ fun OpeningScreen(
     recoveryState: com.rotiropi.pos_erpnext.recovery.RecoveryScreenState = com.rotiropi.pos_erpnext.recovery.RecoveryScreenState.Hidden,
     onAcknowledgeRecovery: () -> Unit = {},
     onReauthenticateRecovery: () -> Unit = {},
+    onRecoverClosing: () -> Unit = {},
 ) {
     val fieldsEnabled = !state.submitting && !state.recoveryPending && !state.reconciling
 
@@ -69,6 +70,7 @@ fun OpeningScreen(
             state = recoveryState,
             onAcknowledge = onAcknowledgeRecovery,
             onReauthenticate = onReauthenticateRecovery,
+            onRecoverClosing = onRecoverClosing,
         )
         if (state.unavailable) {
             Text(

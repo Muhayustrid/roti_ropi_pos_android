@@ -113,6 +113,15 @@ class Task4RootHost(
         application.profileSelectionViewModel.setRecoveryState(logoutResult.value, recoveryViewModel.state.value)
     }
 
+    private fun recoverManualClosing(transactionId: String) {
+        val profile = application.mobilePosRepository.state.selectedProfile?.name ?: return
+        applicationScopeIo {
+            application.recoveryCoordinator.recoverManualClosing(transactionId, profile) {
+                application.mobilePosRepository.state.selectedProfile?.name
+            }
+        }
+    }
+
     init {
         binding.task4Profile.setOnProfileSelected(::selectProfile)
         binding.task4Profile.setOnRetry(::retryProfile)
@@ -144,6 +153,7 @@ class Task4RootHost(
                     recoveryState = recovery,
                     onAcknowledgeRecovery = ::acknowledgeRecovery,
                     onReauthenticateRecovery = application.authenticationOwner::beginAuthorization,
+                    onRecoverManualClosing = ::recoverManualClosing,
                     openingState = opening,
                     onOpeningAmountChanged = { mode, amount ->
                         openingViewModel?.updateAmount(mode, amount)

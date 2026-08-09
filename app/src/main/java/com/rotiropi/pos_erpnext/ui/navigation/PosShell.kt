@@ -69,6 +69,7 @@ fun PosShell(
     recoveryState: com.rotiropi.pos_erpnext.recovery.RecoveryScreenState = com.rotiropi.pos_erpnext.recovery.RecoveryScreenState.Hidden,
     onAcknowledgeRecovery: (String) -> Unit = {},
     onReauthenticateRecovery: () -> Unit = {},
+    onRecoverManualClosing: (String) -> Unit = {},
     openingState: OpeningUiState? = null,
     startDestination: PosDestination = PosDestination.HOME,
     onOpeningAmountChanged: (String, String) -> Unit = { _, _ -> },
@@ -149,6 +150,12 @@ fun PosShell(
                     ?.let(onAcknowledgeRecovery)
             },
             onReauthenticateRecovery = onReauthenticateRecovery,
+            onRecoverClosing = {
+                (recoveryState as? com.rotiropi.pos_erpnext.recovery.RecoveryScreenState.ManualRecovery)
+                    ?.takeIf { it.canRecoverClosing }
+                    ?.transactionId
+                    ?.let(onRecoverManualClosing)
+            },
         )
         return
     }
@@ -165,6 +172,7 @@ fun PosShell(
         recoveryState = recoveryState,
         onAcknowledgeRecovery = onAcknowledgeRecovery,
         onReauthenticateRecovery = onReauthenticateRecovery,
+        onRecoverManualClosing = onRecoverManualClosing,
         logoutVisible = authenticationOwner != null,
         cashierState = cashierState,
         onCashierQueryChanged = onCashierQueryChanged,
@@ -233,6 +241,7 @@ private fun AuthenticatedPosShell(
     recoveryState: com.rotiropi.pos_erpnext.recovery.RecoveryScreenState,
     onAcknowledgeRecovery: (String) -> Unit,
     onReauthenticateRecovery: () -> Unit,
+    onRecoverManualClosing: (String) -> Unit,
     logoutVisible: Boolean,
     cashierState: CashierUiState,
     onCashierQueryChanged: (String) -> Unit,
@@ -298,8 +307,9 @@ private fun AuthenticatedPosShell(
     val closingTerminal = closingState is ClosingUiState.Receipt ||
         closingState is ClosingUiState.Failed
 
-    LaunchedEffect(closingTerminal) {
-        if (closingTerminal && backStackEntry?.destination?.route != "closing") {
+    val currentRoute = backStackEntry?.destination?.route
+    LaunchedEffect(closingTerminal, currentRoute) {
+        if (closingTerminal && currentRoute != null && currentRoute != "closing") {
             navController.navigate("closing") {
                 launchSingleTop = true
             }
@@ -441,6 +451,7 @@ private fun AuthenticatedPosShell(
                             },
                             onAcknowledgeRecovery = onAcknowledgeRecovery,
                             onReauthenticateRecovery = onReauthenticateRecovery,
+                            onRecoverManualClosing = onRecoverManualClosing,
                         )
                     }
                     composable("closing") {

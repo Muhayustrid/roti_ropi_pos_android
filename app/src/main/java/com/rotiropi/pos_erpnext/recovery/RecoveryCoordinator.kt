@@ -6,6 +6,7 @@ import com.rotiropi.pos_erpnext.data.api.ClosingStatus
 import com.rotiropi.pos_erpnext.data.api.MobilePosEndpoint
 import com.rotiropi.pos_erpnext.data.api.MobilePosRequest
 import com.rotiropi.pos_erpnext.data.api.SubmitClosingResponseDto
+import com.rotiropi.pos_erpnext.data.api.SubmitClosingRequestDto
 import com.rotiropi.pos_erpnext.data.api.RetryAfter
 import com.rotiropi.pos_erpnext.data.api.TransportFailureKind
 import java.text.SimpleDateFormat
@@ -40,6 +41,7 @@ data class RecoveryUiState(
     val identity: RecoveryIdentity? = null,
     val terminal: TerminalRecovery? = null,
     val closingQueuedTransactionId: String? = null,
+    val manualClosingTransactionId: String? = null,
     val authenticationRequiredTransactionId: String? = null,
     val retrySchedulingFailedTransactionId: String? = null,
     val retrySchedulingFailure: RecoveryExecution.RetrySchedulingFailed? = null,
@@ -225,6 +227,37 @@ class RecoveryCoordinator(
         return dispatch(record, deserializer)
     }
 
+    /** Explicitly reconciles only a persisted manual Closing through same-key/body replay. */
+    @Synchronized
+    fun recoverManualClosing(
+        transactionId: String,
+        expectedProfile: String,
+        currentProfile: () -> String? = { expectedProfile },
+    ): RecoveryExecution {
+        if (connectivity() == ConnectivityStatus.KnownOffline) return RecoveryExecution.NotStartedOffline
+        val owner = identity() ?: return RecoveryExecution.BlockedIdentity
+        if (currentProfile() != expectedProfile) return RecoveryExecution.BlockedIdentity
+        val record = store.find(transactionId, owner) ?: return RecoveryExecution.BlockedIdentity
+        val request = manualClosingRequest(record, expectedProfile)
+            ?: return RecoveryExecution.ManualRecovery(transactionId)
+        val result = transport.execute(record, SubmitClosingResponseDto.serializer())
+        if (result !is ApiResult.Success || !result.meta.replayed) {
+            return RecoveryExecution.ManualRecovery(transactionId)
+        }
+        if (identity() != owner || currentProfile() != expectedProfile) return RecoveryExecution.BlockedIdentity
+        val closing = result.data.closing
+        if (closing.pos_profile != request.pos_profile ||
+            closing.status !in setOf(ClosingStatus.SUBMITTED, ClosingStatus.FAILED, ClosingStatus.CANCELLED) ||
+            result.rawResponse == null
+        ) return RecoveryExecution.ManualRecovery(transactionId)
+        return if (store.persistClosingStatusTerminal(transactionId, owner, result.rawResponse, closing.name)) {
+            refreshUiState(owner)
+            RecoveryExecution.Completed(transactionId)
+        } else {
+            durableState(transactionId, owner)
+        }
+    }
+
     private fun <T> dispatch(record: PendingMutation, deserializer: DeserializationStrategy<T>): RecoveryExecution {
         if (record.attemptCount >= MAX_DISPATCHES) return manual(record)
         if (record.state == PendingMutationState.MANUAL_RECOVERY) return RecoveryExecution.ManualRecovery(record.transactionId)
@@ -402,6 +435,9 @@ class RecoveryCoordinator(
             closingQueuedTransactionId = unresolved
                 .firstOrNull { it.state == PendingMutationState.CLOSING_QUEUED }
                 ?.transactionId,
+            manualClosingTransactionId = unresolved
+                .firstOrNull { manualClosingRequest(it, null) != null }
+                ?.transactionId,
             authenticationRequiredTransactionId = unresolved
                 .firstOrNull { it.state == PendingMutationState.AUTH_REQUIRED }
                 ?.transactionId,
@@ -409,6 +445,21 @@ class RecoveryCoordinator(
                 ?: _uiState.value.retrySchedulingFailedTransactionId,
             retrySchedulingFailure = schedulingFailure ?: _uiState.value.retrySchedulingFailure,
         )
+    }
+
+    private fun manualClosingRequest(record: PendingMutation, expectedProfile: String?): SubmitClosingRequestDto? {
+        if (record.state != PendingMutationState.MANUAL_RECOVERY ||
+            record.endpoint != MobilePosEndpoint.CLOSING_SUBMIT ||
+            record.attemptCount < 1 ||
+            record.bodyFormatVersion != PendingMutation.BODY_FORMAT_VERSION ||
+            record.contentType != "application/json" ||
+            record.serializerIdentity != MobilePosEndpoint.CLOSING_SUBMIT.serializerIdentity ||
+            record.body.isEmpty()
+        ) return null
+        return runCatching {
+            MobilePosRequest.validatePostBodyBytes(record.endpoint, record.body, kotlinx.serialization.json.Json)
+            kotlinx.serialization.json.Json.decodeFromString(SubmitClosingRequestDto.serializer(), record.body.decodeToString())
+        }.getOrNull()?.takeIf { expectedProfile == null || it.pos_profile == expectedProfile }
     }
 
     private fun retryAfterSeconds(value: kotlinx.serialization.json.JsonElement?): RetryAfter? =

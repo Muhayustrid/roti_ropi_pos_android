@@ -25,6 +25,7 @@ fun RecoveryScreen(
     state: RecoveryScreenState,
     onAcknowledge: () -> Unit,
     onReauthenticate: () -> Unit = {},
+    onRecoverClosing: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     if (state == RecoveryScreenState.Hidden) return
@@ -60,10 +61,20 @@ fun RecoveryScreen(
                     "Recovery retry could not be scheduled. Keep the app open and try again later.",
                     modifier = Modifier.testTag("recovery-scheduling-failed"),
                 )
-                is RecoveryScreenState.ManualRecovery -> Text(
-                    state.message,
-                    modifier = Modifier.testTag("recovery-manual"),
-                )
+                is RecoveryScreenState.ManualRecovery -> {
+                    Text(state.message, modifier = Modifier.testTag("recovery-manual"))
+                    if (state.canRecoverClosing) {
+                        Button(
+                            onClick = onRecoverClosing,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = PosDimensions.touchTarget)
+                                .testTag("recovery-closing"),
+                        ) {
+                            Text("Recover Closing")
+                        }
+                    }
+                }
                 is RecoveryScreenState.Terminal -> {
                     when (val result = state.result) {
                         is RecoveryTerminalResult.Completed -> {
