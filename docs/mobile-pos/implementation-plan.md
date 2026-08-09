@@ -46,11 +46,12 @@ below, records current completion.
 | 8 | Completed | Catalog, scan, quote, and cart UI/repository behavior, tests, fixtures, and accessibility harness merged via PR #20 (`2c213f8`); Task 8 documentation merged via PR #21 (`25e9f459`). |
 | 9 | Completed | Payment/receipt UI/repository behavior, exact settlement, durable sales mutation, replay recovery, and receipt display merged via PR #24 (`8c9735d`). |
 | 10 | Completed | History/return UI/repository behavior, remaining-returnable quantities, return quote, durable return mutation replay, and receipt display merged via PR #27 (`703da84`). |
-| 11 | Completed | PR #28 merged as `da52ce84e6ed0b4d4554b3a4a0cf6689d1ee2d79`. Candidate `d684d72ea7fb74386219b16ce8b96fc3977b0e2b`, docs commit `3a665ee844922c4834d821a1c8bdf4c42877d165`. Backend main authority `186d2e927963a38dc408437f08dfcf10712f5e26`. Local Gradle gate PASS, API 23 (153/153 PASS), API 36 (153/153 PASS), Closing process-death API 23/API 36 PASS, secret scan PASS. Staging response-drop EVIDENCE VERIFIED PASS (`docs/mobile-pos/evidence/mobile-pos-response-drop/task11-closing-response-drop-pass-20260808.md`). Exactly-once verified (1 request, 1 Closing Entry), proxy DISARMED, upstream restored, no automatic new Opening. |
+| 11 | Completed | Initial implementation merged through PR #28 (`d684d72ea7fb74386219b16ce8b96fc3977b0e2b`; docs `3a665ee844922c4834d821a1c8bdf4c42877d165`). Post-merge backend audit found a sale/return-versus-Closing race; a serialization hotfix was merged. Later audit/staging found stale historical Closing projection leakage; projection fix `43393eb97cbb588d8a2801cab1d4f5f498711135` was merged. Final backend authority is `63c86373d68cc5e4d8f2c15422f0c5bc22779df4`. Real response-drop proved the same persisted lowercase UUID/body, exactly one Mobile POS Request, exactly one POS Closing Entry, a closed Opening, and no automatic replacement Opening. Initial Android recovery reached `MANUAL_RECOVERY`, so that run was initially BLOCKED. Hotfix `fb7a877f223d99248c59d45972887b2344eebd44`, merged through PR #29, safely recovered the same mutation using the persisted UUID/body and an authoritative `replayed=true` terminal result. It reused the existing Closing, durably persisted the receipt, retired the acknowledged pending mutation, and unblocked Opening after relaunch. Final Android main is `ed3a5ed3b125a1d9c71210f23fca5c1ee66399cb`; focused RED-to-GREEN tests and the full Gradle gate passed; P1/P2 review found none. |
 | 12 | Not Started | Final lifecycle, performance, accessibility, release-inspection tests and harnesses are absent. |
 
-Task 11 is complete through PR #28; Task 12 remains explicitly Not Started.
-Independent post-merge read-only audit with GPT Sol for Backend Task 11 planned before Task 12.
+Task 11 is complete through initial PR #28 and Manual Recovery hotfix PR #29.
+The post-merge backend audits and staging recovery are complete. Task 12 remains
+explicitly Not Started.
 
 ## Global Constraints
 
@@ -1860,8 +1861,14 @@ wait for approval.
 
 ### Task 11: Implement Closing and Status Recovery
 
-**Status:** Not Started. Decimal-input, external lost-response, and deterministic
-queued-closing gates remain active.
+**Status:** Completed. Initial implementation merged through PR #28. Backend
+serialization and historical-projection audit findings were fixed, and final
+backend authority is `63c86373d68cc5e4d8f2c15422f0c5bc22779df4` with projection
+fix `43393eb97cbb588d8a2801cab1d4f5f498711135`. Real response-drop recovery was
+initially blocked in Android `MANUAL_RECOVERY`; hotfix
+`fb7a877f223d99248c59d45972887b2344eebd44` salvaged the same persisted
+mutation and merged through PR #29. Final Android main is
+`ed3a5ed3b125a1d9c71210f23fca5c1ee66399cb`.
 
 **Depends on:** Approved and passing Task 10.
 
