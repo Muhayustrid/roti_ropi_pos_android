@@ -21,3 +21,6 @@ graphify-out/
 /.agents/
 /.opencode/
 /.superpowers/
+
+# standalone UI prototype project, kept beside the app but built separately
+/prototype/
