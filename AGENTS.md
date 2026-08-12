@@ -6,6 +6,12 @@ Read this file before changing the Android repository. These rules apply to the 
 
 - Communicate with the user in Indonesian.
 - Write repository Markdown, code comments, technical documentation, test names, and commit messages in English.
+- Keep user-facing application text out of source. Every user-facing string lives
+  in `res/values/strings.xml` (Indonesian, the default and fallback) with an
+  English translation in `res/values-en/strings.xml`. Only three categories stay
+  literal: text the server owns (currency, amounts, item and payment-mode names,
+  warehouse and price-list names, server validation messages), `testTag` values,
+  and route or enum identifiers.
 - Do not commit, push, publish, deploy, or begin a later implementation phase without explicit user approval.
 - Keep backend and Android work in their own repositories and review their diffs independently.
 

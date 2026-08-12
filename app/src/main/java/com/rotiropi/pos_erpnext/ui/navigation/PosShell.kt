@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -36,8 +35,6 @@ import com.rotiropi.pos_erpnext.ui.cashier.CashierUiState
 import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchUiState
 import com.rotiropi.pos_erpnext.ui.customer.CustomerRecord
 import com.rotiropi.pos_erpnext.ui.components.RootNavigationBar
-import com.rotiropi.pos_erpnext.ui.dashboard.DashboardScreen
-import com.rotiropi.pos_erpnext.ui.dashboard.DashboardUiState
 import com.rotiropi.pos_erpnext.ui.demo.PosDemoStates
 import com.rotiropi.pos_erpnext.ui.opening.OpeningScreen
 import com.rotiropi.pos_erpnext.ui.opening.OpeningUiState
@@ -77,7 +74,7 @@ fun PosShell(
     onReauthenticateRecovery: () -> Unit = {},
     onRecoverManualClosing: (String) -> Unit = {},
     openingState: OpeningUiState? = null,
-    startDestination: PosDestination = PosDestination.HOME,
+    startDestination: PosDestination = PosDestination.CASHIER,
     onOpeningAmountChanged: (String, String) -> Unit = { _, _ -> },
     onOpenSession: () -> Unit = {},
     cashierState: CashierUiState = CashierUiState.Unavailable,
@@ -310,17 +307,16 @@ private fun AuthenticatedPosShell(
 ) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
-    val selectedDestination = PosDestination.entries.firstOrNull {
-        it.route == backStackEntry?.destination?.route
-    } ?: PosDestination.HOME
+    val route = backStackEntry?.destination?.route
+    val selectedDestination = PosDestination.entries.firstOrNull { it.route == route }
+        ?: parentDestinationOf(route)
     var demoData by rememberSaveable { mutableStateOf(false) }
     val demoActive = PosDemoStates.supported && demoData
     val closingTerminal = closingState is ClosingUiState.Receipt ||
         closingState is ClosingUiState.Failed
 
-    val currentRoute = backStackEntry?.destination?.route
-    LaunchedEffect(closingTerminal, currentRoute) {
-        if (closingTerminal && currentRoute != null && currentRoute != "closing") {
+    LaunchedEffect(closingTerminal, route) {
+        if (closingTerminal && route != null && route != "closing") {
             navController.navigate("closing") {
                 launchSingleTop = true
             }
@@ -337,12 +333,18 @@ private fun AuthenticatedPosShell(
                     RootNavigationBar(
                         selectedDestination = selectedDestination,
                         onDestinationSelected = { destination ->
-                            navController.navigate(destination.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                            if (destination == selectedDestination && destination.route != route) {
+                                // Already on this tab, but inside one of its child routes.
+                                // Re-tapping a tab returns to that tab's root.
+                                navController.popBackStack(destination.route, false)
+                            } else {
+                                navController.navigate(destination.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
                             }
                         },
                     )
@@ -368,14 +370,7 @@ private fun AuthenticatedPosShell(
                                 }
                             ),
                     ) {
-                        composable(PosDestination.HOME.route) {
-                            DashboardScreen(
-                                state = if (demoActive) PosDemoStates.dashboard else DashboardUiState.Unavailable,
-                                layoutMode = layoutMode,
-                                modifier = Modifier.testTag("destination-content-home"),
-                            )
-                        }
-                        composable(PosDestination.PRODUCTS.route) {
+                        composable("products") {
                             ProductsScreen(
                                 state = if (demoActive) PosDemoStates.products else ProductsUiState.Unavailable,
                                 layoutMode = layoutMode,
@@ -417,17 +412,14 @@ private fun AuthenticatedPosShell(
                                 onCustomerLoadMore = onCustomerLoadMore,
                             )
                         }
-                        composable(PosDestination.REPORTS.route) {
-                            androidx.compose.foundation.layout.Column {
-                                Button(onClick = { navController.navigate("history") }, modifier = Modifier.testTag("open-history")) { androidx.compose.material3.Text("History") }
-                                ReportsScreen(
-                                    state = if (demoActive) PosDemoStates.reports else ReportsUiState.Unavailable,
-                                    layoutMode = layoutMode,
-                                    modifier = Modifier.weight(1f).testTag("destination-content-reports"),
-                                )
-                            }
+                        composable("reports") {
+                            ReportsScreen(
+                                state = if (demoActive) PosDemoStates.reports else ReportsUiState.Unavailable,
+                                layoutMode = layoutMode,
+                                modifier = Modifier.testTag("destination-content-reports"),
+                            )
                         }
-                        composable("history") {
+                        composable(PosDestination.HISTORY.route) {
                             HistoryScreen(historyState, onHistoryQueryChanged, { name -> onHistorySaleSelected(name); navController.navigate("sale/$name") }, onHistoryLoadMore, onHistoryRetry, Modifier.testTag("destination-content-history"))
                         }
                         composable("sale/{name}") {
@@ -462,6 +454,8 @@ private fun AuthenticatedPosShell(
                                     onOpenClosing()
                                     navController.navigate("closing")
                                 },
+                                onOpenProducts = { navController.navigate("products") },
+                                onOpenReports = { navController.navigate("reports") },
                                 onAcknowledgeRecovery = onAcknowledgeRecovery,
                                 onReauthenticateRecovery = onReauthenticateRecovery,
                                 onRecoverManualClosing = onRecoverManualClosing,

@@ -14,9 +14,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
-import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
@@ -24,20 +22,11 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.rotiropi.pos_erpnext.ui.dashboard.DashboardContent
-import com.rotiropi.pos_erpnext.ui.dashboard.DashboardMetric
-import com.rotiropi.pos_erpnext.ui.dashboard.DashboardQuickAction
-import com.rotiropi.pos_erpnext.ui.dashboard.DashboardScreen
-import com.rotiropi.pos_erpnext.ui.dashboard.DashboardUiState
-import com.rotiropi.pos_erpnext.ui.dashboard.LowStockItem
-import com.rotiropi.pos_erpnext.ui.dashboard.RecentTransaction
 import com.rotiropi.pos_erpnext.ui.navigation.PosLayoutMode
 import com.rotiropi.pos_erpnext.ui.products.ProductCategory
 import com.rotiropi.pos_erpnext.ui.products.ProductItem
@@ -45,95 +34,15 @@ import com.rotiropi.pos_erpnext.ui.products.ProductsContent
 import com.rotiropi.pos_erpnext.ui.products.ProductsScreen
 import com.rotiropi.pos_erpnext.ui.products.ProductsUiState
 import com.rotiropi.pos_erpnext.ui.theme.PosTheme
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class DashboardProductsScreenTest {
+class ProductsScreenTest {
 
     @get:Rule
     val composeRule = createComposeRule()
-
-    @Test
-    fun release_dashboard_keeps_aggregate_and_actions_unavailable() {
-        composeRule.setContent {
-            PosTheme {
-                DashboardScreen(
-                    state = DashboardUiState.Unavailable,
-                    layoutMode = PosLayoutMode.COMPACT,
-                )
-            }
-        }
-
-        composeRule.onNodeWithText("Dashboard").assertIsDisplayed()
-        composeRule.onNodeWithText("Complete dashboard metrics unavailable").assertIsDisplayed()
-        composeRule.onNodeWithTag("dashboard-quick-action-open-session")
-            .assertIsDisplayed()
-            .assertIsNotEnabled()
-            .assertHeightIsAtLeast(48.dp)
-        composeRule.onNodeWithText("Demo data").assertDoesNotExist()
-    }
-
-    @Test
-    fun populated_dashboard_marks_demo_data_and_exposes_quick_action() {
-        var actionInvoked = false
-        composeRule.setContent {
-            PosTheme {
-                DashboardScreen(
-                    state = DashboardUiState.Populated(
-                        DashboardContent(
-                            outletName = "Outlet Menteng",
-                            sales = DashboardMetric("Sales today", "IDR 825,000", "ERPNext snapshot"),
-                            transactions = DashboardMetric("Transactions", "18", "ERPNext snapshot"),
-                            quickActions = listOf(DashboardQuickAction("open-session", "Open session", true)),
-                            recentTransactions = listOf(
-                                RecentTransaction("ACC-PSINV-00018", "Ayu", "IDR 55,000", "14:25")
-                            ),
-                            lowStockItems = listOf(
-                                LowStockItem("Croissant Pack", "3", "Pack", "Outlet 01 - RR")
-                            ),
-                            demoData = true,
-                        )
-                    ),
-                    layoutMode = PosLayoutMode.EXPANDED,
-                    onQuickAction = { actionInvoked = true },
-                )
-            }
-        }
-
-        composeRule.onNodeWithText("Demo data").assertIsDisplayed()
-        composeRule.onNodeWithText("Outlet Menteng").assertIsDisplayed()
-        composeRule.onAllNodesWithText("ERPNext snapshot", substring = true)
-            .assertCountEquals(2)
-        composeRule.onNodeWithTag("dashboard-quick-action-open-session")
-            .assertHasClickAction()
-            .performClick()
-        composeRule.runOnIdle { assertTrue(actionInvoked) }
-    }
-
-    @Test
-    fun dashboard_loading_empty_offline_and_error_states_are_explicit() {
-        val state = mutableStateOf<DashboardUiState>(DashboardUiState.Loading)
-        composeRule.setContent {
-            PosTheme {
-                DashboardScreen(
-                    state = state.value,
-                    layoutMode = PosLayoutMode.COMPACT,
-                )
-            }
-        }
-
-        composeRule.onNodeWithContentDescription("Loading dashboard").assertIsDisplayed()
-        composeRule.runOnIdle { state.value = DashboardUiState.Empty }
-        composeRule.onNodeWithText("No dashboard activity yet").assertIsDisplayed()
-        composeRule.runOnIdle { state.value = DashboardUiState.Offline }
-        composeRule.onNodeWithText("Dashboard is offline").assertIsDisplayed()
-        composeRule.runOnIdle { state.value = DashboardUiState.Error("Dashboard could not load") }
-        composeRule.onNodeWithText("Dashboard could not load").assertIsDisplayed()
-        composeRule.onNodeWithText("Retry").assertHasClickAction()
-    }
 
     @Test
     fun products_loading_empty_offline_unavailable_and_error_states_are_explicit() {
@@ -157,33 +66,6 @@ class DashboardProductsScreenTest {
         composeRule.runOnIdle { state.value = ProductsUiState.Error("Products could not load") }
         composeRule.onNodeWithText("Products could not load").assertIsDisplayed()
         composeRule.onNodeWithText("Retry").assertHasClickAction()
-    }
-
-    @Test
-    fun dashboard_renders_duplicate_low_stock_display_names_without_key_collision() {
-        composeRule.setContent {
-            PosTheme {
-                DashboardScreen(
-                    state = DashboardUiState.Populated(
-                        DashboardContent(
-                            outletName = "Outlet Menteng",
-                            sales = DashboardMetric("Sales today", "IDR 825,000", "ERPNext snapshot"),
-                            transactions = DashboardMetric("Transactions", "18", "ERPNext snapshot"),
-                            quickActions = emptyList(),
-                            recentTransactions = emptyList(),
-                            lowStockItems = listOf(
-                                LowStockItem("Croissant Pack", "3", "Pack", "Outlet 01 - RR"),
-                                LowStockItem("Croissant Pack", "2", "Pack", "Outlet 01 - RR"),
-                            ),
-                            demoData = true,
-                        )
-                    ),
-                    layoutMode = PosLayoutMode.COMPACT,
-                )
-            }
-        }
-
-        composeRule.onAllNodesWithText("Croissant Pack").assertCountEquals(2)
     }
 
     @Test
@@ -322,22 +204,17 @@ class DashboardProductsScreenTest {
     }
 
     @Test
-    fun dashboard_and_products_errors_are_announced() {
-        val dashboardState = mutableStateOf<DashboardUiState>(DashboardUiState.Loading)
+    fun products_errors_are_announced() {
         val productsState = mutableStateOf<ProductsUiState>(ProductsUiState.Loading)
         composeRule.setContent {
             PosTheme {
-                DashboardScreen(dashboardState.value, PosLayoutMode.COMPACT)
                 ProductsScreen(productsState.value, PosLayoutMode.COMPACT)
             }
         }
 
         composeRule.runOnIdle {
-            dashboardState.value = DashboardUiState.Error("Dashboard could not load")
             productsState.value = ProductsUiState.Error("Products could not load")
         }
-        composeRule.onNodeWithText("Dashboard could not load")
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Assertive))
         composeRule.onNodeWithText("Products could not load")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Assertive))
     }

@@ -1,7 +1,6 @@
 package com.rotiropi.pos_erpnext.ui.demo
 
 import com.rotiropi.pos_erpnext.ui.cashier.CashierUiState
-import com.rotiropi.pos_erpnext.ui.dashboard.DashboardUiState
 import com.rotiropi.pos_erpnext.ui.products.ProductsUiState
 import com.rotiropi.pos_erpnext.ui.reports.ReportsUiState
 
@@ -16,7 +15,6 @@ object PosDemoStates {
     val outletLabel: String? = null
     val userSessionLabel: String? = null
 
-    val dashboard: DashboardUiState = DashboardUiState.Unavailable
     val products: ProductsUiState = ProductsUiState.Unavailable
     val cashier: CashierUiState = CashierUiState.Unavailable
     val reports: ReportsUiState = ReportsUiState.Unavailable

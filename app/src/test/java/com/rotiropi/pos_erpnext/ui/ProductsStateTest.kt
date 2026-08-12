@@ -1,6 +1,5 @@
 package com.rotiropi.pos_erpnext.ui
 
-import com.rotiropi.pos_erpnext.ui.dashboard.dashboardGridColumns
 import com.rotiropi.pos_erpnext.ui.navigation.PosLayoutMode
 import com.rotiropi.pos_erpnext.ui.products.ProductItem
 import com.rotiropi.pos_erpnext.ui.products.priceSnapshotLabel
@@ -9,13 +8,7 @@ import com.rotiropi.pos_erpnext.ui.products.stockSnapshotLabel
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class DashboardProductsStateTest {
-
-    @Test
-    fun dashboard_grid_expands_without_changing_compact_density() {
-        assertEquals(2, dashboardGridColumns(PosLayoutMode.COMPACT))
-        assertEquals(4, dashboardGridColumns(PosLayoutMode.EXPANDED))
-    }
+class ProductsStateTest {
 
     @Test
     fun product_grid_expands_from_phone_to_tablet() {

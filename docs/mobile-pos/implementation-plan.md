@@ -29,6 +29,13 @@ candidate `acd6769c` and PASS evidence commit `10a55c1` merged via PR #15 as
 implementation through Task 6. Task status, not unchecked execution-step boxes
 below, records current completion.
 
+On 2026-08-12 the shell's navigation and interface language were re-decided in
+[`docs/superpowers/specs/2026-08-12-three-tab-navigation-and-localization-design.md`](../superpowers/specs/2026-08-12-three-tab-navigation-and-localization-design.md).
+Wherever the Task 2B–2E rows and sections below say five root destinations, an
+elevated Cashier action, a Dashboard, or English labels, that design document is
+now authoritative. The rows stay as written because they record what was verified
+at the time.
+
 | Task | Status | Evidence summary |
 | --- | --- | --- |
 | 1A | Completed | The dependency/compile-platform correction is present; clean unit, lint, debug, and release verification passes. The correction was committed with Task 1B rather than as an isolated Task 1A diff. |
@@ -557,6 +564,14 @@ Wait for explicit approval before commit or Task 2B.
 **Status:** Completed — audited 2026-07-30 from the uncommitted implementation
 and fresh blocking verification. Task 1B remains completed historical evidence;
 this task replaces only its placeholder XML/ViewBinding shell after Task 2 passed.
+
+**Superseded (2026-08-12):** the five-destination shell, the elevated Cashier
+action, and the English-only interface described below are superseded by
+[`docs/superpowers/specs/2026-08-12-three-tab-navigation-and-localization-design.md`](../superpowers/specs/2026-08-12-three-tab-navigation-and-localization-design.md).
+Navigation becomes three destinations — Kasir, Riwayat, Lainnya — with Products
+and Reports re-homed as child routes behind Lainnya, Dashboard deleted, and
+Indonesian as the default interface language. The evidence recorded here is not
+rewritten: it remains an accurate record of what was verified on 2026-07-30.
 
 **Audit evidence:** `MainActivity` now hosts Compose directly. Material 3 uses
 semantic light/dark schemes, Blue/Teal accent choices, system sans-serif fallback,

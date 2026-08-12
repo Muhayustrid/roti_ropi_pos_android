@@ -6,12 +6,6 @@ import com.rotiropi.pos_erpnext.ui.cashier.CashierCategory
 import com.rotiropi.pos_erpnext.ui.cashier.CashierContent
 import com.rotiropi.pos_erpnext.ui.cashier.CashierProduct
 import com.rotiropi.pos_erpnext.ui.cashier.CashierUiState
-import com.rotiropi.pos_erpnext.ui.dashboard.DashboardContent
-import com.rotiropi.pos_erpnext.ui.dashboard.DashboardMetric
-import com.rotiropi.pos_erpnext.ui.dashboard.DashboardQuickAction
-import com.rotiropi.pos_erpnext.ui.dashboard.DashboardUiState
-import com.rotiropi.pos_erpnext.ui.dashboard.LowStockItem
-import com.rotiropi.pos_erpnext.ui.dashboard.RecentTransaction
 import com.rotiropi.pos_erpnext.ui.payment.CheckoutUiState
 import com.rotiropi.pos_erpnext.ui.products.ProductCategory
 import com.rotiropi.pos_erpnext.ui.products.ProductItem
@@ -36,27 +30,6 @@ object PosDemoStates {
 
     val outletLabel: String? = "Outlet Menteng"
     val userSessionLabel: String? = "Ayu · Open session"
-
-    val dashboard: DashboardUiState = DashboardUiState.Populated(
-        DashboardContent(
-            outletName = "Outlet Menteng",
-            sales = DashboardMetric("Sales today", "IDR 825,000", "ERPNext snapshot"),
-            transactions = DashboardMetric("Transactions", "18", "ERPNext snapshot"),
-            quickActions = listOf(
-                DashboardQuickAction("open-session", "Open session", true),
-                DashboardQuickAction("start-sale", "Start sale", true),
-            ),
-            recentTransactions = listOf(
-                RecentTransaction("ACC-PSINV-00018", "Ayu", "IDR 55,000", "14:25"),
-                RecentTransaction("ACC-PSINV-00017", "Walk In Customer", "IDR 42,000", "14:08"),
-            ),
-            lowStockItems = listOf(
-                LowStockItem("Croissant Pack", "3", "Pack", "Outlet 01 - RR"),
-                LowStockItem("Coffee Beans", "5", "Bag", "Outlet 01 - RR"),
-            ),
-            demoData = true,
-        )
-    )
 
     private val croissant = ProductItem(
         itemCode = "CROISSANT-PACK",

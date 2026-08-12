@@ -161,11 +161,7 @@ class Task4RootHost(
                         openingState.value = openingViewModel?.state?.value
                     },
                     onOpenSession = ::openSession,
-                    startDestination = if (openingDestination == OpeningRoutingDestination.CASHIER) {
-                        PosDestination.CASHIER
-                    } else {
-                        PosDestination.HOME
-                    },
+                    startDestination = PosDestination.CASHIER,
                     cashierState = cashier,
                     onCashierQueryChanged = application.cashierViewModel::onQueryChanged,
                     onCashierBarcodeChanged = application.cashierViewModel::onBarcodeChanged,

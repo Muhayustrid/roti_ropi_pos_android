@@ -40,6 +40,8 @@ fun MoreScreen(
     onDemoDataToggled: (Boolean) -> Unit = {},
     onLogout: () -> Unit = {},
     onOpenClosing: () -> Unit = {},
+    onOpenProducts: () -> Unit = {},
+    onOpenReports: () -> Unit = {},
     onAcknowledgeRecovery: (String) -> Unit = {},
     onReauthenticateRecovery: () -> Unit = {},
     onRecoverManualClosing: (String) -> Unit = {},
@@ -65,6 +67,7 @@ fun MoreScreen(
                 ) {
                     OutletGroup(state.outletLabel)
                     UserSessionGroup(state.userSessionLabel)
+                    CatalogGroup(onOpenProducts, onOpenReports)
                     if (state.closingAvailable) ClosingGroup(onOpenClosing)
                     if (logoutVisible) {
                         LogoutGroup(state.logoutMessage, state.recovery, onLogout, onAcknowledgeRecovery, onReauthenticateRecovery, onRecoverManualClosing)
@@ -90,6 +93,7 @@ fun MoreScreen(
         } else {
             OutletGroup(state.outletLabel)
             UserSessionGroup(state.userSessionLabel)
+            CatalogGroup(onOpenProducts, onOpenReports)
             if (state.closingAvailable) ClosingGroup(onOpenClosing)
             if (logoutVisible) {
                 LogoutGroup(state.logoutMessage, state.recovery, onLogout, onAcknowledgeRecovery, onReauthenticateRecovery, onRecoverManualClosing)
@@ -104,6 +108,36 @@ fun MoreScreen(
             SynchronizationGroup()
             if (demoToggleVisible) {
                 DebugToolsGroup(state.demoData, onDemoDataToggled)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CatalogGroup(onOpenProducts: () -> Unit, onOpenReports: () -> Unit) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("Catalog and reports", style = MaterialTheme.typography.titleMedium)
+            Button(
+                onClick = onOpenProducts,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = PosDimensions.touchTarget)
+                    .testTag("more-products"),
+            ) {
+                Text("Products")
+            }
+            Button(
+                onClick = onOpenReports,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = PosDimensions.touchTarget)
+                    .testTag("more-reports"),
+            ) {
+                Text("Reports")
             }
         }
     }
