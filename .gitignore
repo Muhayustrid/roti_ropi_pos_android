@@ -16,3 +16,8 @@ local.properties
 
 # generated
 graphify-out/
+
+# local AI tooling state, per-machine and not part of the app
+/.agents/
+/.opencode/
+/.superpowers/
