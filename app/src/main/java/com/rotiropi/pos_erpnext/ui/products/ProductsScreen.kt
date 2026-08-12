@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import com.rotiropi.pos_erpnext.ui.LocalPosWindow
 import com.rotiropi.pos_erpnext.ui.navigation.PosLayoutMode
 import com.rotiropi.pos_erpnext.ui.theme.PosDimensions
 
@@ -184,7 +185,7 @@ private fun ProductsPopulated(
                 )
             }
         }
-        if (layoutMode == PosLayoutMode.EXPANDED) {
+        if (layoutMode == PosLayoutMode.EXPANDED && LocalPosWindow.current.isTall) {
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 if (maxWidth >= 520.dp) {
                     Row(

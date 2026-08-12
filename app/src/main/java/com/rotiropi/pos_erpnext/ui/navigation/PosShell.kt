@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -28,6 +29,8 @@ import com.rotiropi.pos_erpnext.auth.AuthenticationState
 import com.rotiropi.pos_erpnext.session.LogoutResult
 import com.rotiropi.pos_erpnext.ui.auth.SignInScreen
 import com.rotiropi.pos_erpnext.ui.auth.signInErrorMessage
+import com.rotiropi.pos_erpnext.ui.LocalPosWindow
+import com.rotiropi.pos_erpnext.ui.PosWindow
 import com.rotiropi.pos_erpnext.ui.cashier.CashierScreen
 import com.rotiropi.pos_erpnext.ui.cashier.CashierUiState
 import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchUiState
@@ -326,159 +329,162 @@ private fun AuthenticatedPosShell(
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val layoutMode = posLayoutModeForWidth(maxWidth.value.toInt())
-        Scaffold(
-            modifier = Modifier.testTag("shell-${layoutMode.name.lowercase()}"),
-            bottomBar = {
-                RootNavigationBar(
-                    selectedDestination = selectedDestination,
-                    onDestinationSelected = { destination ->
-                        navController.navigate(destination.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
+        val posWindow = PosWindow(width = maxWidth, height = maxHeight)
+        CompositionLocalProvider(LocalPosWindow provides posWindow) {
+            Scaffold(
+                modifier = Modifier.testTag("shell-${layoutMode.name.lowercase()}"),
+                bottomBar = {
+                    RootNavigationBar(
+                        selectedDestination = selectedDestination,
+                        onDestinationSelected = { destination ->
+                            navController.navigate(destination.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
                             }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                )
-            },
-        ) { contentPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(contentPadding),
-                contentAlignment = Alignment.TopCenter,
-            ) {
-                NavHost(
-                    navController = navController,
-                    startDestination = startDestination.route,
+                        },
+                    )
+                },
+            ) { contentPadding ->
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .widthIn(max = 960.dp)
-                        .padding(
-                            horizontal = if (layoutMode == PosLayoutMode.EXPANDED) {
-                                PosDimensions.screenPadding * 2
-                            } else {
-                                0.dp
-                            }
-                        ),
+                        .padding(contentPadding),
+                    contentAlignment = Alignment.TopCenter,
                 ) {
-                    composable(PosDestination.HOME.route) {
-                        DashboardScreen(
-                            state = if (demoActive) PosDemoStates.dashboard else DashboardUiState.Unavailable,
-                            layoutMode = layoutMode,
-                            modifier = Modifier.testTag("destination-content-home"),
-                        )
-                    }
-                    composable(PosDestination.PRODUCTS.route) {
-                        ProductsScreen(
-                            state = if (demoActive) PosDemoStates.products else ProductsUiState.Unavailable,
-                            layoutMode = layoutMode,
-                            modifier = Modifier.testTag("destination-content-products"),
-                        )
-                    }
-                    composable(PosDestination.CASHIER.route) {
-                        CashierScreen(
-                            state = if (demoActive) PosDemoStates.cashier else cashierState,
-                            layoutMode = layoutMode,
-                            modifier = Modifier.testTag("destination-content-cashier"),
-                            cartVisible = cashierCartVisible,
-                            onQueryChange = onCashierQueryChanged,
-                            onBarcodeChange = onCashierBarcodeChanged,
-                            onBarcodeSubmit = onCashierBarcodeSubmit,
-                            onLoadMoreCatalog = onLoadMoreCatalog,
-                            onCategorySelected = onCashierCategorySelected,
-                            onProductSelected = onCashierProductSelected,
-                            onOpenCart = onOpenCashierCart,
-                            onDismissCart = onDismissCashierCart,
-                            onDecreaseQuantity = onDecreaseCashierQuantity,
-                            onIncreaseQuantity = onIncreaseCashierQuantity,
-                            onEditQuantity = onEditCashierQuantity,
-                            onRemoveLine = onRemoveCashierLine,
-                            onRetry = onCashierRetry,
-                            onOpenCheckout = onOpenCheckout,
-                            onUpdatePaymentAmount = onUpdatePaymentAmount,
-                            onSubmitPayment = onSubmitPayment,
-                            onCloseReceipt = onCloseReceipt,
-                            customerState = if (demoActive) null else customerState,
-                            customerSheetVisible = customerSheetVisible,
-                            onOpenCustomerSheet = onOpenCustomerSheet,
-                            onDismissCustomerSheet = onDismissCustomerSheet,
-                            onCustomerQueryChanged = onCustomerQueryChanged,
-                            onWalkInNameChanged = onWalkInNameChanged,
-                            onSelectWalkIn = onSelectWalkIn,
-                            onSelectRegistered = onSelectRegistered,
-                            onCustomerRetry = onCustomerRetry,
-                            onCustomerLoadMore = onCustomerLoadMore,
-                        )
-                    }
-                    composable(PosDestination.REPORTS.route) {
-                        androidx.compose.foundation.layout.Column {
-                            Button(onClick = { navController.navigate("history") }, modifier = Modifier.testTag("open-history")) { androidx.compose.material3.Text("History") }
-                            ReportsScreen(
-                                state = if (demoActive) PosDemoStates.reports else ReportsUiState.Unavailable,
+                    NavHost(
+                        navController = navController,
+                        startDestination = startDestination.route,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .widthIn(max = 960.dp)
+                            .padding(
+                                horizontal = if (layoutMode == PosLayoutMode.EXPANDED) {
+                                    PosDimensions.screenPadding * 2
+                                } else {
+                                    0.dp
+                                }
+                            ),
+                    ) {
+                        composable(PosDestination.HOME.route) {
+                            DashboardScreen(
+                                state = if (demoActive) PosDemoStates.dashboard else DashboardUiState.Unavailable,
                                 layoutMode = layoutMode,
-                                modifier = Modifier.weight(1f).testTag("destination-content-reports"),
+                                modifier = Modifier.testTag("destination-content-home"),
                             )
                         }
-                    }
-                    composable("history") {
-                        HistoryScreen(historyState, onHistoryQueryChanged, { name -> onHistorySaleSelected(name); navController.navigate("sale/$name") }, onHistoryLoadMore, onHistoryRetry, Modifier.testTag("destination-content-history"))
-                    }
-                    composable("sale/{name}") {
-                        SaleDetailScreen(saleDetailState, { sale -> onStartReturn(sale); navController.navigate("return/${sale.summary.name}") }, Modifier.testTag("destination-content-sale-detail"))
-                    }
-                    composable("return/{name}") {
-                        ReturnScreen(returnState, onReturnReasonChanged, onReturnQuantityChanged, onReturnRefundModeChanged, onReturnQuote, onReturnSubmit, { onCloseReturnReceipt(); navController.popBackStack("history", false) }, Modifier.testTag("destination-content-return"))
-                    }
-                    composable(PosDestination.MORE.route) {
-                        MoreScreen(
-                            state = MoreUiState(
-                                outletLabel = if (demoActive) PosDemoStates.outletLabel else null,
-                                userSessionLabel = if (demoActive) PosDemoStates.userSessionLabel else null,
-                                themeMode = themeMode,
-                                accent = accent,
-                                demoData = demoActive,
-                                logoutMessage = (logoutResult as? LogoutResult.Blocked)?.let {
-                                    "Sign out blocked: ${it.cashier} has ${it.state.name.lowercase()} recovery."
+                        composable(PosDestination.PRODUCTS.route) {
+                            ProductsScreen(
+                                state = if (demoActive) PosDemoStates.products else ProductsUiState.Unavailable,
+                                layoutMode = layoutMode,
+                                modifier = Modifier.testTag("destination-content-products"),
+                            )
+                        }
+                        composable(PosDestination.CASHIER.route) {
+                            CashierScreen(
+                                state = if (demoActive) PosDemoStates.cashier else cashierState,
+                                layoutMode = layoutMode,
+                                modifier = Modifier.testTag("destination-content-cashier"),
+                                cartVisible = cashierCartVisible,
+                                onQueryChange = onCashierQueryChanged,
+                                onBarcodeChange = onCashierBarcodeChanged,
+                                onBarcodeSubmit = onCashierBarcodeSubmit,
+                                onLoadMoreCatalog = onLoadMoreCatalog,
+                                onCategorySelected = onCashierCategorySelected,
+                                onProductSelected = onCashierProductSelected,
+                                onOpenCart = onOpenCashierCart,
+                                onDismissCart = onDismissCashierCart,
+                                onDecreaseQuantity = onDecreaseCashierQuantity,
+                                onIncreaseQuantity = onIncreaseCashierQuantity,
+                                onEditQuantity = onEditCashierQuantity,
+                                onRemoveLine = onRemoveCashierLine,
+                                onRetry = onCashierRetry,
+                                onOpenCheckout = onOpenCheckout,
+                                onUpdatePaymentAmount = onUpdatePaymentAmount,
+                                onSubmitPayment = onSubmitPayment,
+                                onCloseReceipt = onCloseReceipt,
+                                customerState = if (demoActive) null else customerState,
+                                customerSheetVisible = customerSheetVisible,
+                                onOpenCustomerSheet = onOpenCustomerSheet,
+                                onDismissCustomerSheet = onDismissCustomerSheet,
+                                onCustomerQueryChanged = onCustomerQueryChanged,
+                                onWalkInNameChanged = onWalkInNameChanged,
+                                onSelectWalkIn = onSelectWalkIn,
+                                onSelectRegistered = onSelectRegistered,
+                                onCustomerRetry = onCustomerRetry,
+                                onCustomerLoadMore = onCustomerLoadMore,
+                            )
+                        }
+                        composable(PosDestination.REPORTS.route) {
+                            androidx.compose.foundation.layout.Column {
+                                Button(onClick = { navController.navigate("history") }, modifier = Modifier.testTag("open-history")) { androidx.compose.material3.Text("History") }
+                                ReportsScreen(
+                                    state = if (demoActive) PosDemoStates.reports else ReportsUiState.Unavailable,
+                                    layoutMode = layoutMode,
+                                    modifier = Modifier.weight(1f).testTag("destination-content-reports"),
+                                )
+                            }
+                        }
+                        composable("history") {
+                            HistoryScreen(historyState, onHistoryQueryChanged, { name -> onHistorySaleSelected(name); navController.navigate("sale/$name") }, onHistoryLoadMore, onHistoryRetry, Modifier.testTag("destination-content-history"))
+                        }
+                        composable("sale/{name}") {
+                            SaleDetailScreen(saleDetailState, { sale -> onStartReturn(sale); navController.navigate("return/${sale.summary.name}") }, Modifier.testTag("destination-content-sale-detail"))
+                        }
+                        composable("return/{name}") {
+                            ReturnScreen(returnState, onReturnReasonChanged, onReturnQuantityChanged, onReturnRefundModeChanged, onReturnQuote, onReturnSubmit, { onCloseReturnReceipt(); navController.popBackStack("history", false) }, Modifier.testTag("destination-content-return"))
+                        }
+                        composable(PosDestination.MORE.route) {
+                            MoreScreen(
+                                state = MoreUiState(
+                                    outletLabel = if (demoActive) PosDemoStates.outletLabel else null,
+                                    userSessionLabel = if (demoActive) PosDemoStates.userSessionLabel else null,
+                                    themeMode = themeMode,
+                                    accent = accent,
+                                    demoData = demoActive,
+                                    logoutMessage = (logoutResult as? LogoutResult.Blocked)?.let {
+                                        "Sign out blocked: ${it.cashier} has ${it.state.name.lowercase()} recovery."
+                                    },
+                                    recovery = recoveryState,
+                                    closingAvailable = closingAvailable,
+                                ),
+                                layoutMode = layoutMode,
+                                modifier = Modifier.testTag("destination-content-more"),
+                                demoToggleVisible = PosDemoStates.supported,
+                                logoutVisible = logoutVisible,
+                                onThemeModeSelected = onThemeModeSelected,
+                                onAccentSelected = onAccentSelected,
+                                onDemoDataToggled = { demoData = it },
+                                onLogout = { onLogout() },
+                                onOpenClosing = {
+                                    onOpenClosing()
+                                    navController.navigate("closing")
                                 },
-                                recovery = recoveryState,
-                                closingAvailable = closingAvailable,
-                            ),
-                            layoutMode = layoutMode,
-                            modifier = Modifier.testTag("destination-content-more"),
-                            demoToggleVisible = PosDemoStates.supported,
-                            logoutVisible = logoutVisible,
-                            onThemeModeSelected = onThemeModeSelected,
-                            onAccentSelected = onAccentSelected,
-                            onDemoDataToggled = { demoData = it },
-                            onLogout = { onLogout() },
-                            onOpenClosing = {
-                                onOpenClosing()
-                                navController.navigate("closing")
-                            },
-                            onAcknowledgeRecovery = onAcknowledgeRecovery,
-                            onReauthenticateRecovery = onReauthenticateRecovery,
-                            onRecoverManualClosing = onRecoverManualClosing,
-                        )
-                    }
-                    composable("closing") {
-                        ClosingScreen(
-                            state = closingState,
-                            onCountedAmountChanged = onClosingAmountChanged,
-                            onSubmit = onSubmitClosing,
-                            onCheckStatus = onCheckClosingStatus,
-                            onReauthenticate = onReauthenticateRecovery,
-                            onRetryPreview = onRetryClosingPreview,
-                            onDone = {
-                                if (onCloseClosingReceipt()) {
+                                onAcknowledgeRecovery = onAcknowledgeRecovery,
+                                onReauthenticateRecovery = onReauthenticateRecovery,
+                                onRecoverManualClosing = onRecoverManualClosing,
+                            )
+                        }
+                        composable("closing") {
+                            ClosingScreen(
+                                state = closingState,
+                                onCountedAmountChanged = onClosingAmountChanged,
+                                onSubmit = onSubmitClosing,
+                                onCheckStatus = onCheckClosingStatus,
+                                onReauthenticate = onReauthenticateRecovery,
+                                onRetryPreview = onRetryClosingPreview,
+                                onDone = {
+                                    if (onCloseClosingReceipt()) {
+                                        navController.popBackStack(PosDestination.MORE.route, false)
+                                    }
+                                },
+                                onBack = {
                                     navController.popBackStack(PosDestination.MORE.route, false)
-                                }
-                            },
-                            onBack = {
-                                navController.popBackStack(PosDestination.MORE.route, false)
-                            },
-                        )
+                                },
+                            )
+                        }
                     }
                 }
             }

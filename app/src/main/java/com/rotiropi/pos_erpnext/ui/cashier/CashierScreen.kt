@@ -43,6 +43,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.rotiropi.pos_erpnext.ui.LocalPosWindow
 import com.rotiropi.pos_erpnext.ui.navigation.PosLayoutMode
 import com.rotiropi.pos_erpnext.ui.receipt.ReceiptScreen
 import com.rotiropi.pos_erpnext.ui.theme.PosDimensions
@@ -146,7 +147,7 @@ private fun CashierActive(
     customerState: CustomerSearchUiState?,
     onOpenCustomerSheet: () -> Unit,
 ) {
-    if (layoutMode == PosLayoutMode.EXPANDED) {
+    if (layoutMode == PosLayoutMode.EXPANDED && LocalPosWindow.current.isTall) {
         Row(
             modifier = modifier
                 .fillMaxSize()

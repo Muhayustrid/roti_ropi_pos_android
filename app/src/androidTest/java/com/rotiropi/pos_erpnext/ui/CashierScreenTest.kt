@@ -165,6 +165,30 @@ class CashierScreenTest {
         composeRule.onNodeWithTag("cashier-cart-summary").assertDoesNotExist()
     }
 
+    /**
+     * A landscape phone is wide enough that the width-only layout mode reports
+     * EXPANDED, but too short for a full-height cart pane beside the catalog. Such a
+     * window keeps the compact cart surfaces instead of clipping both columns.
+     */
+    @Test
+    fun expanded_width_with_a_short_window_keeps_the_compact_cart_surfaces() {
+        composeRule.setContent {
+            CompositionLocalProvider(
+                LocalPosWindow provides PosWindow(width = 914.dp, height = 411.dp),
+            ) {
+                PosTheme {
+                    CashierScreen(
+                        state = activeState(),
+                        layoutMode = PosLayoutMode.EXPANDED,
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithTag("cashier-cart-pane").assertDoesNotExist()
+        composeRule.onNodeWithTag("cashier-cart-summary").assertIsDisplayed()
+    }
+
     @Test
     fun cart_quantity_actions_are_accessible() {
         composeRule.setContent {

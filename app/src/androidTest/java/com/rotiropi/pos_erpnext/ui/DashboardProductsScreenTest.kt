@@ -256,6 +256,45 @@ class DashboardProductsScreenTest {
         ).assertWidthIsAtLeast(48.dp)
     }
 
+    /**
+     * A landscape phone is wide enough that the width-only layout mode reports
+     * EXPANDED, but too short for a full-height detail pane beside the grid. Such a
+     * window stacks instead of clipping both columns, so the detail pane is only
+     * rendered once a product is selected.
+     */
+    @Test
+    fun expanded_width_with_a_short_window_stacks_products_instead_of_splitting() {
+        val product = productFixture()
+        composeRule.setContent {
+            CompositionLocalProvider(
+                LocalPosWindow provides PosWindow(width = 914.dp, height = 411.dp),
+            ) {
+                PosTheme {
+                    Box(Modifier.width(914.dp).height(411.dp)) {
+                        ProductsScreen(
+                            state = ProductsUiState.Populated(
+                                ProductsContent(
+                                    query = "",
+                                    categories = emptyList(),
+                                    selectedCategoryId = null,
+                                    products = listOf(product),
+                                    selectedProduct = null,
+                                    demoData = true,
+                                )
+                            ),
+                            layoutMode = PosLayoutMode.EXPANDED,
+                        )
+                    }
+                }
+            }
+        }
+
+        composeRule.onNodeWithText("Item details").assertDoesNotExist()
+        composeRule.onNode(
+            hasContentDescription("Product ${product.itemName}") and hasClickAction(),
+        ).assertIsDisplayed()
+    }
+
     @Test
     fun product_cards_expose_button_role() {
         val product = productFixture()
