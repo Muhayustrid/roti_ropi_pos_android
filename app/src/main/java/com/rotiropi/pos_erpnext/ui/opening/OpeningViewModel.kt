@@ -18,6 +18,9 @@ data class OpeningRowUiState(
 data class OpeningUiState(
     val profileName: String? = null,
     val currency: String? = null,
+    val cashier: String? = null,
+    val company: String? = null,
+    val warehouse: String? = null,
     val rows: List<OpeningRowUiState> = emptyList(),
     val unavailable: Boolean = false,
     val canSubmit: Boolean = false,
@@ -129,6 +132,9 @@ class OpeningViewModel(
         return OpeningUiState(
             profileName = profile.name,
             currency = policy?.currency,
+            cashier = cashier,
+            company = profile.company,
+            warehouse = profile.warehouse,
             rows = rows,
             unavailable = unavailable,
             canSubmit = canSubmit(rows),

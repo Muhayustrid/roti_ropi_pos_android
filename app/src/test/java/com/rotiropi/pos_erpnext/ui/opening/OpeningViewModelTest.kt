@@ -22,6 +22,17 @@ class OpeningViewModelTest {
     }
 
     @Test
+    fun `session details expose only authoritative cashier profile company warehouse and currency`() {
+        val state = OpeningViewModel("cashier@example.test", profile(), submit = { error("not called") }).state.value
+
+        assertEquals("cashier@example.test", state.cashier)
+        assertEquals("PROFILE-EXAMPLE", state.profileName)
+        assertEquals("Example Company", state.company)
+        assertEquals("Example Warehouse", state.warehouse)
+        assertEquals("CUR", state.currency)
+    }
+
+    @Test
     fun `missing contract fails closed without fallback rows`() {
         val state = OpeningViewModel("cashier@example.test", profile(modes = emptyList()), submit = { error("not called") }).state.value
 

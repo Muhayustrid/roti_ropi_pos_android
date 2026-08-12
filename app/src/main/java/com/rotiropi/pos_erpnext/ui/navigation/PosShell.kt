@@ -27,6 +27,7 @@ import com.rotiropi.pos_erpnext.auth.AuthenticationOwner
 import com.rotiropi.pos_erpnext.auth.AuthenticationState
 import com.rotiropi.pos_erpnext.session.LogoutResult
 import com.rotiropi.pos_erpnext.ui.auth.SignInScreen
+import com.rotiropi.pos_erpnext.ui.auth.signInErrorMessage
 import com.rotiropi.pos_erpnext.ui.cashier.CashierScreen
 import com.rotiropi.pos_erpnext.ui.cashier.CashierUiState
 import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchUiState
@@ -55,6 +56,7 @@ import com.rotiropi.pos_erpnext.ui.settings.MoreUiState
 import com.rotiropi.pos_erpnext.ui.settings.PosThemeMode
 import com.rotiropi.pos_erpnext.ui.theme.PosAccent
 import com.rotiropi.pos_erpnext.ui.theme.PosDimensions
+import com.rotiropi.pos_erpnext.ui.theme.WarmCommerceTheme
 
 @Composable
 fun PosShell(
@@ -64,6 +66,7 @@ fun PosShell(
     onAccentSelected: (PosAccent) -> Unit = {},
     modifier: Modifier = Modifier,
     authenticationOwner: AuthenticationOwner? = null,
+    serverOrigin: String? = null,
     onLogout: (() -> LogoutResult)? = null,
     logoutResult: LogoutResult? = null,
     recoveryState: com.rotiropi.pos_erpnext.recovery.RecoveryScreenState = com.rotiropi.pos_erpnext.recovery.RecoveryScreenState.Hidden,
@@ -128,35 +131,40 @@ fun PosShell(
 ) {
     val authState = authenticationOwner?.state?.collectAsState()?.value
     if (authenticationOwner != null && authState != AuthenticationState.Authenticated) {
-        SignInScreen(
-            onSignInClick = authenticationOwner::beginAuthorization,
-            modifier = modifier,
-            errorMessage = (authState as? AuthenticationState.Error)?.reason?.name,
-            signingIn = authState == AuthenticationState.Authorizing,
-        )
+        WarmCommerceTheme {
+            SignInScreen(
+                onSignInClick = authenticationOwner::beginAuthorization,
+                modifier = modifier,
+                errorMessage = (authState as? AuthenticationState.Error)?.reason?.let(::signInErrorMessage),
+                signingIn = authState == AuthenticationState.Authorizing,
+                serverOrigin = serverOrigin,
+            )
+        }
         return
     }
 
     if (openingState != null) {
-        OpeningScreen(
-            state = openingState,
-            onAmountChanged = onOpeningAmountChanged,
-            onSubmit = onOpenSession,
-            modifier = modifier,
-            recoveryState = recoveryState,
-            onAcknowledgeRecovery = {
-                (recoveryState as? com.rotiropi.pos_erpnext.recovery.RecoveryScreenState.Terminal)
-                    ?.transactionId
-                    ?.let(onAcknowledgeRecovery)
-            },
-            onReauthenticateRecovery = onReauthenticateRecovery,
-            onRecoverClosing = {
-                (recoveryState as? com.rotiropi.pos_erpnext.recovery.RecoveryScreenState.ManualRecovery)
-                    ?.takeIf { it.canRecoverClosing }
-                    ?.transactionId
-                    ?.let(onRecoverManualClosing)
-            },
-        )
+        WarmCommerceTheme {
+            OpeningScreen(
+                state = openingState,
+                onAmountChanged = onOpeningAmountChanged,
+                onSubmit = onOpenSession,
+                modifier = modifier,
+                recoveryState = recoveryState,
+                onAcknowledgeRecovery = {
+                    (recoveryState as? com.rotiropi.pos_erpnext.recovery.RecoveryScreenState.Terminal)
+                        ?.transactionId
+                        ?.let(onAcknowledgeRecovery)
+                },
+                onReauthenticateRecovery = onReauthenticateRecovery,
+                onRecoverClosing = {
+                    (recoveryState as? com.rotiropi.pos_erpnext.recovery.RecoveryScreenState.ManualRecovery)
+                        ?.takeIf { it.canRecoverClosing }
+                        ?.transactionId
+                        ?.let(onRecoverManualClosing)
+                },
+            )
+        }
         return
     }
 

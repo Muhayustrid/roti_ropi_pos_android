@@ -148,6 +148,7 @@ class Task4RootHost(
             PosTheme(darkTheme = darkTheme, accent = selection.accent) {
                 PosShell(
                     authenticationOwner = application.authenticationOwner,
+                    serverOrigin = application.oauthConfig.canonicalOrigin,
                     onLogout = ::logout,
                     logoutResult = logoutResult.collectAsState().value,
                     recoveryState = recovery,

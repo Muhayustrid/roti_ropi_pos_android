@@ -7,14 +7,20 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.rotiropi.pos_erpnext.ui.theme.PosTheme
+import com.rotiropi.pos_erpnext.ui.theme.WarmCommerceTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -213,5 +219,173 @@ class OpeningScreenTest {
 
         composeRule.onNodeWithText("Use at most 2 decimal places.").assertIsDisplayed()
         composeRule.onNodeWithTag("opening-submit").assertIsNotEnabled()
+    }
+
+    @Test
+    fun start_shift_first_tap_opens_confirmation_without_submitting() {
+        var submitted = 0
+        composeRule.setContent {
+            WarmCommerceTheme {
+                OpeningScreen(
+                    state = OpeningUiState(
+                        profileName = "PROFILE-EXAMPLE",
+                        cashier = "cashier@example.test",
+                        rows = listOf(OpeningRowUiState("Cash", "200000", true)),
+                        canSubmit = true,
+                    ),
+                    onAmountChanged = { _, _ -> },
+                    onSubmit = { submitted++ },
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("opening-submit").performClick()
+        awaitConfirmSheet()
+
+        composeRule.onNodeWithTag("opening-confirm-modal").assertIsDisplayed()
+        composeRule.onNodeWithTag("opening-confirm").assertIsDisplayed().assertIsEnabled()
+        composeRule.onNodeWithTag("opening-edit-amounts").assertIsDisplayed()
+        assertEquals(0, submitted)
+    }
+
+    @Test
+    fun final_confirmation_submits_exactly_once() {
+        var submitted = 0
+        composeRule.setContent {
+            WarmCommerceTheme {
+                OpeningScreen(
+                    state = OpeningUiState(
+                        profileName = "PROFILE-EXAMPLE",
+                        rows = listOf(OpeningRowUiState("Cash", "200000", true)),
+                        canSubmit = true,
+                    ),
+                    onAmountChanged = { _, _ -> },
+                    onSubmit = { submitted++ },
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("opening-submit").performClick()
+        awaitConfirmSheet()
+        composeRule.onNodeWithTag("opening-confirm").performClick()
+
+        assertEquals(1, submitted)
+    }
+
+    @Test
+    fun submitting_disables_repeated_confirmation() {
+        var submitting by mutableStateOf(false)
+        composeRule.setContent {
+            WarmCommerceTheme {
+                OpeningScreen(
+                    state = OpeningUiState(
+                        profileName = "PROFILE-EXAMPLE",
+                        rows = listOf(OpeningRowUiState("Cash", "200000", true)),
+                        canSubmit = true,
+                        submitting = submitting,
+                    ),
+                    onAmountChanged = { _, _ -> },
+                    onSubmit = { submitting = true },
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("opening-submit").performClick()
+        awaitConfirmSheet()
+        composeRule.onNodeWithTag("opening-confirm").assertIsEnabled()
+        composeRule.onNodeWithTag("opening-confirm").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("opening-confirm").assertIsNotEnabled()
+        composeRule.onNodeWithTag("opening-submitting").assertIsDisplayed()
+    }
+
+    @Test
+    fun edit_amounts_dismisses_confirmation_without_submitting() {
+        var submitted = 0
+        composeRule.setContent {
+            WarmCommerceTheme {
+                OpeningScreen(
+                    state = OpeningUiState(
+                        profileName = "PROFILE-EXAMPLE",
+                        rows = listOf(OpeningRowUiState("Cash", "200000", true)),
+                        canSubmit = true,
+                    ),
+                    onAmountChanged = { _, _ -> },
+                    onSubmit = { submitted++ },
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("opening-submit").performClick()
+        awaitConfirmSheet()
+        composeRule.onNodeWithTag("opening-edit-amounts").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(0, submitted)
+        composeRule.onNodeWithTag("opening-confirm-modal").assertDoesNotExist()
+    }
+
+    @Test
+    fun session_details_render_profile_read_only() {
+        composeRule.setContent {
+            WarmCommerceTheme {
+                OpeningScreen(
+                    state = OpeningUiState(
+                        profileName = "PROFILE-EXAMPLE",
+                        cashier = "cashier@example.test",
+                        company = "Example Company",
+                        warehouse = "Example Warehouse",
+                        currency = "CUR",
+                        rows = listOf(OpeningRowUiState("Cash", "200000", true)),
+                        canSubmit = true,
+                    ),
+                    onAmountChanged = { _, _ -> },
+                    onSubmit = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("PROFILE-EXAMPLE").assertIsDisplayed()
+        composeRule.onNodeWithText("cashier@example.test").assertIsDisplayed()
+        composeRule.onNodeWithText("Example Company").assertIsDisplayed()
+        // The POS Profile is text only; there is no editable profile input on this screen.
+        composeRule.onAllNodesWithText("PROFILE-EXAMPLE").assertCountEquals(1)
+    }
+
+    @Test
+    fun recovery_card_offers_no_replacement_opening() {
+        composeRule.setContent {
+            WarmCommerceTheme {
+                OpeningScreen(
+                    state = OpeningUiState(
+                        profileName = "PROFILE-EXAMPLE",
+                        rows = listOf(OpeningRowUiState("Cash", "200000", true)),
+                        canSubmit = false,
+                        recoveryPending = true,
+                    ),
+                    recoveryState = com.rotiropi.pos_erpnext.recovery.RecoveryScreenState.ManualRecovery(
+                        transactionId = "transaction-1",
+                        message = "Opening result needs recovery.",
+                    ),
+                    onAmountChanged = { _, _ -> },
+                    onSubmit = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("recovery-card").assertIsDisplayed()
+        composeRule.onNodeWithText("Replace").assertDoesNotExist()
+        composeRule.onNodeWithText("New Opening").assertDoesNotExist()
+        composeRule.onNodeWithText("Start Over").assertDoesNotExist()
+    }
+
+    private fun awaitConfirmSheet() {
+        composeRule.waitUntil(5_000) {
+            runCatching {
+                composeRule.onAllNodesWithTag("opening-confirm").fetchSemanticsNodes().isNotEmpty()
+            }.getOrDefault(false)
+        }
+        composeRule.waitForIdle()
     }
 }

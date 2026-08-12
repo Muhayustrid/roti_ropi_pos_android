@@ -7,4 +7,37 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Warm Commerce light palette (legacy XML surfaces such as profile selection). -->
+    <color name="warm_amber">#FFFEBA11</color>
+    <color name="warm_amber_dark">#FF7B5800</color>
+    <color name="warm_on_amber">#FF1A1A1A</color>
+    <color name="warm_on_amber_container">#FF6C4D00</color>
+    <color name="warm_teal">#FF006B5F</color>
+    <color name="warm_on_teal">#FFFFFFFF</color>
+    <color name="warm_teal_container">#FF9CEFDF</color>
+    <color name="warm_on_teal_container">#FF0B6F63</color>
+    <color name="warm_cream">#FFFDF9F2</color>
+    <color name="warm_cream_low">#FFF7F3EC</color>
+    <color name="warm_cream_variant">#FFE6E2DB</color>
+    <color name="warm_ink">#FF1C1C18</color>
+    <color name="warm_ink_variant">#FF504533</color>
+    <color name="warm_outline">#FF837560</color>
+    <color name="warm_error">#FFBA1A1A</color>
+    <color name="warm_on_error">#FFFFFFFF</color>
+
+    <!-- Warm Commerce dark palette (legacy XML surfaces such as profile selection). -->
+    <color name="warm_amber_night">#FFFFBB12</color>
+    <color name="warm_on_amber_night">#FF3A2C00</color>
+    <color name="warm_teal_night">#FF83D5C6</color>
+    <color name="warm_on_teal_night">#FF003730</color>
+    <color name="warm_teal_container_night">#FF005047</color>
+    <color name="warm_on_teal_container_night">#FF9FF2E2</color>
+    <color name="warm_charcoal">#FF171511</color>
+    <color name="warm_charcoal_variant">#FF504533</color>
+    <color name="warm_ink_night">#FFECE8E1</color>
+    <color name="warm_ink_variant_night">#FFD5C4AC</color>
+    <color name="warm_outline_night">#FF9D8F78</color>
+    <color name="warm_error_night">#FFFFB4AB</color>
+    <color name="warm_on_error_night">#FF690005</color>
 </resources>
