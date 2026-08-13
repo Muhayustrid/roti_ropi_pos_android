@@ -280,10 +280,16 @@ Two findings worth keeping, because neither is visible from the diff:
   window clips a POS body, so nodes report "not displayed" or a height of 0.0.dp
   for a `LazyColumn` that was never measured. Three were external-keyboard focus
   and had nothing to do with height — they fail at phone portrait too, and they
-  fail identically on the stashed baseline. Those three pass inside the full-package
-  run and fail when driven alone with `-e class`, on both API levels, which points
-  at IME state carried between tests rather than at application code. They are not
-  fixed here and are not claimed to be.
+  fail identically on the stashed baseline. Those three observed failures were a
+  subset of five instrumentation tests that call `requestFocus()` and carried the
+  latent defect. The three failed when driven alone with `-e class`, on both API
+  levels, while the other two happened to pass because an earlier test in the same
+  package run had already sent a key event that switched the window to keyboard
+  input mode. A Compose node only holds focus while the window is in keyboard
+  input mode; a real touch inside the app's own window switches it to touch input
+  mode, where `requestFocus()` is accepted but `Focused` reads `false` again
+  immediately. The failures are now fixed by entering keyboard input mode before
+  the assertions.
 - API 25 at 320x640 @160 found a failure that no 1080dp-wide run did:
   `ClosingScreenTest.More_Closing_child_route_loads_preview_and_back_returns_to_More`.
   `MoreScreen` stacks its groups in compact, so `more-closing` sat below the fold
