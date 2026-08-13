@@ -7,7 +7,6 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
-import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
@@ -24,6 +23,7 @@ import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.rotiropi.pos_erpnext.MainActivity
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.MobilePosApplication
 import com.rotiropi.pos_erpnext.auth.OAuthTokens
 import com.rotiropi.pos_erpnext.auth.TokenStore
@@ -42,6 +42,12 @@ class ComposeShellTest {
 
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
+
+    /**
+     * Resolved through the activity so the expected text follows the applied interface
+     * language instead of pinning one translation into the assertion.
+     */
+    private fun text(id: Int): String = composeRule.activity.getString(id)
 
     @Before
     fun authenticateShellFixture() {
@@ -74,7 +80,7 @@ class ComposeShellTest {
         }
 
         composeRule.onNodeWithTag("sign-in-button").assertIsDisplayed()
-        composeRule.onNodeWithTag("root-home").assertDoesNotExist()
+        composeRule.onNodeWithTag("root-cashier").assertDoesNotExist()
     }
 
     @Test
@@ -87,11 +93,10 @@ class ComposeShellTest {
     }
 
     @Test
-    fun launch_displays_compose_home_destination() {
-        composeRule.onNodeWithTag("destination-content-home").assertIsDisplayed()
-        composeRule.onNodeWithText("Complete dashboard metrics unavailable")
-            .assertIsDisplayed()
-        composeRule.onNodeWithTag("root-home")
+    fun launch_displays_compose_cashier_destination() {
+        composeRule.onNodeWithTag("destination-content-cashier").assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.cashier_unavailable)).assertIsDisplayed()
+        composeRule.onNodeWithTag("root-cashier")
             .assertIsSelected()
             .assertHasClickAction()
             .assertHeightIsAtLeast(48.dp)
@@ -99,19 +104,19 @@ class ComposeShellTest {
 
     @Test
     fun recreation_preserves_selected_root_without_duplicate_destination() {
-        composeRule.onNodeWithTag("root-products").performClick()
-        composeRule.onNodeWithTag("destination-content-products").assertIsDisplayed()
+        composeRule.onNodeWithTag("root-history").performClick()
+        composeRule.onNodeWithTag("destination-content-history").assertIsDisplayed()
 
         composeRule.activityRule.scenario.recreate()
 
-        composeRule.onNodeWithTag("root-products").assertIsSelected()
-        composeRule.onAllNodes(hasTestTag("destination-content-products"))
+        composeRule.onNodeWithTag("root-history").assertIsSelected()
+        composeRule.onAllNodes(hasTestTag("destination-content-history"))
             .assertCountEquals(1)
     }
 
     @Test
-    fun root_destinations_are_accessible_and_cashier_is_elevated() {
-        listOf("home", "products", "cashier", "reports", "more").forEach { root ->
+    fun root_destinations_are_accessible_and_carry_no_elevated_action() {
+        listOf("cashier", "history", "more").forEach { root ->
             composeRule.onNodeWithTag("root-$root").performClick().assertIsSelected()
             composeRule.onNodeWithTag("destination-content-$root").assertIsDisplayed()
         }
@@ -120,13 +125,12 @@ class ComposeShellTest {
             .assertHasClickAction()
             .assertHeightIsAtLeast(48.dp)
         composeRule.onNodeWithTag("cashier-elevated-action", useUnmergedTree = true)
-            .assertIsDisplayed()
-            .assertHeightIsAtLeast(48.dp)
+            .assertDoesNotExist()
     }
 
     @Test
     fun external_keyboard_traverses_root_destinations_in_visual_order() {
-        val roots = listOf("home", "products", "cashier", "reports", "more")
+        val roots = listOf("cashier", "history", "more")
 
         composeRule.activityRule.scenario.onActivity { activity ->
             activity.window.decorView.requestFocusFromTouch()
@@ -144,41 +148,16 @@ class ComposeShellTest {
     @Test
     fun cashier_release_destination_is_honest_and_has_no_input() {
         composeRule.onNodeWithTag("root-cashier").performClick()
-        composeRule.onNodeWithText("Cashier unavailable").assertIsDisplayed()
-        composeRule.onNodeWithText("Demo data").assertDoesNotExist()
+        composeRule.onNodeWithText(text(R.string.cashier_unavailable)).assertIsDisplayed()
         composeRule.onAllNodes(hasSetTextAction()).assertCountEquals(0)
     }
 
     @Test
-    fun reports_and_more_release_destinations_are_honest_feature_surfaces() {
-        composeRule.onNodeWithTag("root-reports").performClick()
-        composeRule.onNodeWithText("Reports unavailable").assertIsDisplayed()
-        composeRule.onNodeWithText("Demo data").assertDoesNotExist()
-
+    fun more_release_destination_is_an_honest_feature_surface() {
         composeRule.onNodeWithTag("root-more").performClick()
-        composeRule.onNodeWithText("Appearance").assertIsDisplayed()
-        composeRule.onAllNodesWithText("Unavailable").assertCountEquals(2)
-        composeRule.onAllNodesWithText("Not supported").assertCountEquals(2)
-    }
-
-    @Test
-    fun debug_demo_toggle_populates_destinations_and_stays_off_by_default() {
-        composeRule.onNodeWithTag("root-more").performClick()
-        composeRule.onNodeWithTag("more-demo-data").performScrollTo().assertIsNotSelected()
-
-        composeRule.onNodeWithTag("more-demo-data").performClick().assertIsSelected()
-
-        composeRule.onNodeWithTag("root-home").performClick()
-        composeRule.onNodeWithText("Outlet Menteng").assertIsDisplayed()
-        composeRule.onNodeWithText("Demo data").assertIsDisplayed()
-
-        composeRule.onNodeWithTag("root-reports").performClick()
-        composeRule.onNodeWithTag("reports-chart").performScrollTo().assertIsDisplayed()
-
-        composeRule.onNodeWithTag("root-more").performClick()
-        composeRule.onNodeWithTag("more-demo-data").performScrollTo().performClick()
-        composeRule.onNodeWithTag("root-home").performClick()
-        composeRule.onNodeWithText("Complete dashboard metrics unavailable").assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.more_group_appearance)).performScrollTo().assertIsDisplayed()
+        composeRule.onAllNodesWithText(text(R.string.state_unavailable)).assertCountEquals(2)
+        composeRule.onAllNodesWithText(text(R.string.state_not_supported)).assertCountEquals(2)
     }
 
     @Test

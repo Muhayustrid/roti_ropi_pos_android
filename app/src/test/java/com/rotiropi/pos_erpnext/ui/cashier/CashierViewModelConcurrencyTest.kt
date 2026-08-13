@@ -1,5 +1,6 @@
 package com.rotiropi.pos_erpnext.ui.cashier
 
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.data.CatalogFailure
 import com.rotiropi.pos_erpnext.data.CatalogPage
 import com.rotiropi.pos_erpnext.data.CatalogProduct
@@ -10,6 +11,7 @@ import com.rotiropi.pos_erpnext.data.CatalogScan
 import com.rotiropi.pos_erpnext.data.CatalogScanResult
 import com.rotiropi.pos_erpnext.data.CatalogSearchResult
 import com.rotiropi.pos_erpnext.data.api.ApiCallCancellation
+import com.rotiropi.pos_erpnext.ui.uiText
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.asCoroutineDispatcher
 import org.junit.Assert.assertEquals
@@ -242,7 +244,7 @@ class CashierViewModelConcurrencyTest {
         assertTrue("no final quote started", finalQuoteEntered.await(10, TimeUnit.SECONDS))
         releaseFinalQuotes.countDown()
         awaitUntil(
-            { content(viewModel).quoteError == "Cart limit reached. Remove a row before adding another." },
+            { content(viewModel).quoteError == uiText(R.string.cart_error_row_limit) },
             "row limit error published",
         )
 
@@ -253,7 +255,7 @@ class CashierViewModelConcurrencyTest {
         assertEquals(MAX_CART_ROWS, committed.size)
         assertEquals(1, committed.map(CartLine::itemCode).count { it in finalItems })
         assertEquals(
-            "Cart limit reached. Remove a row before adding another.",
+            uiText(R.string.cart_error_row_limit),
             content(viewModel).quoteError,
         )
     }
@@ -348,7 +350,7 @@ class CashierViewModelConcurrencyTest {
         categoryId = "all",
         price = "1000",
         currency = "IDR",
-        priceList = "Server price",
+        priceList = uiText(R.string.checkout_server_price),
         availableQuantity = "10",
         uom = "Nos",
         warehouse = "Warehouse",

@@ -24,6 +24,10 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.rotiropi.pos_erpnext.R
+import com.rotiropi.pos_erpnext.ui.UiText
+import com.rotiropi.pos_erpnext.ui.uiText
 import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchUiState
 import com.rotiropi.pos_erpnext.ui.customer.CustomerSelection
 import com.rotiropi.pos_erpnext.ui.navigation.PosLayoutMode
@@ -40,6 +44,10 @@ class CatalogAccessibilityTest {
     @get:Rule
     val composeRule = createComposeRule()
 
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+    private val catalogUnavailable get() = context.getString(R.string.catalog_error_unavailable)
+    private val cartRowLimit get() = context.getString(R.string.cart_error_row_limit)
+
     @Test
     fun live_catalog_exposes_loading_error_and_reachable_product_actions() {
         composeRule.setContent {
@@ -47,7 +55,7 @@ class CatalogAccessibilityTest {
                 CashierScreen(
                     state = activeState(
                         catalogLoading = true,
-                        catalogError = "Catalog is unavailable. Check your connection.",
+                        catalogError = uiText(R.string.catalog_error_unavailable),
                         catalogHasMore = true,
                     ),
                     layoutMode = PosLayoutMode.COMPACT,
@@ -60,13 +68,15 @@ class CatalogAccessibilityTest {
 
         composeRule.onNodeWithTag("cashier-search").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
         composeRule.onNodeWithTag("cashier-barcode").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
-        composeRule.onNodeWithText("Loading more products").assertIsDisplayed()
-        composeRule.onNodeWithText("Catalog is unavailable. Check your connection.").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.cashier_loading_more)).assertIsDisplayed()
+        composeRule.onNodeWithText(catalogUnavailable).assertIsDisplayed()
         composeRule.onNodeWithTag("cashier-catalog-retry").assertHeightIsAtLeast(48.dp)
         composeRule.onNodeWithTag("cashier-load-more").assertHeightIsAtLeast(48.dp)
-        composeRule.onNode(hasContentDescription("Add Croissant Pack to cart"))
-            .assertHeightIsAtLeast(48.dp)
-        composeRule.onNodeWithText("Demo data").assertDoesNotExist()
+        composeRule.onNode(
+            hasContentDescription(
+                context.getString(R.string.cashier_add_to_cart_description, "Croissant Pack"),
+            ),
+        ).assertHeightIsAtLeast(48.dp)
         composeRule.onNodeWithText("Camera", substring = true).assertDoesNotExist()
     }
 
@@ -82,20 +92,20 @@ class CatalogAccessibilityTest {
                                 itemCode = "SCALE",
                                 itemName = "Scale",
                                 quantity = "1",
-                                priceLabel = "1000 server quote estimate",
+                                priceLabel = uiText(R.string.cart_quote_estimate, "1000"),
                                 uom = "Nos",
                                 serialNo = "SER-1",
                             ),
                         ),
-                        itemCountLabel = "1 lines",
-                        payableLabel = "Estimated values only",
+                        itemCountLabel = uiText(R.string.cart_line_count, 1),
+                        payableLabel = uiText(R.string.cart_estimated_only),
                     ),
                     checkoutState = CheckoutUiState.Unavailable,
                 )
             }
         }
 
-        composeRule.onNodeWithText("Serial SER-1").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.cart_serial, "SER-1")).assertIsDisplayed()
         composeRule.onNodeWithTag("cart-decrease-SER-1").assertIsNotEnabled()
         composeRule.onNodeWithTag("cart-increase-SER-1").assertIsNotEnabled()
         composeRule.onNodeWithTag("cart-remove-SER-1").assertHeightIsAtLeast(48.dp)
@@ -127,8 +137,8 @@ class CatalogAccessibilityTest {
             PosTheme {
                 CashierScreen(
                     state = activeState(
-                        scanError = "Catalog is unavailable. Check your connection.",
-                        quoteError = "Cart limit reached. Remove a row before adding another.",
+                        scanError = uiText(R.string.catalog_error_unavailable),
+                        quoteError = uiText(R.string.cart_error_row_limit),
                         products = emptyList(),
                     ),
                     layoutMode = PosLayoutMode.COMPACT,
@@ -139,8 +149,8 @@ class CatalogAccessibilityTest {
 
         composeRule.onNodeWithTag("cashier-scan-retry").assertIsDisplayed().assertHeightIsAtLeast(48.dp).performClick()
         composeRule.onNodeWithTag("cashier-quote-retry").assertIsDisplayed().assertHeightIsAtLeast(48.dp).performClick()
-        composeRule.onNodeWithText("No products found").assertIsDisplayed()
-        composeRule.onNodeWithText("Cart limit reached. Remove a row before adding another.").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.cashier_no_products)).assertIsDisplayed()
+        composeRule.onNodeWithText(cartRowLimit).assertIsDisplayed()
         composeRule.runOnIdle { assert(retryClicks == 2) }
     }
 
@@ -150,7 +160,7 @@ class CatalogAccessibilityTest {
         composeRule.setContent {
             PosTheme {
                 CashierScreen(
-                    state = activeState(catalogError = "Catalog is unavailable. Check your connection."),
+                    state = activeState(catalogError = uiText(R.string.catalog_error_unavailable)),
                     layoutMode = PosLayoutMode.COMPACT,
                     onRetry = { retryClicks++ },
                 )
@@ -174,12 +184,12 @@ class CatalogAccessibilityTest {
                                 itemCode = "ITEM-1",
                                 itemName = "Item",
                                 quantity = "1",
-                                priceLabel = "1000 server quote estimate",
+                                priceLabel = uiText(R.string.cart_quote_estimate, "1000"),
                                 uom = "Nos",
                             ),
                         ),
-                        itemCountLabel = "1 lines",
-                        payableLabel = "Estimated values only",
+                        itemCountLabel = uiText(R.string.cart_line_count, 1),
+                        payableLabel = uiText(R.string.cart_estimated_only),
                     ),
                     checkoutState = CheckoutUiState.Unavailable,
                     onEditQuantity = { _, raw -> editedValues += raw },
@@ -194,7 +204,7 @@ class CatalogAccessibilityTest {
         // The edit is forwarded; the state-driven field keeps the previous valid
         // cart quantity (B7: invalid input must not corrupt the cart line).
         assertTrue(editedValues.any { it == "2.5" })
-        composeRule.onNodeWithText("Quantity is not valid").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.cart_quantity_invalid)).assertIsDisplayed()
     }
 
     @Test
@@ -205,7 +215,7 @@ class CatalogAccessibilityTest {
                 itemCode = "ITEM-$index",
                 itemName = "Item $index",
                 quantity = "1",
-                priceLabel = "1000 server quote estimate",
+                priceLabel = uiText(R.string.cart_quote_estimate, "1000"),
                 uom = "Nos",
             )
         }
@@ -216,13 +226,16 @@ class CatalogAccessibilityTest {
                         CashierContent(
                             query = "",
                             barcode = "",
-                            categories = listOf(CashierCategory("all", "All")),
+                            categories = listOf(CashierCategory("all", uiText(R.string.cashier_category_all))),
                             selectedCategoryId = "all",
                             products = emptyList(),
-                            cart = CartSnapshot(lines, "50 lines", "Estimated values only"),
+                            cart = CartSnapshot(
+                                lines,
+                                uiText(R.string.cart_line_count, 50),
+                                uiText(R.string.cart_estimated_only),
+                            ),
                             checkoutState = CheckoutUiState.Unavailable,
-                            demoData = false,
-                            quoteError = "Cart limit reached. Remove a row before adding another.",
+                            quoteError = uiText(R.string.cart_error_row_limit),
                         ),
                     ),
                     layoutMode = PosLayoutMode.COMPACT,
@@ -231,15 +244,15 @@ class CatalogAccessibilityTest {
         }
 
         composeRule.onNodeWithTag("cashier-cart-summary").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
-        composeRule.onNodeWithText("Cart limit reached. Remove a row before adding another.").assertIsDisplayed()
+        composeRule.onNodeWithText(cartRowLimit).assertIsDisplayed()
     }
 
     private fun activeState(
         catalogLoading: Boolean = false,
-        catalogError: String? = null,
+        catalogError: UiText? = null,
         catalogHasMore: Boolean = false,
-        scanError: String? = null,
-        quoteError: String? = null,
+        scanError: UiText? = null,
+        quoteError: UiText? = null,
         products: List<CashierProduct> = listOf(
             CashierProduct(
                 itemCode = "CROISSANT-PACK",
@@ -247,7 +260,7 @@ class CatalogAccessibilityTest {
                 categoryId = "all",
                 price = "25000",
                 currency = "IDR",
-                priceList = "Server price",
+                priceList = uiText(R.string.checkout_server_price),
                 availableQuantity = "18",
                 uom = "Pack",
                 warehouse = "Outlet 01 - RR",
@@ -257,12 +270,15 @@ class CatalogAccessibilityTest {
         CashierContent(
             query = "",
             barcode = "",
-            categories = listOf(CashierCategory("all", "All")),
+            categories = listOf(CashierCategory("all", uiText(R.string.cashier_category_all))),
             selectedCategoryId = "all",
             products = products,
-            cart = CartSnapshot(emptyList(), "0 lines", "Cart empty"),
+            cart = CartSnapshot(
+                emptyList(),
+                uiText(R.string.cart_line_count, 0),
+                uiText(R.string.cart_empty_short),
+            ),
             checkoutState = CheckoutUiState.Unavailable,
-            demoData = false,
             catalogLoading = catalogLoading,
             catalogError = catalogError,
             catalogHasMore = catalogHasMore,

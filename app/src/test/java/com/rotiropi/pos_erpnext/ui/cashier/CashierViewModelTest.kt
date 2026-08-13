@@ -1,5 +1,6 @@
 package com.rotiropi.pos_erpnext.ui.cashier
 
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.data.CatalogQuote
 import com.rotiropi.pos_erpnext.data.CatalogFailure
 import com.rotiropi.pos_erpnext.data.CatalogPage
@@ -9,6 +10,7 @@ import com.rotiropi.pos_erpnext.data.CatalogQuoteResult
 import com.rotiropi.pos_erpnext.data.CatalogScan
 import com.rotiropi.pos_erpnext.data.CatalogScanResult
 import com.rotiropi.pos_erpnext.data.CatalogSearchResult
+import com.rotiropi.pos_erpnext.ui.uiText
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
@@ -270,7 +272,7 @@ class CashierViewModelTest {
                 categoryId = "all",
                 price = "1000",
                 currency = "IDR",
-                priceList = "Server price",
+                priceList = uiText(R.string.checkout_server_price),
                 availableQuantity = "10",
                 uom = "Nos",
                 warehouse = "Outlet 01 - RR",
@@ -284,14 +286,17 @@ class CashierViewModelTest {
         assertEquals(listOf("1", "2"), quantities)
         val updated = (viewModel.state.value as CashierUiState.Active).content.cart.lines.single()
         assertEquals("2", updated.quantity)
-        assertEquals("Estimated values only", (viewModel.state.value as CashierUiState.Active).content.cart.payableLabel)
+        assertEquals(
+            uiText(R.string.cart_estimated_only),
+            (viewModel.state.value as CashierUiState.Active).content.cart.payableLabel,
+        )
     }
 
     @Test
     fun `repeated product selection merges non serial line with exact quantity`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val quantities = mutableListOf<String>()
-        val product = CashierProduct("ITEM-1", "ITEM-1", "all", "1000", "IDR", "Server price", "10", "Nos", "Warehouse")
+        val product = CashierProduct("ITEM-1", "ITEM-1", "all", "1000", "IDR", uiText(R.string.checkout_server_price), "10", "Nos", "Warehouse")
         val viewModel = viewModel(
             dispatcher = dispatcher,
             searchCatalog = { _, _ ->
@@ -352,14 +357,14 @@ class CashierViewModelTest {
         runCurrent()
 
         viewModel.onProductSelected(
-            CashierProduct("ITEM-1", "ITEM-1", "all", "1000", "IDR", "Server price", "10", "Nos", "Warehouse"),
+            CashierProduct("ITEM-1", "ITEM-1", "all", "1000", "IDR", uiText(R.string.checkout_server_price), "10", "Nos", "Warehouse"),
         )
         runCurrent()
         viewModel.bind(identity().copy(customer = "CUST-1"))
         runCurrent()
         val line = (viewModel.state.value as CashierUiState.Active).content.cart.lines.single()
         assertEquals(listOf("WALK-IN-01", "CUST-1"), customers)
-        assertEquals("1000 server quote estimate", line.priceLabel)
+        assertEquals(uiText(R.string.cart_quote_estimate, "1000"), line.priceLabel)
         viewModel.bind(identity().copy(posProfile = "OUTLET-02"))
         runCurrent()
         assertTrue((viewModel.state.value as CashierUiState.Active).content.cart.lines.isEmpty())
@@ -386,7 +391,7 @@ class CashierViewModelTest {
         runCurrent()
 
         viewModel.onProductSelected(
-            CashierProduct("ITEM-1", "ITEM-1", "all", "1000", "IDR", "Server price", "10", "Nos", "Warehouse")
+            CashierProduct("ITEM-1", "ITEM-1", "all", "1000", "IDR", uiText(R.string.checkout_server_price), "10", "Nos", "Warehouse")
         )
         runCurrent()
         val line = (viewModel.state.value as CashierUiState.Active).content.cart.lines.single()
@@ -414,7 +419,7 @@ class CashierViewModelTest {
         runCurrent()
 
         viewModel.onProductSelected(
-            CashierProduct("ITEM-1", "ITEM-1", "all", "1000", "IDR", "Server price", "10", "Nos", "Warehouse")
+            CashierProduct("ITEM-1", "ITEM-1", "all", "1000", "IDR", uiText(R.string.checkout_server_price), "10", "Nos", "Warehouse")
         )
         runCurrent()
         val line = (viewModel.state.value as CashierUiState.Active).content.cart.lines.single()
@@ -490,14 +495,14 @@ class CashierViewModelTest {
 
         // Select ITEM-A -> quotes it (pending)
         viewModel.onProductSelected(
-            CashierProduct("ITEM-A", "ITEM-A", "all", "1000", "IDR", "Server price", "10", "Nos", "Warehouse")
+            CashierProduct("ITEM-A", "ITEM-A", "all", "1000", "IDR", uiText(R.string.checkout_server_price), "10", "Nos", "Warehouse")
         )
         val authA = viewModel.activeQuoteAuthority
         requireNotNull(authA)
 
         // Select ITEM-B -> enqueued behind ITEM-A; ITEM-A's quote is NOT discarded
         viewModel.onProductSelected(
-            CashierProduct("ITEM-B", "ITEM-B", "all", "1000", "IDR", "Server price", "10", "Nos", "Warehouse")
+            CashierProduct("ITEM-B", "ITEM-B", "all", "1000", "IDR", uiText(R.string.checkout_server_price), "10", "Nos", "Warehouse")
         )
         runCurrent()
 
@@ -532,7 +537,7 @@ class CashierViewModelTest {
         runCurrent()
 
         viewModel.onProductSelected(
-            CashierProduct("ITEM-1", "ITEM-1", "all", "1000", "IDR", "Server price", "10", "Nos", "Warehouse")
+            CashierProduct("ITEM-1", "ITEM-1", "all", "1000", "IDR", uiText(R.string.checkout_server_price), "10", "Nos", "Warehouse")
         )
         val failedAuth = viewModel.activeQuoteAuthority
         requireNotNull(failedAuth)
@@ -568,7 +573,7 @@ class CashierViewModelTest {
         runCurrent()
 
         viewModel.onProductSelected(
-            CashierProduct("ITEM-1", "ITEM-1", "all", "1000", "IDR", "Server price", "10", "Nos", "Warehouse")
+            CashierProduct("ITEM-1", "ITEM-1", "all", "1000", "IDR", uiText(R.string.checkout_server_price), "10", "Nos", "Warehouse")
         )
         runCurrent()
         val line = (viewModel.state.value as CashierUiState.Active).content.cart.lines.single()
@@ -602,7 +607,7 @@ class CashierViewModelTest {
         runCurrent()
 
         viewModel.onProductSelected(
-            CashierProduct("ITEM-1", "ITEM-1", "all", "1000", "IDR", "Server price", "10", "Nos", "Warehouse")
+            CashierProduct("ITEM-1", "ITEM-1", "all", "1000", "IDR", uiText(R.string.checkout_server_price), "10", "Nos", "Warehouse")
         )
         val pendingAuth = viewModel.activeQuoteAuthority
         requireNotNull(pendingAuth)
@@ -685,7 +690,7 @@ class CashierViewModelTest {
 
         // Scan an unrelated serial while the item quote is pending
         viewModel.onProductSelected(
-            CashierProduct("ITEM-1", "ITEM-1", "all", "1000", "IDR", "Server price", "10", "Nos", "Warehouse")
+            CashierProduct("ITEM-1", "ITEM-1", "all", "1000", "IDR", uiText(R.string.checkout_server_price), "10", "Nos", "Warehouse")
         )
         viewModel.onBarcodeChanged("SER-1")
         viewModel.onBarcodeSubmit()
@@ -716,13 +721,13 @@ class CashierViewModelTest {
 
         repeat(51) { index ->
             viewModel.onProductSelected(
-                CashierProduct("ITEM-$index", "ITEM-$index", "all", "1000", "IDR", "Server price", "10", "Nos", "Warehouse")
+                CashierProduct("ITEM-$index", "ITEM-$index", "all", "1000", "IDR", uiText(R.string.checkout_server_price), "10", "Nos", "Warehouse")
             )
         }
         runCurrent()
         val active = viewModel.state.value as CashierUiState.Active
         assertEquals(MAX_CART_ROWS, active.content.cart.lines.size)
-        assertEquals("Cart limit reached. Remove a row before adding another.", active.content.quoteError)
+        assertEquals(uiText(R.string.cart_error_row_limit), active.content.quoteError)
     }
 
     @Test
@@ -807,7 +812,7 @@ class CashierViewModelTest {
         runCurrent()
 
         viewModel.onProductSelected(
-            CashierProduct("ITEM-1", "ITEM-1", "all", "1000", "IDR", "Server price", "10", "Nos", "Warehouse")
+            CashierProduct("ITEM-1", "ITEM-1", "all", "1000", "IDR", uiText(R.string.checkout_server_price), "10", "Nos", "Warehouse")
         )
         runCurrent()
         assertEquals("1", (viewModel.state.value as CashierUiState.Active).content.cart.lines.single().quantity)

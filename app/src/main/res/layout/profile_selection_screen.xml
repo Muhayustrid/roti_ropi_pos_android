@@ -92,7 +92,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="48dp"
-        android:text="Acknowledge recovery result"
+        android:text="@string/recovery_acknowledge"
         android:visibility="gone" />
 
     <Button
@@ -100,7 +100,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="48dp"
-        android:text="Sign in again"
+        android:text="@string/action_sign_in_again"
         android:visibility="gone" />
 
     <Button

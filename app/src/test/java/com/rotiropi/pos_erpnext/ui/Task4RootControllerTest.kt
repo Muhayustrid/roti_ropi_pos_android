@@ -125,12 +125,16 @@ class Task4RootControllerTest {
                 route = AppRoute.AUTHENTICATED_SHELL,
                 repositoryState = state,
                 retryRequired = true,
-                error = "Bootstrap unavailable",
+                error = uiText(R.string.app_error_bootstrap_unavailable),
             ),
             selectedProfile,
         )
 
         assertTrue(binding.task4Warning.text.toString().contains("STALE_OPENING"))
+        assertEquals(
+            context.getString(R.string.app_error_bootstrap_unavailable),
+            binding.task4Error.text.toString(),
+        )
         assertEquals(View.VISIBLE, binding.task4Retry.visibility)
         binding.task4Retry.performClick()
         binding.task4Logout.performClick()
@@ -185,7 +189,7 @@ class Task4RootControllerTest {
             shouldSynchronizeProfileRoute(
                 AuthenticationState.Authenticated,
                 appState(AppRoute.SELECT_PROFILE, selectedRepository),
-                selectedProfile.copy(retryRequired = true, error = "retry"),
+                selectedProfile.copy(retryRequired = true, error = UiText.Raw("retry")),
             )
         )
     }

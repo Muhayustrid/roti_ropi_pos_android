@@ -1,13 +1,15 @@
 package com.rotiropi.pos_erpnext.ui.theme
 
+import androidx.annotation.StringRes
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
+import com.rotiropi.pos_erpnext.R
 
-enum class PosAccent {
-    BLUE,
-    TEAL,
+enum class PosAccent(@param:StringRes val labelRes: Int) {
+    BLUE(R.string.more_accent_blue),
+    TEAL(R.string.more_accent_teal),
 }
 
 private val BlueLight = Color(0xFF2457C5)

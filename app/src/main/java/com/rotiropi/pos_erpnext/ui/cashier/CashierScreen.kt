@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -32,8 +31,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -43,6 +44,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.rotiropi.pos_erpnext.R
+import com.rotiropi.pos_erpnext.ui.LocalPosWindow
+import com.rotiropi.pos_erpnext.ui.resolve
 import com.rotiropi.pos_erpnext.ui.navigation.PosLayoutMode
 import com.rotiropi.pos_erpnext.ui.receipt.ReceiptScreen
 import com.rotiropi.pos_erpnext.ui.theme.PosDimensions
@@ -146,7 +150,7 @@ private fun CashierActive(
     customerState: CustomerSearchUiState?,
     onOpenCustomerSheet: () -> Unit,
 ) {
-    if (layoutMode == PosLayoutMode.EXPANDED) {
+    if (layoutMode == PosLayoutMode.EXPANDED && LocalPosWindow.current.isTall) {
         Row(
             modifier = modifier
                 .fillMaxSize()
@@ -218,7 +222,13 @@ private fun CashierActive(
                     .heightIn(min = PosDimensions.touchTarget)
                     .testTag("cashier-cart-summary"),
             ) {
-                Text("${content.cart.itemCountLabel} · ${content.cart.payableLabel}")
+                Text(
+                    stringResource(
+                        R.string.cart_line_summary,
+                        content.cart.itemCountLabel.resolve(),
+                        content.cart.payableLabel.resolve(),
+                    ),
+                )
             }
         }
         if (cartVisible) {
@@ -262,68 +272,69 @@ private fun CashierBrowser(
     gridBottomPadding: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
     val focusManager = LocalFocusManager.current
+    val catalogState = stringResource(R.string.cashier_state_catalog)
     Column(
         modifier = modifier.semantics {
-            stateDescription = if (content.demoData) "Cashier demo visuals" else "Cashier catalog"
+            stateDescription = catalogState
         },
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        CashierHeader(content.demoData, customerState, onOpenCustomerSheet)
+        CashierHeader(customerState, onOpenCustomerSheet)
         if (content.catalogLoading && content.products.isEmpty()) {
             Text(
-                text = "Loading catalog",
+                text = stringResource(R.string.cashier_loading_catalog),
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
         } else if (content.catalogError == null && content.products.isEmpty()) {
             Text(
-                text = "No products found",
+                text = stringResource(R.string.cashier_no_products),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
         }
         content.catalogError?.let { error ->
-            Text(error, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive })
+            Text(error.resolve(), modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive })
             Button(
                 onClick = onRetry,
                 modifier = Modifier.heightIn(min = PosDimensions.touchTarget).testTag("cashier-catalog-retry"),
-            ) { Text("Retry") }
+            ) { Text(stringResource(R.string.action_retry)) }
         }
         if (content.catalogLoading && content.products.isNotEmpty()) {
             Text(
-                text = "Loading more products",
+                text = stringResource(R.string.cashier_loading_more),
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
         }
         if (content.scanLoading) {
             Text(
-                text = "Scanning barcode",
+                text = stringResource(R.string.cashier_scanning),
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
         }
         content.scanError?.let { error ->
-            Text(error, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive })
+            Text(error.resolve(), modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive })
             Button(
                 onClick = onRetry,
                 modifier = Modifier.heightIn(min = PosDimensions.touchTarget).testTag("cashier-scan-retry"),
-            ) { Text("Retry") }
+            ) { Text(stringResource(R.string.action_retry)) }
         }
         if (content.quoteLoading) {
             Text(
-                text = "Updating cart quote",
+                text = stringResource(R.string.cashier_updating_quote),
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
         }
         content.quoteError?.let { error ->
-            Text(error, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive })
+            Text(error.resolve(), modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive })
             Button(
                 onClick = onRetry,
                 modifier = Modifier.heightIn(min = PosDimensions.touchTarget).testTag("cashier-quote-retry"),
-            ) { Text("Retry") }
+            ) { Text(stringResource(R.string.action_retry)) }
         }
         OutlinedTextField(
             value = content.query,
             onValueChange = onQueryChange,
-            label = { Text("Search products") },
+            label = { Text(stringResource(R.string.cashier_search_label)) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Next) }),
@@ -335,7 +346,7 @@ private fun CashierBrowser(
         OutlinedTextField(
             value = content.barcode,
             onValueChange = onBarcodeChange,
-            label = { Text("Barcode (manual or HID scanner)") },
+            label = { Text(stringResource(R.string.cashier_barcode_label)) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onBarcodeSubmit() }),
@@ -346,13 +357,15 @@ private fun CashierBrowser(
         )
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(content.categories, key = { it.id }) { category ->
+                val categoryLabel = category.label.resolve()
+                val categoryDescription = stringResource(R.string.cashier_category_description, categoryLabel)
                 FilterChip(
                     selected = category.id == content.selectedCategoryId,
                     onClick = { onCategorySelected(category) },
-                    label = { Text(category.label) },
+                    label = { Text(categoryLabel) },
                     modifier = Modifier
                         .heightIn(min = PosDimensions.touchTarget)
-                        .semantics { contentDescription = "Cashier category ${category.label}" },
+                        .semantics { contentDescription = categoryDescription },
                 )
             }
         }
@@ -371,14 +384,13 @@ private fun CashierBrowser(
                     .fillMaxWidth()
                     .heightIn(min = PosDimensions.touchTarget)
                     .testTag("cashier-load-more"),
-            ) { Text("Load more") }
+            ) { Text(stringResource(R.string.action_load_more)) }
         }
     }
 }
 
 @Composable
 private fun CashierHeader(
-    demoData: Boolean,
     customerState: CustomerSearchUiState?,
     onOpenCustomerSheet: () -> Unit,
 ) {
@@ -389,24 +401,18 @@ private fun CashierHeader(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Cashier",
+                text = stringResource(R.string.cashier_title),
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.semantics { heading() },
             )
             Text(
-                text = if (demoData) "Static sale composition" else "Catalog snapshots",
+                text = stringResource(R.string.cashier_subtitle_snapshots),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyLarge,
             )
         }
-        if (demoData) {
-            DemoBadge()
-        } else if (customerState != null) {
-            val customerLabel = when (val selection = customerState.selection) {
-                is com.rotiropi.pos_erpnext.ui.customer.CustomerSelection.WalkIn -> selection.displayName.ifBlank { "Walk-in customer" }
-                is com.rotiropi.pos_erpnext.ui.customer.CustomerSelection.Registered -> selection.displayLabel
-                null -> "Customer"
-            }
+        if (customerState != null) {
+            val customerLabel = customerLabel(customerState)
             Button(
                 onClick = onOpenCustomerSheet,
                 modifier = Modifier
@@ -417,17 +423,32 @@ private fun CashierHeader(
     }
 }
 
+/**
+ * The button label for the customer selector. A registered customer's display label and a
+ * walk-in name the cashier typed are server- or user-supplied and pass through verbatim;
+ * only the two fallbacks are translated.
+ */
+@Composable
+private fun customerLabel(state: CustomerSearchUiState): String =
+    when (val selection = state.selection) {
+        is com.rotiropi.pos_erpnext.ui.customer.CustomerSelection.WalkIn ->
+            selection.displayName.ifBlank { stringResource(R.string.customer_walk_in) }
+        is com.rotiropi.pos_erpnext.ui.customer.CustomerSelection.Registered -> selection.displayLabel
+        null -> stringResource(R.string.customer_label)
+    }
+
 @Composable
 internal fun CashierProductCard(
     product: CashierProduct,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val addDescription = stringResource(R.string.cashier_add_to_cart_description, product.itemName)
     ElevatedCard(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = PosDimensions.touchTarget)
-            .semantics { contentDescription = "Add ${product.itemName} to cart" }
+            .semantics { contentDescription = addDescription }
             .clickable(role = Role.Button, onClick = onClick),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -445,9 +466,12 @@ internal fun CashierProductCard(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(product.itemName, style = MaterialTheme.typography.titleMedium)
-                Text(product.priceSnapshotLabel(), style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    product.stockSnapshotLabel(),
+                    product.priceSnapshotLabel(LocalContext.current),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
+                    product.stockSnapshotLabel(LocalContext.current),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -463,23 +487,19 @@ private fun CashierUnavailable(
     onOpenCustomerSheet: () -> Unit,
 ) {
     Column(modifier = modifier.padding(PosDimensions.screenPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Cashier unavailable", style = MaterialTheme.typography.headlineMedium)
+        Text(stringResource(R.string.cashier_unavailable), style = MaterialTheme.typography.headlineMedium)
         customerState?.let { state ->
-            val label = when (val selection = state.selection) {
-                is com.rotiropi.pos_erpnext.ui.customer.CustomerSelection.WalkIn -> selection.displayName.ifBlank { "Walk-in customer" }
-                is com.rotiropi.pos_erpnext.ui.customer.CustomerSelection.Registered -> selection.displayLabel
-                null -> "Customer"
-            }
+            val label = customerLabel(state)
             Button(onClick = onOpenCustomerSheet, modifier = Modifier.heightIn(min = PosDimensions.touchTarget).testTag("customer-open")) { Text(label) }
         }
-        Text("Catalog, authoritative payable, and payment modes are not integrated.")
+        Text(stringResource(R.string.cashier_unavailable_detail))
     }
 }
 
 @Composable
 private fun CashierError(message: String, modifier: Modifier, onRetry: () -> Unit) {
     CashierStatePanel(
-        title = "Cashier could not load",
+        title = stringResource(R.string.cashier_could_not_load),
         message = message,
         modifier = modifier,
         error = true,
@@ -523,24 +543,9 @@ private fun CashierStatePanel(
                     onClick = onRetry,
                     modifier = Modifier.heightIn(min = PosDimensions.touchTarget),
                 ) {
-                    Text("Retry")
+                    Text(stringResource(R.string.action_retry))
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun DemoBadge() {
-    Surface(
-        color = MaterialTheme.colorScheme.tertiaryContainer,
-        shape = RoundedCornerShape(12.dp),
-    ) {
-        Text(
-            text = "Demo data",
-            color = MaterialTheme.colorScheme.onTertiaryContainer,
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-        )
     }
 }

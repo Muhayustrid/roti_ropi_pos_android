@@ -2,6 +2,7 @@ package com.rotiropi.pos_erpnext.ui
 
 import com.rotiropi.pos_erpnext.ui.navigation.PosDestination
 import com.rotiropi.pos_erpnext.ui.navigation.PosLayoutMode
+import com.rotiropi.pos_erpnext.ui.navigation.parentDestinationOf
 import com.rotiropi.pos_erpnext.ui.navigation.posLayoutModeForWidth
 import com.rotiropi.pos_erpnext.ui.theme.PosAccent
 import com.rotiropi.pos_erpnext.ui.theme.PosShapes
@@ -13,12 +14,20 @@ import org.junit.Test
 class PosFoundationTest {
 
     @Test
-    fun root_destinations_are_unique_and_keep_cashier_centered() {
+    fun root_destinations_are_unique_and_start_with_cashier() {
         assertEquals(
-            listOf("home", "products", "cashier", "reports", "more"),
+            listOf("cashier", "history", "more"),
             PosDestination.entries.map { it.route }
         )
-        assertEquals(PosDestination.CASHIER, PosDestination.entries[2])
+        assertEquals(PosDestination.CASHIER, PosDestination.entries.first())
+    }
+
+    @Test
+    fun child_routes_keep_their_parent_tab_selected() {
+        assertEquals(PosDestination.MORE, parentDestinationOf("closing"))
+        assertEquals(PosDestination.HISTORY, parentDestinationOf("sale/SINV-0001"))
+        assertEquals(PosDestination.HISTORY, parentDestinationOf("return/SINV-0001"))
+        assertEquals(PosDestination.CASHIER, parentDestinationOf(null))
     }
 
     @Test

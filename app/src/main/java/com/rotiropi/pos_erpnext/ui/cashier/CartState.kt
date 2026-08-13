@@ -1,7 +1,9 @@
 package com.rotiropi.pos_erpnext.ui.cashier
 
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.data.CatalogQuote
 import com.rotiropi.pos_erpnext.data.CatalogWarning
+import com.rotiropi.pos_erpnext.ui.uiText
 import java.math.BigDecimal
 
 data class QuoteAuthority(
@@ -121,7 +123,9 @@ data class CartState(
                 itemCode = line.itemCode,
                 itemName = line.itemName,
                 quantity = line.quantity,
-                priceLabel = line.quote?.let { "${it.rate} server quote estimate" } ?: "Quote pending",
+                priceLabel = line.quote
+                    ?.let { uiText(R.string.cart_quote_estimate, it.rate) }
+                    ?: uiText(R.string.cart_quote_pending),
                 uom = line.uom,
                 batchNo = line.batchNo,
                 serialNo = line.serialNo,
@@ -130,8 +134,12 @@ data class CartState(
                     ?.message,
             )
         },
-        itemCountLabel = "${lines.size} lines",
-        payableLabel = if (lines.isEmpty()) "Cart empty" else "Estimated values only",
+        itemCountLabel = uiText(R.string.cart_line_count, lines.size),
+        payableLabel = if (lines.isEmpty()) {
+            uiText(R.string.cart_empty_short)
+        } else {
+            uiText(R.string.cart_estimated_only)
+        },
     )
 
     private fun lineId(draft: CartLineDraft, resolvedUom: String): String = listOf(

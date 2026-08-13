@@ -30,12 +30,14 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.ui.theme.PosDimensions
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -103,11 +105,15 @@ internal fun CustomerSearchContent(
                     .testTag("customer-search-header"),
             ) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Customer", modifier = Modifier.testTag("customer-selection").semantics {
-                        stateDescription = when (val selection = state.selection) {
-                            is CustomerSelection.WalkIn -> "Walk-in customer selected"
-                            is CustomerSelection.Registered -> "Registered customer ${selection.displayLabel} selected"
-                            null -> "No customer selected"
+                    val walkInSelected = stringResource(R.string.customer_walk_in_selected)
+                    val registeredSelected = (state.selection as? CustomerSelection.Registered)
+                        ?.let { stringResource(R.string.customer_registered_selected, it.displayLabel) }
+                    val noneSelected = stringResource(R.string.customer_none_selected)
+                    Text(stringResource(R.string.customer_label), modifier = Modifier.testTag("customer-selection").semantics {
+                        stateDescription = when (state.selection) {
+                            is CustomerSelection.WalkIn -> walkInSelected
+                            is CustomerSelection.Registered -> registeredSelected ?: noneSelected
+                            null -> noneSelected
                         }
                     })
                     Button(
@@ -115,12 +121,12 @@ internal fun CustomerSearchContent(
                         modifier = Modifier.focusRequester(doneFocus)
                             .requiredHeight(PosDimensions.touchTarget)
                             .testTag("customer-dismiss"),
-                    ) { Text("Done") }
+                    ) { Text(stringResource(R.string.action_done)) }
                 }
                 OutlinedTextField(
                     value = state.query,
                     onValueChange = onQueryChanged,
-                    label = { Text("Search customers") },
+                    label = { Text(stringResource(R.string.customer_search_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                         .keyboardNext(walkInFocus)
@@ -138,7 +144,7 @@ internal fun CustomerSearchContent(
                 OutlinedTextField(
                     value = selection.displayName,
                     onValueChange = onWalkInNameChanged,
-                    label = { Text("Walk-in display name") },
+                    label = { Text(stringResource(R.string.customer_walk_in_name_label)) },
                     modifier = Modifier.fillMaxWidth()
                         .padding(horizontal = 16.dp)
                         .keyboardNext(afterWalkIn)
@@ -161,12 +167,12 @@ internal fun CustomerSearchContent(
                         .padding(horizontal = 16.dp)
                         .requiredHeight(PosDimensions.touchTarget)
                         .testTag("customer-select-walk-in"),
-                ) { Text("Walk-in customer") }
+                ) { Text(stringResource(R.string.customer_walk_in)) }
             }
         }
-        if (state.loading) item { Text("Loading customers", Modifier.padding(horizontal = 16.dp).testTag("customer-loading").semantics { liveRegion = LiveRegionMode.Polite }) }
+        if (state.loading) item { Text(stringResource(R.string.customer_loading), Modifier.padding(horizontal = 16.dp).testTag("customer-loading").semantics { liveRegion = LiveRegionMode.Polite }) }
         state.error?.let { error -> item {
-            Text(error.toUiMessage(), Modifier.padding(horizontal = 16.dp).semantics { liveRegion = LiveRegionMode.Assertive })
+            Text(stringResource(error.toUiMessage()), Modifier.padding(horizontal = 16.dp).semantics { liveRegion = LiveRegionMode.Assertive })
             Button(
                 onClick = onRetry,
                 modifier = Modifier.keyboardNext(doneFocus)
@@ -178,10 +184,11 @@ internal fun CustomerSearchContent(
                     .padding(horizontal = 16.dp)
                     .requiredHeight(PosDimensions.touchTarget)
                     .testTag("customer-retry"),
-            ) { Text("Retry") }
+            ) { Text(stringResource(R.string.action_retry)) }
         } }
-        if (!state.loading && state.error == null && state.customers.isEmpty()) item { Text("No customers found", Modifier.padding(horizontal = 16.dp).testTag("customer-empty")) }
+        if (!state.loading && state.error == null && state.customers.isEmpty()) item { Text(stringResource(R.string.customer_empty), Modifier.padding(horizontal = 16.dp).testTag("customer-empty")) }
         itemsIndexed(state.customers, key = { _, customer -> customer.id }) { index, customer ->
+            val selectDescription = stringResource(R.string.customer_select_description, customer.displayLabel)
             ListItem(
                 headlineContent = { Text(customer.displayLabel) },
                 supportingContent = { customer.mobile?.let { Text(it) } },
@@ -193,7 +200,7 @@ internal fun CustomerSearchContent(
                     } else Modifier)
                     .then(if (index == 0) Modifier.focusRequester(firstCustomerFocus) else Modifier)
                     .testTag("customer-${customer.id}")
-                    .semantics { contentDescription = "Select ${customer.displayLabel}" }
+                    .semantics { contentDescription = selectDescription }
                     .clickable { onSelectRegistered(customer) },
             )
         }
@@ -211,10 +218,10 @@ internal fun CustomerSearchContent(
                     .padding(horizontal = 16.dp)
                     .requiredHeight(PosDimensions.touchTarget)
                     .testTag("customer-load-more"),
-            ) { Text("Load more") }
+            ) { Text(stringResource(R.string.action_load_more)) }
         }
         state.pageError?.let { error -> item {
-            Text(error.toUiMessage(), Modifier.padding(horizontal = 16.dp).semantics { liveRegion = LiveRegionMode.Assertive })
+            Text(stringResource(error.toUiMessage()), Modifier.padding(horizontal = 16.dp).semantics { liveRegion = LiveRegionMode.Assertive })
             Button(
                 onClick = onRetry,
                 modifier = Modifier.keyboardNext(doneFocus)
@@ -226,7 +233,7 @@ internal fun CustomerSearchContent(
                     .padding(horizontal = 16.dp)
                     .requiredHeight(PosDimensions.touchTarget)
                     .testTag("customer-page-retry"),
-            ) { Text("Retry") }
+            ) { Text(stringResource(R.string.action_retry)) }
         } }
     }
 }

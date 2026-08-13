@@ -1,9 +1,12 @@
 package com.rotiropi.pos_erpnext.ui.opening
 
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.data.PosProfile
 import com.rotiropi.pos_erpnext.data.api.OpenSessionRequestDto
 import com.rotiropi.pos_erpnext.data.api.OpeningBalanceInputDto
 import com.rotiropi.pos_erpnext.recovery.RecoveryExecution
+import com.rotiropi.pos_erpnext.ui.UiText
+import com.rotiropi.pos_erpnext.ui.uiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,12 +15,15 @@ data class OpeningRowUiState(
     val modeOfPayment: String,
     val input: String,
     val editable: Boolean,
-    val error: String? = null,
+    val error: UiText? = null,
 )
 
 data class OpeningUiState(
     val profileName: String? = null,
     val currency: String? = null,
+    val cashier: String? = null,
+    val company: String? = null,
+    val warehouse: String? = null,
     val rows: List<OpeningRowUiState> = emptyList(),
     val unavailable: Boolean = false,
     val canSubmit: Boolean = false,
@@ -25,7 +31,7 @@ data class OpeningUiState(
     val recoveryPending: Boolean = false,
     val authenticationRequired: Boolean = false,
     val reconciling: Boolean = false,
-    val error: String? = null,
+    val error: UiText? = null,
 )
 
 class OpeningViewModel(
@@ -67,6 +73,7 @@ class OpeningViewModel(
         val execution = submit(OpenSessionRequestDto(profile.name, canonical))
         mutableState.value = when (execution) {
             is RecoveryExecution.Completed -> mutableState.value.copy(submitting = false, recoveryPending = true)
+            // Developer-facing programming error, never surfaced to a cashier.
             is RecoveryExecution.ClosingQueued -> error("Closing result cannot complete Opening")
             is RecoveryExecution.WaitingRetry,
             is RecoveryExecution.RetrySchedulingFailed,
@@ -75,15 +82,15 @@ class OpeningViewModel(
             RecoveryExecution.NotStartedOffline -> mutableState.value.copy(
                 submitting = false,
                 canSubmit = true,
-                error = "Opening was not submitted because the device is offline.",
+                error = uiText(R.string.opening_error_offline),
             )
             RecoveryExecution.BlockedIdentity -> mutableState.value.copy(
                 submitting = false,
-                error = "Another recovery action must be resolved first.",
+                error = uiText(R.string.opening_error_other_recovery),
             )
             is RecoveryExecution.Rejected -> mutableState.value.copy(
                 submitting = false,
-                error = "Opening was rejected. Reconcile the current session before retrying.",
+                error = uiText(R.string.opening_error_rejected),
             )
         }
         return execution
@@ -105,7 +112,7 @@ class OpeningViewModel(
             recoveryPending = true,
             authenticationRequired = false,
             canSubmit = false,
-            error = "Opening recovery could not verify the current session. Please retry.",
+            error = uiText(R.string.opening_error_recovery_unverified),
         )
     }
 
@@ -113,7 +120,7 @@ class OpeningViewModel(
         mutableState.value = mutableState.value.copy(
             unavailable = true,
             canSubmit = false,
-            error = "Opening session verification failed. Please retry after reconnecting.",
+            error = uiText(R.string.opening_error_verification_failed),
         )
     }
 
@@ -129,15 +136,19 @@ class OpeningViewModel(
         return OpeningUiState(
             profileName = profile.name,
             currency = policy?.currency,
+            cashier = cashier,
+            company = profile.company,
+            warehouse = profile.warehouse,
             rows = rows,
             unavailable = unavailable,
             canSubmit = canSubmit(rows),
-            error = if (unavailable) "Opening configuration is unavailable." else null,
+            error = if (unavailable) uiText(R.string.opening_unavailable) else null,
         )
     }
 
     private fun validate(row: OpeningRowUiState): OpeningRowUiState {
-        val inputPolicy = policy?.toInputPolicy() ?: return row.copy(error = "Opening configuration is unavailable.")
+        val inputPolicy = policy?.toInputPolicy()
+            ?: return row.copy(error = uiText(R.string.opening_unavailable))
         return when (val result = canonicalizeOpeningAmount(row.input, inputPolicy)) {
             is OpeningAmountResult.Valid -> row.copy(error = null)
             is OpeningAmountResult.Invalid -> row.copy(error = result.reason)

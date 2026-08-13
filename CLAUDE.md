@@ -8,6 +8,8 @@ Read `AGENTS.md` before changing code. It is authoritative for security, API bou
 
 When `.codegraph/` exists, use CodeGraph before broad repository searches or direct code reads. Query affected symbols and their callers before editing; use targeted reads or broad search only when CodeGraph cannot answer.
 
+For complex coding work that splits into independent pieces, consider the Superpowers `subagent-driven-development` workflow instead of doing it all in the main agent: multi-step implementations, investigating several unrelated areas, implementation followed by review, or work that can genuinely run in parallel. Skip it for trivial or small changes and for anything faster done directly. If another Superpowers workflow fits the task better, follow that one rather than forcing this one. The skill owns the details — how work is split, how agents are briefed, how review happens — and the configured concurrent-subagent limit still applies.
+
 ## Commands
 
 Run commands from the repository root. Gradle uses the wrapper; Android Studio's bundled JBR supplies the expected Java toolchain when `JAVA_HOME` is unset.
@@ -56,7 +58,7 @@ Only the versioned Mobile POS backend API under `/api/method/roti_ropi_pos.api.v
 
 ## Source sets and test harnesses
 
-Debug-only demo fixtures live under `app/src/debug/`; release uses an unsupported stub under `app/src/release/` so demo data cannot ship. Keep this separation intact.
+Debug-only Compose previews live under `app/src/debug/`. There is no demo-data toggle and no `app/src/release/` source set: the toggle and its fixtures were deleted on 2026-08-13 along with Products and Reports, the only screens it ever populated. `ReleaseFixtureExclusionTest` fails if a `demoData` or `PosDemoStates` reference reappears in shipped sources, so do not reintroduce one.
 
 Instrumentation members annotated `SpecialHarnessOnly` are invoked by host scripts for process-death scenarios and excluded from broad suites. Do not remove or broadly execute them without checking `tools/run-device-tests.sh` and `tools/oauth-process-death.sh`.
 

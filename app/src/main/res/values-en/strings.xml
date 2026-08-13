@@ -1,0 +1,299 @@
+<resources>
+    <!--
+        English translation. Indonesian in `values/strings.xml` is the default and the
+        fallback; this file is selected by the stored PosLanguage preference or an
+        English device locale. Every key here must exist there.
+    -->
+    <string name="app_name">POS-ERPNext</string>
+
+    <!-- Shared actions and state labels -->
+    <string name="action_retry">Retry</string>
+    <string name="action_done">Done</string>
+    <string name="action_back">Back</string>
+    <string name="action_load_more">Load more</string>
+    <string name="action_sign_in_again">Sign in again</string>
+    <string name="state_unavailable">Unavailable</string>
+    <string name="state_not_supported">Not supported</string>
+    <string name="state_loading">Loading</string>
+    <string name="state_empty">Empty</string>
+    <string name="state_offline">Offline</string>
+    <string name="state_error">Error</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_cashier">Cashier</string>
+    <string name="nav_history">History</string>
+    <string name="nav_more">More</string>
+
+    <!-- Profile selection (legacy XML surface) -->
+    <string name="profile_selection_title">Select POS profile</string>
+    <string name="profile_selection_loading">Loading profiles</string>
+    <string name="profile_selection_retry">Retry</string>
+    <string name="profile_selection_logout">Sign out</string>
+    <string name="profile_selection_error">Profile selection error</string>
+    <string name="profile_selection_previous">Previous</string>
+    <string name="profile_selection_next">Next</string>
+    <string name="profile_selection_page">Page %1$d of %2$d</string>
+    <string name="profile_error_authentication">Sign-in is required. Please authenticate and retry.</string>
+    <string name="profile_error_refresh">The profile could not be refreshed. Please retry.</string>
+    <string name="profile_error_protocol">The server returned an unexpected response. Please retry.</string>
+    <string name="profile_error_not_available">Profile %1$s is not available.</string>
+    <string name="profile_recovery_completed">%1$s %2$s completed with status %3$s.</string>
+    <string name="task4_change_profile">Change profile</string>
+
+    <!-- Sign in -->
+    <string name="sign_in_brand">Roti Ropi</string>
+    <string name="sign_in_tagline">Point of Sale System</string>
+    <string name="sign_in_server_label">ERPNext server</string>
+    <string name="sign_in_secure_note">You will sign in securely through ERPNext.</string>
+    <string name="sign_in_waiting">Waiting for ERPNext sign-in…</string>
+    <string name="sign_in_waiting_detail">Please complete the authentication process in the browser window that opened.</string>
+    <string name="sign_in_button">Continue with ERPNext</string>
+    <string name="sign_in_password_note">Your password is entered only on the secure ERPNext sign-in page.</string>
+    <string name="sign_in_error_cancelled">Sign-in was cancelled. Try again when you are ready.</string>
+    <string name="sign_in_error_browser">Could not open the secure sign-in page. Please try again.</string>
+    <string name="sign_in_error_not_saved">Sign-in finished but could not be saved. Please try again.</string>
+    <string name="sign_in_error_timeout">Sign-in took too long. Please try again.</string>
+    <string name="sign_in_error_already_used">That sign-in was already completed. Please try again.</string>
+    <string name="sign_in_error_generic">Sign-in could not be completed. Please try again.</string>
+    <!-- Opening -->
+    <string name="opening_title">Opening Balance</string>
+    <string name="opening_subtitle">Enter the starting amounts to begin today\'s shift.</string>
+    <string name="opening_unavailable">Opening configuration is unavailable.</string>
+    <string name="opening_set_by_server">Set by server</string>
+    <string name="opening_submitting">Opening…</string>
+    <string name="opening_recovery_pending">Recovery pending</string>
+    <string name="opening_start_shift">Start Shift</string>
+    <string name="opening_checking_title">Checking Shift Status</string>
+    <string name="opening_checking_detail">We\'re checking the current session before continuing.</string>
+    <string name="opening_session_details">Session Details</string>
+    <string name="opening_field_cashier">Cashier</string>
+    <string name="opening_field_pos_profile">POS Profile</string>
+    <string name="opening_field_company">Company</string>
+    <string name="opening_field_warehouse">Warehouse</string>
+    <string name="opening_field_currency">Currency</string>
+    <string name="opening_confirm_title">Confirm Opening Balance</string>
+    <string name="opening_confirm_subtitle">Review the starting funds before starting this shift.</string>
+    <string name="opening_confirm_warning">These opening amounts cannot be changed after the shift starts.</string>
+    <string name="opening_confirm_starting">Starting Shift…</string>
+    <string name="opening_confirm_start">Confirm &amp; Start Shift</string>
+    <string name="opening_confirm_edit">Edit Amounts</string>
+    <string name="opening_error_offline">Opening was not submitted because the device is offline.</string>
+    <string name="opening_error_other_recovery">Another recovery action must be resolved first.</string>
+    <string name="opening_error_rejected">Opening was rejected. Reconcile the current session before retrying.</string>
+    <string name="opening_error_recovery_unverified">Opening recovery could not verify the current session. Please retry.</string>
+    <string name="opening_error_verification_failed">Opening session verification failed. Please retry after reconnecting.</string>
+    <string name="opening_error_closing_result">Closing result cannot complete Opening</string>
+    <string name="opening_error_profile_unavailable">Opening is not available for this POS Profile.</string>
+    <string name="opening_amount_error_decimal_places">Use at most %1$d decimal places.</string>
+    <string name="opening_amount_error_minimum">Amount must be at least %1$s.</string>
+    <string name="amount_error_invalid">Enter a valid amount.</string>
+    <string name="amount_error_negative">Enter a non-negative decimal amount.</string>
+    <string name="amount_error_decimal_places">Amount has too many decimal places.</string>
+    <string name="amount_error_below_minimum">Amount is below the minimum.</string>
+    <!-- Cashier -->
+    <string name="cashier_title">Cashier</string>
+    <string name="cashier_unavailable">Cashier unavailable</string>
+    <string name="cashier_unavailable_detail">Catalog, authoritative payable, and payment modes are not integrated.</string>
+    <string name="cashier_could_not_load">Cashier could not load</string>
+    <string name="cashier_subtitle_snapshots">Catalog snapshots</string>
+    <string name="cashier_state_catalog">Cashier catalog</string>
+    <string name="cashier_loading_catalog">Loading catalog</string>
+    <string name="cashier_loading_more">Loading more products</string>
+    <string name="cashier_no_products">No products found</string>
+    <string name="cashier_scanning">Scanning barcode</string>
+    <string name="cashier_updating_quote">Updating cart quote</string>
+    <string name="cashier_search_label">Search products</string>
+    <string name="cashier_barcode_label">Barcode (manual or HID scanner)</string>
+    <string name="cashier_category_description">Cashier category %1$s</string>
+    <string name="cashier_add_to_cart_description">Add %1$s to cart</string>
+    <string name="cashier_category_all">All</string>
+    <string name="cashier_price_snapshot">%1$s %2$s · %3$s server snapshot</string>
+    <string name="cashier_stock_snapshot">%1$s %2$s · %3$s server stock snapshot</string>
+    <string name="customer_walk_in">Walk-in customer</string>
+    <string name="customer_label">Customer</string>
+
+    <!-- Cart -->
+    <string name="cart_title">Cart</string>
+    <string name="cart_empty">Cart is empty</string>
+    <string name="cart_empty_short">Cart empty</string>
+    <string name="cart_estimated_only">Estimated values only</string>
+    <string name="cart_quote_pending">Quote pending</string>
+    <string name="cart_quote_estimate">%1$s server quote estimate</string>
+    <string name="cart_line_count">%1$d lines</string>
+    <string name="cart_line_summary">%1$s · %2$s</string>
+    <string name="cart_quantity_invalid">Quantity is not valid</string>
+    <string name="cart_remove">Remove</string>
+    <string name="cart_batch">Batch %1$s</string>
+    <string name="cart_serial">Serial %1$s</string>
+    <string name="cart_error_duplicate_serial">This serial is already in the cart.</string>
+    <string name="cart_error_invalid_quantity">Quantity is not valid.</string>
+    <string name="cart_error_serial_quantity">Serialized items require quantity 1.</string>
+    <string name="cart_error_quote_mismatch">The server quote did not match this cart row.</string>
+    <string name="cart_error_row_limit">Cart limit reached. Remove a row before adding another.</string>
+    <string name="cart_error_increase_unsafe">Quantity cannot be increased safely.</string>
+    <string name="catalog_error_authentication">Session expired. Please sign in again.</string>
+    <string name="catalog_error_authorization">You do not have permission to use the catalog.</string>
+    <string name="catalog_error_unavailable">Catalog is unavailable. Check your connection.</string>
+    <string name="catalog_error_stable">Catalog request could not be completed.</string>
+    <string name="catalog_error_protocol">Catalog returned an unexpected response.</string>
+    <!-- Checkout -->
+    <string name="checkout_title">Checkout</string>
+    <string name="checkout_unavailable">Authoritative payable and payment modes unavailable</string>
+    <string name="checkout_payable">Payable: %1$s %2$s</string>
+    <string name="checkout_offline">Offline — sale not submitted</string>
+    <string name="checkout_submitting">Submitting sale</string>
+    <string name="checkout_review">Review checkout</string>
+    <string name="checkout_confirm">Confirm exact payment</string>
+    <string name="checkout_default_mode">%1$s (default)</string>
+    <string name="checkout_error_total_mismatch">Payment total must equal payable.</string>
+    <string name="checkout_error_cart_changed">Cart changed. Review checkout before submitting.</string>
+    <string name="checkout_error_price_changed">Server price changed. Review and retry.</string>
+    <string name="checkout_error_rejected">Sale submission was rejected.</string>
+    <string name="checkout_error_recovery">Sale submission requires recovery.</string>
+    <string name="checkout_awaiting_recovery">Sale submitted; receipt will appear after recovery confirmation.</string>
+    <string name="checkout_server_price">Server price</string>
+    <!-- Receipt -->
+    <string name="receipt_title">Receipt</string>
+    <string name="receipt_return_against">Return against: %1$s</string>
+    <string name="receipt_row_customer">Customer</string>
+    <string name="receipt_row_total">Total</string>
+    <string name="receipt_row_paid">Paid</string>
+    <string name="receipt_row_change">Server change</string>
+    <string name="receipt_row_status">Status</string>
+    <string name="receipt_close">Close receipt</string>
+    <string name="sale_status_paid">Paid</string>
+    <string name="sale_status_return">Return</string>
+    <string name="sale_status_consolidated">Consolidated</string>
+    <string name="sale_status_cancelled">Cancelled</string>
+    <string name="sale_status_unsupported">Unsupported</string>
+
+    <!-- Customer search -->
+    <string name="customer_search_label">Search customers</string>
+    <string name="customer_walk_in_name_label">Walk-in display name</string>
+    <string name="customer_walk_in_selected">Walk-in customer selected</string>
+    <string name="customer_registered_selected">Registered customer %1$s selected</string>
+    <string name="customer_none_selected">No customer selected</string>
+    <string name="customer_select_description">Select %1$s</string>
+    <string name="customer_error_authentication">Session expired. Please sign in again.</string>
+    <string name="customer_error_authorization">You do not have permission to search customers.</string>
+    <string name="customer_error_unavailable">Customer search is unavailable. Check your connection.</string>
+    <string name="customer_error_failed">Search failed. Please try again.</string>
+    <string name="customer_loading">Loading customers</string>
+    <string name="customer_empty">No customers found</string>
+
+    <!-- Sale history, detail, and return -->
+    <string name="history_title">Sale history</string>
+    <string name="history_unavailable">History unavailable</string>
+    <string name="history_search_label">Search sales</string>
+    <string name="history_empty">No sales found</string>
+    <string name="sale_detail_title">Sale detail</string>
+    <string name="sale_detail_unavailable">Sale unavailable</string>
+    <string name="sale_detail_quantity">%1$s %2$s</string>
+    <string name="sale_detail_returnability">Original %1$s · Returned %2$s · Remaining %3$s</string>
+    <string name="sale_detail_batches">Batches: %1$s</string>
+    <string name="sale_detail_serials">Serials: %1$s</string>
+    <string name="sale_detail_not_returnable">Not returnable</string>
+    <string name="sale_detail_start_return">Start return</string>
+    <string name="return_title">Return sale</string>
+    <string name="return_unavailable">Return unavailable</string>
+    <string name="return_submitted">Return submitted. Awaiting terminal result.</string>
+    <string name="return_source">Source: %1$s</string>
+    <string name="return_refund_mode">Refund mode</string>
+    <string name="return_quote_title">Server refund quote</string>
+    <string name="return_quote_amount">Refund: %1$s</string>
+    <string name="return_quote_allocation">%1$s: %2$s</string>
+    <string name="return_row_quantities">Original %1$s · Returned %2$s · Remaining %3$s</string>
+    <string name="return_quantity_label">Return quantity</string>
+    <string name="return_reason_label">Return reason</string>
+    <string name="return_get_quote">Get server quote</string>
+    <string name="return_submit">Submit return</string>
+    <string name="return_unsupported_serial">Serialized return is not supported in this app.</string>
+    <string name="return_unsupported_multi_batch">Multiple-batch return is not supported in this app.</string>
+    <string name="return_error_row_ineligible">This row cannot be returned.</string>
+    <string name="return_error_reason_required">Enter a return reason.</string>
+    <string name="return_error_selection_required">Select at least one row to return.</string>
+    <string name="return_error_refund_mode_required">Choose a refund mode.</string>
+    <string name="return_error_refund_mode_not_allowed">That refund mode is not allowed for this sale.</string>
+    <string name="return_error_quote_required">Get a server quote before submitting.</string>
+    <string name="return_error_stale_quote">The quote is out of date. Get a new one.</string>
+    <string name="return_error_submission_unavailable">The return cannot be submitted right now.</string>
+    <string name="return_error_rejected">The return was rejected.</string>
+    <string name="return_error_limit_refreshed">Remaining quantities changed. Check the amounts and get a new quote.</string>
+    <string name="return_error_limit_exceeded">Quantity exceeds the remaining returnable amount.</string>
+    <string name="return_error_unsupported_policy">This return quantity policy is not supported.</string>
+    <string name="return_error_malformed_decimal">Enter a valid decimal quantity.</string>
+    <string name="return_error_excessive_scale">Quantity has too many decimal places.</string>
+    <string name="return_error_invalid_remaining">The remaining quantity from the server is not valid.</string>
+    <string name="return_error_zero_or_negative">Quantity must be greater than zero.</string>
+    <string name="return_error_below_minimum">Quantity is below the minimum.</string>
+    <string name="return_error_above_maximum">Quantity is above the maximum.</string>
+
+    <!-- Closing -->
+    <string name="closing_title">Closing</string>
+    <string name="closing_unavailable">Closing unavailable</string>
+    <string name="closing_loading_preview">Loading authoritative preview</string>
+    <string name="closing_recovering">Recovering Closing</string>
+    <string name="closing_submitted">Closing submitted</string>
+    <string name="closing_preview_stale">Closing preview changed. Load current totals before submitting again.</string>
+    <string name="closing_reload_preview">Reload preview</string>
+    <string name="closing_preview_title">Authoritative preview</string>
+    <string name="closing_row_invoices">Invoices</string>
+    <string name="closing_row_grand_total">Grand total</string>
+    <string name="closing_row_net_total">Net total</string>
+    <string name="closing_row_taxes">Taxes and charges</string>
+    <string name="closing_row_quantity">Total quantity</string>
+    <string name="closing_row_opening">Opening</string>
+    <string name="closing_row_expected">Expected</string>
+    <string name="closing_row_counted">Counted</string>
+    <string name="closing_row_difference">Difference</string>
+    <string name="closing_counted_label">Counted amount</string>
+    <string name="closing_counted_policy">%1$s; max %2$d decimals</string>
+    <string name="closing_submitting">Submitting</string>
+    <string name="closing_submit">Submit Closing</string>
+    <string name="closing_queued">Closing queued.</string>
+    <string name="closing_queued_polling">Closing queued. Checking authoritative status.</string>
+    <string name="closing_check_status">Check status</string>
+    <string name="closing_reference">Reference: %1$s</string>
+    <string name="closing_receipt_title">Closing %1$s</string>
+    <string name="closing_error_payment_mode_unknown">That payment mode is not part of this session.</string>
+    <string name="closing_error_counted_amount_required">Enter a counted amount for every payment mode.</string>
+    <string name="closing_error_rejected">Closing was rejected.</string>
+    <string name="closing_error_submission_unavailable">Closing cannot be submitted right now.</string>
+    <string name="closing_error_auth_required">Sign in again before checking the Closing status.</string>
+    <!-- Recovery -->
+    <string name="recovery_title">Recovery</string>
+    <string name="recovery_sign_in_again_detail">Sign in again to continue this recovery action.</string>
+    <string name="recovery_retry_unscheduled">Recovery retry could not be scheduled. Keep the app open and try again later.</string>
+    <string name="recovery_recover_closing">Recover Closing</string>
+    <string name="recovery_action_rejected">Action rejected</string>
+    <string name="recovery_completed">%1$s completed</string>
+    <string name="recovery_acknowledge">Acknowledge result</string>
+    <string name="recovery_reference">Reference: %1$s</string>
+    <string name="recovery_status">Status: %1$s</string>
+    <string name="recovery_amount">Amount: %1$s</string>
+
+    <!-- App-level state -->
+    <string name="app_error_refresh_failed">Refresh failed</string>
+    <string name="app_error_authentication_required">Authentication required</string>
+    <string name="app_error_bootstrap_unavailable">Bootstrap unavailable</string>
+    <!-- More -->
+    <string name="more_title">More</string>
+    <string name="more_group_outlet">Outlet</string>
+    <string name="more_group_user_session">User and session</string>
+    <string name="more_group_session">Session</string>
+    <string name="more_session_detail">Review authoritative totals and count each payment mode before closing.</string>
+    <string name="more_closing">Closing</string>
+    <string name="more_sign_out">Sign out</string>
+    <string name="more_sign_out_blocked">Sign out blocked: %1$s has %2$s recovery.</string>
+    <string name="more_group_appearance">Appearance</string>
+    <string name="more_theme_mode">Theme mode</string>
+    <string name="more_theme_system">System</string>
+    <string name="more_theme_light">Light</string>
+    <string name="more_theme_dark">Dark</string>
+    <string name="more_accent_color">Accent color</string>
+    <string name="more_accent_blue">Blue</string>
+    <string name="more_accent_teal">Teal</string>
+    <string name="more_language">Language</string>
+    <string name="more_group_printer">Printer</string>
+    <string name="more_group_synchronization">Synchronization</string>
+</resources>

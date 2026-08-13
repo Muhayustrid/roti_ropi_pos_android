@@ -29,6 +29,33 @@ candidate `acd6769c` and PASS evidence commit `10a55c1` merged via PR #15 as
 implementation through Task 6. Task status, not unchecked execution-step boxes
 below, records current completion.
 
+On 2026-08-12 the shell's navigation and interface language were re-decided in
+[`docs/superpowers/specs/2026-08-12-three-tab-navigation-and-localization-design.md`](../superpowers/specs/2026-08-12-three-tab-navigation-and-localization-design.md).
+Wherever the Task 2B–2E rows and sections below say five root destinations, an
+elevated Cashier action, a Dashboard, or English labels, that design document is
+now authoritative. The rows stay as written because they record what was verified
+at the time. The execution record for that change — three destinations, and every
+user-facing string moved into `res/values/strings.xml` with an English translation
+in `res/values-en/strings.xml` — is
+[`docs/superpowers/plans/2026-08-12-three-tab-navigation-and-localization.md`](../superpowers/plans/2026-08-12-three-tab-navigation-and-localization.md).
+The rule that keeps user-facing text out of source is stated in `AGENTS.md`.
+
+On 2026-08-13 orientation was decided in the same plan's Task 4: phones run
+portrait only and tablets rotate freely, split by the platform's `sw600dp`
+qualifier. Phone landscape is therefore not a window this app runs in, which
+retires the 17-test landscape baseline that earlier records compare against
+rather than fixing it. That task also records why API 25 at 320x640 is now part
+of verification: a small window caught a control below the fold that no
+1080dp-wide run did.
+
+Also on 2026-08-13, the same plan's Task 5 deleted the debug demo-data toggle and,
+with it, the Products and Reports screens. Neither had a data source — `PosShell`
+rendered each one `Unavailable` unless the toggle swapped in a synthetic fixture — so
+they are removed for the same reason Dashboard was. Rows and sections below that
+describe a Products screen, a Reports screen, a `Demo data` badge, or an
+`app/src/release/` demo stub record what existed at the time and are superseded by
+that task.
+
 | Task | Status | Evidence summary |
 | --- | --- | --- |
 | 1A | Completed | The dependency/compile-platform correction is present; clean unit, lint, debug, and release verification passes. The correction was committed with Task 1B rather than as an isolated Task 1A diff. |
@@ -557,6 +584,14 @@ Wait for explicit approval before commit or Task 2B.
 **Status:** Completed — audited 2026-07-30 from the uncommitted implementation
 and fresh blocking verification. Task 1B remains completed historical evidence;
 this task replaces only its placeholder XML/ViewBinding shell after Task 2 passed.
+
+**Superseded (2026-08-12):** the five-destination shell, the elevated Cashier
+action, and the English-only interface described below are superseded by
+[`docs/superpowers/specs/2026-08-12-three-tab-navigation-and-localization-design.md`](../superpowers/specs/2026-08-12-three-tab-navigation-and-localization-design.md).
+Navigation becomes three destinations — Kasir, Riwayat, Lainnya — with Products
+and Reports re-homed as child routes behind Lainnya, Dashboard deleted, and
+Indonesian as the default interface language. The evidence recorded here is not
+rewritten: it remains an accurate record of what was verified on 2026-07-30.
 
 **Audit evidence:** `MainActivity` now hosts Compose directly. Material 3 uses
 semantic light/dark schemes, Blue/Teal accent choices, system sans-serif fallback,

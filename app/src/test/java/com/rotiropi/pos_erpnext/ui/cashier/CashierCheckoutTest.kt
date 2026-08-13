@@ -1,5 +1,6 @@
 package com.rotiropi.pos_erpnext.ui.cashier
 
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.data.CatalogFailure
 import com.rotiropi.pos_erpnext.data.CatalogPage
 import com.rotiropi.pos_erpnext.data.CatalogProduct
@@ -11,6 +12,7 @@ import com.rotiropi.pos_erpnext.data.CatalogSearchResult
 import com.rotiropi.pos_erpnext.data.CheckoutQuoteResult
 import com.rotiropi.pos_erpnext.data.api.ApiCallCancellation
 import com.rotiropi.pos_erpnext.data.api.QuoteCartRequestDto
+import com.rotiropi.pos_erpnext.ui.uiText
 import com.rotiropi.pos_erpnext.ui.payment.CheckoutQuote
 import com.rotiropi.pos_erpnext.ui.payment.PaymentAmountPolicy
 import com.rotiropi.pos_erpnext.ui.payment.PaymentMode
@@ -44,7 +46,7 @@ class CashierCheckoutTest {
         viewModel.onQueryChanged("item")
         advanceTimeBy(300)
         runCurrent()
-        viewModel.onProductSelected(CashierProduct("ITEM", "Item", "all", "10", "IDR", "Server", "1", "Nos", "WH"))
+        viewModel.onProductSelected(CashierProduct("ITEM", "Item", "all", "10", "IDR", uiText(R.string.checkout_server_price), "1", "Nos", "WH"))
         runCurrent()
 
         viewModel.onOpenCheckout()

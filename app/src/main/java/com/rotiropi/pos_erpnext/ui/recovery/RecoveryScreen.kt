@@ -12,10 +12,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.recovery.RecoveryScreenState
 import com.rotiropi.pos_erpnext.recovery.RecoveryTerminalResult
 import com.rotiropi.pos_erpnext.ui.theme.PosDimensions
@@ -39,12 +41,12 @@ fun RecoveryScreen(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Recovery", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.recovery_title), style = MaterialTheme.typography.titleMedium)
             when (state) {
                 RecoveryScreenState.Hidden -> Unit
                 is RecoveryScreenState.AuthenticationRequired -> {
                     Text(
-                        "Sign in again to continue this recovery action.",
+                        stringResource(R.string.recovery_sign_in_again_detail),
                         modifier = Modifier.testTag("recovery-authentication-required"),
                     )
                     Button(
@@ -54,11 +56,11 @@ fun RecoveryScreen(
                             .heightIn(min = PosDimensions.touchTarget)
                             .testTag("recovery-reauthenticate"),
                     ) {
-                        Text("Sign in again")
+                        Text(stringResource(R.string.action_sign_in_again))
                     }
                 }
                 is RecoveryScreenState.RetrySchedulingFailed -> Text(
-                    "Recovery retry could not be scheduled. Keep the app open and try again later.",
+                    stringResource(R.string.recovery_retry_unscheduled),
                     modifier = Modifier.testTag("recovery-scheduling-failed"),
                 )
                 is RecoveryScreenState.ManualRecovery -> {
@@ -71,22 +73,22 @@ fun RecoveryScreen(
                                 .heightIn(min = PosDimensions.touchTarget)
                                 .testTag("recovery-closing"),
                         ) {
-                            Text("Recover Closing")
+                            Text(stringResource(R.string.recovery_recover_closing))
                         }
                     }
                 }
                 is RecoveryScreenState.Terminal -> {
                     when (val result = state.result) {
                         is RecoveryTerminalResult.Completed -> {
-                            Text("${result.operation} completed")
-                            Text("Reference: ${result.reference}")
-                            Text("Status: ${result.status}")
-                            result.amount?.let { Text("Amount: $it") }
+                            Text(stringResource(R.string.recovery_completed, result.operation))
+                            Text(stringResource(R.string.recovery_reference, result.reference))
+                            Text(stringResource(R.string.recovery_status, result.status))
+                            result.amount?.let { Text(stringResource(R.string.recovery_amount, it)) }
                         }
                         is RecoveryTerminalResult.Rejected -> {
-                            Text("Action rejected")
+                            Text(stringResource(R.string.recovery_action_rejected))
                             Text("${result.code}: ${result.message}")
-                            result.reference?.let { Text("Reference: $it") }
+                            result.reference?.let { Text(stringResource(R.string.recovery_reference, it)) }
                         }
                     }
                     Button(
@@ -96,7 +98,7 @@ fun RecoveryScreen(
                             .heightIn(min = PosDimensions.touchTarget)
                             .testTag("recovery-acknowledge"),
                     ) {
-                        Text("Acknowledge result")
+                        Text(stringResource(R.string.recovery_acknowledge))
                     }
                 }
             }

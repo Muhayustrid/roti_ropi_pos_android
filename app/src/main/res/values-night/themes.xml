@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Warm Commerce dark styling for the legacy XML surfaces (profile selection and
+        the task status bar). Mirrors the light override so DayNight keeps working.
+    -->
+    <style name="Theme.POSERPNext" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/warm_amber_night</item>
+        <item name="colorOnPrimary">@color/warm_on_amber_night</item>
+        <item name="colorPrimaryContainer">@color/warm_amber</item>
+        <item name="colorOnPrimaryContainer">@color/warm_on_amber</item>
+        <item name="colorSecondary">@color/warm_teal_night</item>
+        <item name="colorOnSecondary">@color/warm_on_teal_night</item>
+        <item name="colorSecondaryContainer">@color/warm_teal_container_night</item>
+        <item name="colorOnSecondaryContainer">@color/warm_on_teal_container_night</item>
+        <item name="android:colorBackground">@color/warm_charcoal</item>
+        <item name="colorSurface">@color/warm_charcoal</item>
+        <item name="colorOnSurface">@color/warm_ink_night</item>
+        <item name="colorSurfaceVariant">@color/warm_charcoal_variant</item>
+        <item name="colorOnSurfaceVariant">@color/warm_ink_variant_night</item>
+        <item name="colorOutline">@color/warm_outline_night</item>
+        <item name="colorError">@color/warm_error_night</item>
+        <item name="colorOnError">@color/warm_on_error_night</item>
+    </style>
+</resources>

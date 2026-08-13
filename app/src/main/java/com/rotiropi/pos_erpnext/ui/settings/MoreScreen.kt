@@ -13,16 +13,16 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.ui.navigation.PosLayoutMode
 import com.rotiropi.pos_erpnext.ui.recovery.RecoveryScreen
 import com.rotiropi.pos_erpnext.ui.theme.PosAccent
@@ -33,11 +33,10 @@ fun MoreScreen(
     state: MoreUiState,
     layoutMode: PosLayoutMode,
     modifier: Modifier = Modifier,
-    demoToggleVisible: Boolean = false,
     logoutVisible: Boolean = false,
     onThemeModeSelected: (PosThemeMode) -> Unit = {},
     onAccentSelected: (PosAccent) -> Unit = {},
-    onDemoDataToggled: (Boolean) -> Unit = {},
+    onLanguageSelected: (PosLanguage) -> Unit = {},
     onLogout: () -> Unit = {},
     onOpenClosing: () -> Unit = {},
     onAcknowledgeRecovery: (String) -> Unit = {},
@@ -53,7 +52,7 @@ fun MoreScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        MoreHeader(demoData = state.demoData)
+        MoreHeader()
         if (layoutMode == PosLayoutMode.EXPANDED) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -72,8 +71,10 @@ fun MoreScreen(
                     AppearanceGroup(
                         themeMode = state.themeMode,
                         accent = state.accent,
+                        language = state.language,
                         onThemeModeSelected = onThemeModeSelected,
                         onAccentSelected = onAccentSelected,
+                        onLanguageSelected = onLanguageSelected,
                     )
                 }
                 Column(
@@ -82,9 +83,6 @@ fun MoreScreen(
                 ) {
                     PrinterGroup()
                     SynchronizationGroup()
-                    if (demoToggleVisible) {
-                        DebugToolsGroup(state.demoData, onDemoDataToggled)
-                    }
                 }
             }
         } else {
@@ -97,69 +95,24 @@ fun MoreScreen(
             AppearanceGroup(
                 themeMode = state.themeMode,
                 accent = state.accent,
+                language = state.language,
                 onThemeModeSelected = onThemeModeSelected,
                 onAccentSelected = onAccentSelected,
+                onLanguageSelected = onLanguageSelected,
             )
             PrinterGroup()
             SynchronizationGroup()
-            if (demoToggleVisible) {
-                DebugToolsGroup(state.demoData, onDemoDataToggled)
-            }
         }
     }
 }
 
 @Composable
-private fun DebugToolsGroup(demoData: Boolean, onDemoDataToggled: (Boolean) -> Unit) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text("Debug tools", style = MaterialTheme.typography.titleMedium)
-            Text(
-                "Synthetic layouts for debug builds only. Not server data.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            FilterChip(
-                selected = demoData,
-                onClick = { onDemoDataToggled(!demoData) },
-                label = { Text("Demo layout") },
-                modifier = Modifier
-                    .heightIn(min = PosDimensions.touchTarget)
-                    .testTag("more-demo-data"),
-            )
-        }
-    }
-}
-
-@Composable
-private fun MoreHeader(demoData: Boolean) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = "More",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.semantics { heading() },
-        )
-        if (demoData) {
-            Surface(
-                color = MaterialTheme.colorScheme.tertiaryContainer,
-                shape = MaterialTheme.shapes.medium,
-            ) {
-                Text(
-                    text = "Demo data",
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                )
-            }
-        }
-    }
+private fun MoreHeader() {
+    Text(
+        text = stringResource(R.string.more_title),
+        style = MaterialTheme.typography.headlineMedium,
+        modifier = Modifier.semantics { heading() },
+    )
 }
 
 @Composable
@@ -169,9 +122,9 @@ private fun OutletGroup(outletLabel: String?) {
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text("Outlet", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.more_group_outlet), style = MaterialTheme.typography.titleMedium)
             Text(
-                outletLabel ?: "Unavailable",
+                outletLabel ?: stringResource(R.string.state_unavailable),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -186,9 +139,9 @@ private fun UserSessionGroup(userSessionLabel: String?) {
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text("User and session", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.more_group_user_session), style = MaterialTheme.typography.titleMedium)
             Text(
-                userSessionLabel ?: "Unavailable",
+                userSessionLabel ?: stringResource(R.string.state_unavailable),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -203,9 +156,9 @@ private fun ClosingGroup(onOpenClosing: () -> Unit) {
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Session", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.more_group_session), style = MaterialTheme.typography.titleMedium)
             Text(
-                "Review authoritative totals and count each payment mode before closing.",
+                stringResource(R.string.more_session_detail),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -216,7 +169,7 @@ private fun ClosingGroup(onOpenClosing: () -> Unit) {
                     .heightIn(min = PosDimensions.touchTarget)
                     .testTag("more-closing"),
             ) {
-                Text("Closing")
+                Text(stringResource(R.string.more_closing))
             }
         }
     }
@@ -240,7 +193,7 @@ private fun LogoutGroup(
                     .heightIn(min = PosDimensions.touchTarget)
                     .testTag("more-logout"),
             ) {
-                Text("Sign out")
+                Text(stringResource(R.string.more_sign_out))
             }
             if (message != null) {
                 Text(message, modifier = Modifier.testTag("more-logout-blocked"))
@@ -268,16 +221,18 @@ private fun LogoutGroup(
 private fun AppearanceGroup(
     themeMode: PosThemeMode,
     accent: PosAccent,
+    language: PosLanguage,
     onThemeModeSelected: (PosThemeMode) -> Unit,
     onAccentSelected: (PosAccent) -> Unit,
+    onLanguageSelected: (PosLanguage) -> Unit,
 ) {
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Appearance", style = MaterialTheme.typography.titleMedium)
-            Text("Theme mode", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.more_group_appearance), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.more_theme_mode), style = MaterialTheme.typography.labelLarge)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -286,14 +241,14 @@ private fun AppearanceGroup(
                     FilterChip(
                         selected = mode == themeMode,
                         onClick = { onThemeModeSelected(mode) },
-                        label = { Text(mode.label) },
+                        label = { Text(stringResource(mode.labelRes)) },
                         modifier = Modifier
                             .heightIn(min = PosDimensions.touchTarget)
                             .testTag("more-theme-${mode.name.lowercase()}"),
                     )
                 }
             }
-            Text("Accent color", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.more_accent_color), style = MaterialTheme.typography.labelLarge)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -302,10 +257,26 @@ private fun AppearanceGroup(
                     FilterChip(
                         selected = item == accent,
                         onClick = { onAccentSelected(item) },
-                        label = { Text(item.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                        label = { Text(stringResource(item.labelRes)) },
                         modifier = Modifier
                             .heightIn(min = PosDimensions.touchTarget)
                             .testTag("more-accent-${item.name.lowercase()}"),
+                    )
+                }
+            }
+            Text(stringResource(R.string.more_language), style = MaterialTheme.typography.labelLarge)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                PosLanguage.entries.forEach { item ->
+                    FilterChip(
+                        selected = item == language,
+                        onClick = { onLanguageSelected(item) },
+                        label = { Text(item.label) },
+                        modifier = Modifier
+                            .heightIn(min = PosDimensions.touchTarget)
+                            .testTag("more-language-${item.tag}"),
                     )
                 }
             }
@@ -325,9 +296,9 @@ private fun PrinterGroup() {
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text("Printer", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.more_group_printer), style = MaterialTheme.typography.titleMedium)
             Text(
-                "Not supported",
+                stringResource(R.string.state_not_supported),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -347,9 +318,9 @@ private fun SynchronizationGroup() {
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text("Synchronization", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.more_group_synchronization), style = MaterialTheme.typography.titleMedium)
             Text(
-                "Not supported",
+                stringResource(R.string.state_not_supported),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
             )

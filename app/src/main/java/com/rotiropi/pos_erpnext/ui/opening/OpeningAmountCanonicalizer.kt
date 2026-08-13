@@ -1,5 +1,8 @@
 package com.rotiropi.pos_erpnext.ui.opening
 
+import com.rotiropi.pos_erpnext.R
+import com.rotiropi.pos_erpnext.ui.UiText
+import com.rotiropi.pos_erpnext.ui.uiText
 import java.math.BigDecimal
 
 internal data class OpeningAmountInputPolicy(
@@ -9,22 +12,25 @@ internal data class OpeningAmountInputPolicy(
 
 internal sealed interface OpeningAmountResult {
     data class Valid(val canonical: String) : OpeningAmountResult
-    data class Invalid(val reason: String) : OpeningAmountResult
+    data class Invalid(val reason: UiText) : OpeningAmountResult
 }
 
 internal fun canonicalizeOpeningAmount(
     input: String,
     policy: OpeningAmountInputPolicy,
 ): OpeningAmountResult {
-    if (!UI_DECIMAL.matches(input)) return OpeningAmountResult.Invalid("Enter a valid amount.")
+    if (!UI_DECIMAL.matches(input)) return OpeningAmountResult.Invalid(uiText(R.string.amount_error_invalid))
     val decimalDot = input.replace(',', '.')
     val fractionalDigits = decimalDot.substringAfter('.', "").length
     if (fractionalDigits > policy.decimalPlaces) {
-        return OpeningAmountResult.Invalid("Use at most ${policy.decimalPlaces} decimal places.")
+        return OpeningAmountResult.Invalid(
+            uiText(R.string.opening_amount_error_decimal_places, policy.decimalPlaces),
+        )
     }
     val value = BigDecimal(decimalDot)
     if (value < BigDecimal(policy.minimum)) {
-        return OpeningAmountResult.Invalid("Amount must be at least ${policy.minimum}.")
+        // The minimum is server-supplied and passes through verbatim.
+        return OpeningAmountResult.Invalid(uiText(R.string.opening_amount_error_minimum, policy.minimum))
     }
     return OpeningAmountResult.Valid(value.setScale(policy.decimalPlaces).toPlainString())
 }

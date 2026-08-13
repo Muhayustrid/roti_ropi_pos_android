@@ -5,6 +5,8 @@ import com.rotiropi.pos_erpnext.data.OpeningPaymentMode
 import com.rotiropi.pos_erpnext.data.PosProfile
 import com.rotiropi.pos_erpnext.data.api.OpenSessionRequestDto
 import com.rotiropi.pos_erpnext.recovery.RecoveryExecution
+import com.rotiropi.pos_erpnext.R
+import com.rotiropi.pos_erpnext.ui.uiText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -19,6 +21,17 @@ class OpeningViewModelTest {
         assertEquals(listOf("Mode B", "Mode A"), viewModel.state.value.rows.map { it.modeOfPayment })
         assertEquals(listOf("12.30", "0.00"), viewModel.state.value.rows.map { it.input })
         assertEquals(listOf(true, false), viewModel.state.value.rows.map { it.editable })
+    }
+
+    @Test
+    fun `session details expose only authoritative cashier profile company warehouse and currency`() {
+        val state = OpeningViewModel("cashier@example.test", profile(), submit = { error("not called") }).state.value
+
+        assertEquals("cashier@example.test", state.cashier)
+        assertEquals("PROFILE-EXAMPLE", state.profileName)
+        assertEquals("Example Company", state.company)
+        assertEquals("Example Warehouse", state.warehouse)
+        assertEquals("CUR", state.currency)
     }
 
     @Test
@@ -156,7 +169,7 @@ class OpeningViewModelTest {
         assertTrue(viewModel.state.value.recoveryPending)
         assertFalse(viewModel.state.value.canSubmit)
         assertEquals(
-            "Opening recovery could not verify the current session. Please retry.",
+            uiText(R.string.opening_error_recovery_unverified),
             viewModel.state.value.error,
         )
     }

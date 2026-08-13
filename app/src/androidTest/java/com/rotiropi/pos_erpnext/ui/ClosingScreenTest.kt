@@ -8,8 +8,11 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.data.ClosingCountedAmountPolicy
 import com.rotiropi.pos_erpnext.data.ClosingPayment
 import com.rotiropi.pos_erpnext.data.ClosingPreview
@@ -35,6 +38,8 @@ class ClosingScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
 
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+
     @Test
     fun More_Closing_child_route_loads_preview_and_back_returns_to_More() {
         var loads = 0
@@ -49,11 +54,11 @@ class ClosingScreenTest {
             }
         }
 
-        composeRule.onNodeWithTag("more-closing").performClick()
+        composeRule.onNodeWithTag("more-closing").performScrollTo().performClick()
         composeRule.onNodeWithTag("closing-screen").assertIsDisplayed()
         composeRule.runOnIdle { assertEquals(1, loads) }
         composeRule.onNodeWithTag("closing-back").performClick()
-        composeRule.onNodeWithTag("more-closing").assertIsDisplayed()
+        composeRule.onNodeWithTag("more-closing").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -76,7 +81,7 @@ class ClosingScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Closing").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.closing_title)).assertIsDisplayed()
         composeRule.onNodeWithText("100000.00").assertIsDisplayed()
         composeRule.onNodeWithTag("closing-counted-cash").performTextInput("69000.00")
         composeRule.onNodeWithTag("closing-counted-bank").performTextInput("1000.00")
@@ -164,7 +169,7 @@ class ClosingScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Closing submitted").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.closing_submitted)).assertIsDisplayed()
         composeRule.onNodeWithTag("closing-done").assertIsDisplayed()
     }
 
@@ -185,7 +190,7 @@ class ClosingScreenTest {
 
         composeRule.onNodeWithTag("closing-done").performClick()
 
-        composeRule.onNodeWithText("Closing submitted").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.closing_submitted)).assertIsDisplayed()
     }
 
     @Test
@@ -213,7 +218,7 @@ class ClosingScreenTest {
             assertEquals(1, checked)
             state.value = ClosingUiState.Receipt("transaction", receipt(ClosingStatus.SUBMITTED))
         }
-        composeRule.onNodeWithText("Closing submitted").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.closing_submitted)).assertIsDisplayed()
         composeRule.onNodeWithTag("closing-done").performClick()
         composeRule.runOnIdle { assertEquals(1, finished) }
     }

@@ -15,6 +15,9 @@ import com.rotiropi.pos_erpnext.data.api.SubmitSaleRequestDto
 import com.rotiropi.pos_erpnext.data.api.SaleDetailDto
 import com.rotiropi.pos_erpnext.recovery.RecoveryExecution
 import com.rotiropi.pos_erpnext.data.api.ApiCallCancellation
+import com.rotiropi.pos_erpnext.R
+import com.rotiropi.pos_erpnext.ui.UiText
+import com.rotiropi.pos_erpnext.ui.uiText
 import com.rotiropi.pos_erpnext.ui.payment.CheckoutUiState
 import com.rotiropi.pos_erpnext.ui.payment.PaymentAmountValidator
 import com.rotiropi.pos_erpnext.ui.payment.PaymentRow
@@ -115,11 +118,11 @@ class CashierViewModel(
     private var selectedCategoryId = "all"
     private var catalogLoading = false
     private var catalogHasMore = false
-    private var catalogError: String? = null
+    private var catalogError: UiText? = null
     private var scanLoading = false
-    private var scanError: String? = null
+    private var scanError: UiText? = null
     private var quoteLoading = false
-    private var quoteError: String? = null
+    private var quoteError: UiText? = null
     private var nextCatalogStart: Int? = null
     private var catalogGeneration = 0L
     private var scanGeneration = 0L
@@ -408,7 +411,13 @@ class CashierViewModel(
         val individual = activeRows.map { PaymentAmountValidator.validate(it.amount, quote.paymentAmountPolicy) }.firstOrNull { it is PaymentValidationResult.Invalid }
         val exact = runCatching { activeRows.isNotEmpty() && activeRows.sumOf { it.amount.toBigDecimal() } == quote.payable.toBigDecimal() }.getOrDefault(false)
         checkoutState = if (individual == null && exact) CheckoutUiState.Ready(quote, rows, PaymentValidationResult.Valid)
-        else CheckoutUiState.PaymentInvalid((individual as? PaymentValidationResult.Invalid)?.reason ?: "Payment total must equal payable.", mode, quote, rows)
+        else CheckoutUiState.PaymentInvalid(
+            (individual as? PaymentValidationResult.Invalid)?.reason
+                ?: uiText(R.string.checkout_error_total_mismatch),
+            mode,
+            quote,
+            rows,
+        )
         publish()
     }
 
@@ -418,7 +427,7 @@ class CashierViewModel(
             if (ready.validation !is PaymentValidationResult.Valid) return@synchronized null
             val current = identity ?: return@synchronized null
             if (ready.quote.quoteGeneration != checkoutGeneration) {
-                checkoutState = CheckoutUiState.Error("Cart changed. Review checkout before submitting.")
+                checkoutState = CheckoutUiState.Error(uiText(R.string.checkout_error_cart_changed))
                 publish()
                 return@synchronized null
             }
@@ -438,12 +447,12 @@ class CashierViewModel(
                     is RecoveryExecution.Completed -> sale?.let {
                         receipt = ReceiptMapper.map(it)
                         CheckoutUiState.Unavailable
-                    } ?: CheckoutUiState.Error("Sale submitted; receipt will appear after recovery confirmation.")
+                    } ?: CheckoutUiState.Error(uiText(R.string.checkout_awaiting_recovery))
                     is RecoveryExecution.Rejected -> if (rejection?.code == "PRICE_CHANGED") {
-                        CheckoutUiState.PriceChanged("Server price changed. Review and retry.", rejection.details)
-                    } else CheckoutUiState.Error("Sale submission was rejected.")
+                        CheckoutUiState.PriceChanged(uiText(R.string.checkout_error_price_changed), rejection.details)
+                    } else CheckoutUiState.Error(uiText(R.string.checkout_error_rejected))
                     RecoveryExecution.NotStartedOffline -> CheckoutUiState.OfflineNotSubmitted
-                    else -> CheckoutUiState.Error("Sale submission requires recovery.")
+                    else -> CheckoutUiState.Error(uiText(R.string.checkout_error_recovery))
                 }
                 publish()
             }
@@ -580,7 +589,7 @@ class CashierViewModel(
                     }
                     val quantity = if (existing == null) "1" else QuantitySyntax.addUnit(existing.quantity)
                     if (quantity == null) {
-                        scanError = "Quantity cannot be increased safely."
+                        scanError = uiText(R.string.cart_error_increase_unsafe)
                     } else {
                         invalidateCheckout()
                         requestQuote(
@@ -778,7 +787,7 @@ class CashierViewModel(
             PaymentAmountValidator.validate(activeRows.single().amount, quote.paymentAmountPolicy) is PaymentValidationResult.Valid &&
             runCatching { activeRows.single().amount.toBigDecimal() == quote.payable.toBigDecimal() }.getOrDefault(false)
         return if (valid) CheckoutUiState.Ready(quote, rows, PaymentValidationResult.Valid)
-        else CheckoutUiState.PaymentInvalid("Payment total must equal payable.", null, quote, rows)
+        else CheckoutUiState.PaymentInvalid(uiText(R.string.checkout_error_total_mismatch), null, quote, rows)
     }
 
     private fun cancelAll() {
@@ -825,12 +834,11 @@ class CashierViewModel(
             CashierContent(
                 query = query,
                 barcode = barcode,
-                categories = listOf(CashierCategory("all", "All")),
+                categories = listOf(CashierCategory("all", uiText(R.string.cashier_category_all))),
                 selectedCategoryId = selectedCategoryId,
                 products = products.map { it.toUi(current.warehouse) },
                 cart = cart.snapshot(),
                 checkoutState = checkoutState,
-                demoData = false,
                 catalogLoading = catalogLoading,
                 catalogHasMore = catalogHasMore,
                 catalogError = catalogError,
@@ -848,21 +856,25 @@ class CashierViewModel(
             left.sessionName == right.sessionName &&
             left.posProfile == right.posProfile
 
-    private fun CatalogFailure.userMessage(): String = when (this) {
-        CatalogFailure.AuthenticationRequired -> "Session expired. Please sign in again."
-        CatalogFailure.AuthorizationDenied -> "You do not have permission to use the catalog."
-        CatalogFailure.Unavailable -> "Catalog is unavailable. Check your connection."
-        is CatalogFailure.Stable -> "Catalog request could not be completed."
-        is CatalogFailure.Protocol -> "Catalog returned an unexpected response."
+    /**
+     * No failure detail is passed as a format argument, so a server code or protocol
+     * string cannot reach the screen through this mapper.
+     */
+    private fun CatalogFailure.userMessage(): UiText = when (this) {
+        CatalogFailure.AuthenticationRequired -> uiText(R.string.catalog_error_authentication)
+        CatalogFailure.AuthorizationDenied -> uiText(R.string.catalog_error_authorization)
+        CatalogFailure.Unavailable -> uiText(R.string.catalog_error_unavailable)
+        is CatalogFailure.Stable -> uiText(R.string.catalog_error_stable)
+        is CatalogFailure.Protocol -> uiText(R.string.catalog_error_protocol)
     }
 
-    private fun CartMutation.userMessage(): String = when (this) {
-        CartMutation.DuplicateSerial -> "This serial is already in the cart."
-        CartMutation.InvalidQuantity -> "Quantity is not valid."
-        CartMutation.InvalidSerialQuantity -> "Serialized items require quantity 1."
-        CartMutation.QuoteMismatch -> "The server quote did not match this cart row."
-        CartMutation.RowLimit -> "Cart limit reached. Remove a row before adding another."
-        is CartMutation.Applied -> ""
+    private fun CartMutation.userMessage(): UiText = when (this) {
+        CartMutation.DuplicateSerial -> uiText(R.string.cart_error_duplicate_serial)
+        CartMutation.InvalidQuantity -> uiText(R.string.cart_error_invalid_quantity)
+        CartMutation.InvalidSerialQuantity -> uiText(R.string.cart_error_serial_quantity)
+        CartMutation.QuoteMismatch -> uiText(R.string.cart_error_quote_mismatch)
+        CartMutation.RowLimit -> uiText(R.string.cart_error_row_limit)
+        is CartMutation.Applied -> UiText.Raw("")
     }
 
     private fun CatalogProduct.toUi(warehouse: String) = CashierProduct(
@@ -871,7 +883,7 @@ class CashierViewModel(
         categoryId = "all",
         price = priceListRate,
         currency = currency,
-        priceList = "Server price",
+        priceList = uiText(R.string.checkout_server_price),
         availableQuantity = availableQuantity,
         uom = uom,
         warehouse = warehouse,

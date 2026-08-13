@@ -11,6 +11,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.rotiropi.pos_erpnext.MobilePosApplication
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.auth.AuthenticationState
 import com.rotiropi.pos_erpnext.databinding.Task4RootBinding
 import com.rotiropi.pos_erpnext.ui.navigation.PosShell
@@ -23,6 +24,7 @@ import com.rotiropi.pos_erpnext.ui.opening.RecoveredOpeningTerminal
 import com.rotiropi.pos_erpnext.ui.profile.ProfileSelectionUiState
 import com.rotiropi.pos_erpnext.ui.settings.PosThemeMode
 import com.rotiropi.pos_erpnext.ui.settings.ThemePreferences
+import com.rotiropi.pos_erpnext.ui.settings.applyPosLanguage
 import com.rotiropi.pos_erpnext.ui.theme.PosTheme
 import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchIdentity
 import com.rotiropi.pos_erpnext.ui.customer.CustomerSelection
@@ -148,6 +150,7 @@ class Task4RootHost(
             PosTheme(darkTheme = darkTheme, accent = selection.accent) {
                 PosShell(
                     authenticationOwner = application.authenticationOwner,
+                    serverOrigin = application.oauthConfig.canonicalOrigin,
                     onLogout = ::logout,
                     logoutResult = logoutResult.collectAsState().value,
                     recoveryState = recovery,
@@ -160,11 +163,7 @@ class Task4RootHost(
                         openingState.value = openingViewModel?.state?.value
                     },
                     onOpenSession = ::openSession,
-                    startDestination = if (openingDestination == OpeningRoutingDestination.CASHIER) {
-                        PosDestination.CASHIER
-                    } else {
-                        PosDestination.HOME
-                    },
+                    startDestination = PosDestination.CASHIER,
                     cashierState = cashier,
                     onCashierQueryChanged = application.cashierViewModel::onQueryChanged,
                     onCashierBarcodeChanged = application.cashierViewModel::onBarcodeChanged,
@@ -241,6 +240,7 @@ class Task4RootHost(
                     onCloseClosingReceipt = application.closingViewModel::closeReceipt,
                     themeMode = selection.mode,
                     accent = selection.accent,
+                    language = selection.language,
                     onThemeModeSelected = { mode ->
                         selection = selection.copy(mode = mode)
                         preferences.writeMode(mode)
@@ -248,6 +248,13 @@ class Task4RootHost(
                     onAccentSelected = { accent ->
                         selection = selection.copy(accent = accent)
                         preferences.writeAccent(accent)
+                    },
+                    onLanguageSelected = { language ->
+                        selection = selection.copy(language = language)
+                        preferences.writeLanguage(language)
+                        // Recreates the activity with the new locale, which is how the
+                        // already-composed screens pick up the new resources.
+                        applyPosLanguage(language)
                     },
                 )
             }
@@ -407,7 +414,7 @@ class Task4RootHost(
                 if (repository.capabilities.openSession) state else state.copy(
                     unavailable = true,
                     canSubmit = false,
-                    error = "Opening is not available for this POS Profile.",
+                    error = uiText(R.string.opening_error_profile_unavailable),
                 )
             }
             OpeningRoutingDestination.CASHIER -> null
@@ -579,7 +586,7 @@ class Task4RootHost(
                 if (application.mobilePosRepository.state.capabilities.openSession) state else state.copy(
                     unavailable = true,
                     canSubmit = false,
-                    error = "Opening is not available for this POS Profile.",
+                    error = uiText(R.string.opening_error_profile_unavailable),
                 )
             }
             OpeningRoutingDestination.CASHIER -> null

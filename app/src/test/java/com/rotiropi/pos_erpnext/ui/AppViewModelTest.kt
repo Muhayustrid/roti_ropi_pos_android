@@ -1,5 +1,6 @@
 package com.rotiropi.pos_erpnext.ui
 
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.auth.AuthenticationState
 import com.rotiropi.pos_erpnext.data.BootstrapData
 import com.rotiropi.pos_erpnext.data.BootstrapFailure
@@ -159,7 +160,7 @@ class AppViewModelTest {
 
         assertEquals(listOf(BootstrapRefreshTrigger.OPENING_COMPLETED), harness.triggers)
         assertTrue(viewModel.uiState.retryRequired)
-        assertEquals("Bootstrap unavailable", viewModel.uiState.error)
+        assertEquals(uiText(R.string.app_error_bootstrap_unavailable), viewModel.uiState.error)
     }
 
     @Test
