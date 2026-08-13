@@ -13,6 +13,8 @@ import com.rotiropi.pos_erpnext.recovery.RecoveryIdentity
 import com.rotiropi.pos_erpnext.recovery.RecoveryScreenState
 import com.rotiropi.pos_erpnext.recovery.RecoveryTerminalResult
 import com.rotiropi.pos_erpnext.recovery.TerminalReadToken
+import com.rotiropi.pos_erpnext.ui.UiText
+import com.rotiropi.pos_erpnext.ui.uiText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -39,7 +41,7 @@ class ProfileSelectionScreenTest {
         assertEquals(android.view.View.GONE, screen.findViewById<android.view.View>(R.id.profile_selection_error).visibility)
         assertEquals(android.view.View.GONE, screen.findViewById<android.view.View>(R.id.profile_selection_retry).visibility)
 
-        screen.render(state(error = "Could not load profiles", retryRequired = true))
+        screen.render(state(error = UiText.Raw("Could not load profiles"), retryRequired = true))
         assertEquals(android.view.View.GONE, screen.findViewById<android.view.View>(R.id.profile_selection_loading).visibility)
         assertEquals(android.view.View.VISIBLE, screen.findViewById<TextView>(R.id.profile_selection_error).visibility)
         assertEquals(android.view.View.VISIBLE, screen.findViewById<Button>(R.id.profile_selection_retry).visibility)
@@ -74,7 +76,7 @@ class ProfileSelectionScreenTest {
             onLogout = { logouts++ },
         )
 
-        screen.render(state(error = "retry", retryRequired = true))
+        screen.render(state(error = UiText.Raw("retry"), retryRequired = true))
         screen.findViewById<Button>(R.id.profile_selection_retry).performClick()
         screen.findViewById<Button>(R.id.profile_selection_logout).performClick()
 
@@ -94,7 +96,12 @@ class ProfileSelectionScreenTest {
         )
         val screen = ProfileSelectionScreen(context, onAcknowledgeRecovery = { acknowledged = it })
 
-        screen.render(state(logoutBlockedMessage = "Sign out blocked: cashier-1 has rejected recovery.", recovery = terminal))
+        screen.render(
+            state(
+                logoutBlockedMessage = uiText(R.string.more_sign_out_blocked, "cashier-1", "rejected"),
+                recovery = terminal,
+            ),
+        )
 
         assertEquals(android.view.View.VISIBLE, screen.findViewById<TextView>(R.id.profile_selection_recovery).visibility)
         assertTrue(screen.findViewById<TextView>(R.id.profile_selection_recovery).text.contains("cashier-1"))
@@ -145,7 +152,7 @@ class ProfileSelectionScreenTest {
         var retries = 0
         var logouts = 0
         val screen = ProfileSelectionScreen(context, onProfileSelected = { selected = "old" })
-        screen.render(state(error = "retry", retryRequired = true))
+        screen.render(state(error = UiText.Raw("retry"), retryRequired = true))
         screen.setOnProfileSelected { selected = it }
         screen.setOnRetry { retries++ }
         screen.setOnLogout { logouts++ }
@@ -185,11 +192,11 @@ class ProfileSelectionScreenTest {
 
     private fun state(
         refreshing: Boolean = false,
-        error: String? = null,
+        error: UiText? = null,
         retryRequired: Boolean = false,
         selectedProfileName: String? = null,
         profiles: List<PosProfile> = this.profiles,
-        logoutBlockedMessage: String? = null,
+        logoutBlockedMessage: UiText? = null,
         recovery: RecoveryScreenState = RecoveryScreenState.Hidden,
     ) = ProfileSelectionUiState(
         profiles = profiles,

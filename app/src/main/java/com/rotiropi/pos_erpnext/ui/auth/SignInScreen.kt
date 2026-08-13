@@ -19,12 +19,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.ui.theme.WarmCommerceDimensions
 
 /**
@@ -58,7 +60,7 @@ fun SignInScreen(
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = "Roti Ropi",
+                text = stringResource(R.string.sign_in_brand),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -66,7 +68,7 @@ fun SignInScreen(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Point of Sale System",
+                text = stringResource(R.string.sign_in_tagline),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -87,7 +89,7 @@ fun SignInScreen(
                 ) {
                     if (!serverOrigin.isNullOrBlank()) {
                         Text(
-                            text = "ERPNext server",
+                            text = stringResource(R.string.sign_in_server_label),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -102,7 +104,7 @@ fun SignInScreen(
                         Spacer(modifier = Modifier.height(4.dp))
                     }
                     Text(
-                        text = "You will sign in securely through ERPNext.",
+                        text = stringResource(R.string.sign_in_secure_note),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -132,7 +134,7 @@ fun SignInScreen(
                 )
                 Spacer(modifier = Modifier.height(WarmCommerceDimensions.stackGap))
                 Text(
-                    text = "Waiting for ERPNext sign-in…",
+                    text = stringResource(R.string.sign_in_waiting),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
@@ -140,7 +142,7 @@ fun SignInScreen(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Please complete the authentication process in the browser window that opened.",
+                    text = stringResource(R.string.sign_in_waiting_detail),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -153,13 +155,13 @@ fun SignInScreen(
                         .heightIn(min = WarmCommerceDimensions.touchTarget)
                         .testTag("sign-in-button"),
                 ) {
-                    Text("Continue with ERPNext")
+                    Text(stringResource(R.string.sign_in_button))
                 }
             }
 
             Spacer(modifier = Modifier.height(WarmCommerceDimensions.screenMargin))
             Text(
-                text = "Your password is entered only on the secure ERPNext sign-in page.",
+                text = stringResource(R.string.sign_in_password_note),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

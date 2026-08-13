@@ -1,5 +1,6 @@
 package com.rotiropi.pos_erpnext.ui.demo
 
+import com.rotiropi.pos_erpnext.ui.UiText
 import com.rotiropi.pos_erpnext.ui.cashier.CartLine
 import com.rotiropi.pos_erpnext.ui.cashier.CartSnapshot
 import com.rotiropi.pos_erpnext.ui.cashier.CashierCategory
@@ -89,7 +90,7 @@ object PosDemoStates {
         categoryId = "pastry",
         price = "25,000",
         currency = "IDR",
-        priceList = "Outlet Retail",
+        priceList = UiText.Raw("Outlet Retail"),
         availableQuantity = "18",
         uom = "Pack",
         warehouse = "Outlet 01 - RR",
@@ -100,9 +101,9 @@ object PosDemoStates {
             query = "",
             barcode = "",
             categories = listOf(
-                CashierCategory("all", "All"),
-                CashierCategory("pastry", "Pastry"),
-                CashierCategory("drinks", "Drinks"),
+                CashierCategory("all", UiText.Raw("All")),
+                CashierCategory("pastry", UiText.Raw("Pastry")),
+                CashierCategory("drinks", UiText.Raw("Drinks")),
             ),
             selectedCategoryId = "all",
             products = listOf(
@@ -137,7 +138,7 @@ object PosDemoStates {
                         itemCode = "CROISSANT-PACK",
                         itemName = "Croissant Pack",
                         quantity = "2",
-                        priceLabel = "Demo line IDR 50,000",
+                        priceLabel = UiText.Raw("Demo line IDR 50,000"),
                         uom = "Pack",
                     ),
                     CartLine(
@@ -145,12 +146,12 @@ object PosDemoStates {
                         itemCode = "COFFEE-LATTE",
                         itemName = "Coffee Latte",
                         quantity = "1",
-                        priceLabel = "Demo line IDR 28,000",
+                        priceLabel = UiText.Raw("Demo line IDR 28,000"),
                         uom = "Cup",
                     ),
                 ),
-                itemCountLabel = "3 items",
-                payableLabel = "Demo total IDR 78,000",
+                itemCountLabel = UiText.Raw("3 items"),
+                payableLabel = UiText.Raw("Demo total IDR 78,000"),
             ),
             checkoutState = CheckoutUiState.Unavailable,
             demoData = true,

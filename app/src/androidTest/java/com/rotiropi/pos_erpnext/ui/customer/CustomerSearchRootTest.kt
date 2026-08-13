@@ -26,6 +26,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.rotiropi.pos_erpnext.MainActivity
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.MobilePosApplication
 import com.rotiropi.pos_erpnext.auth.OAuthTokens
 import com.rotiropi.pos_erpnext.auth.TokenStore
@@ -135,7 +136,7 @@ class CustomerSearchRootTest {
         rule.onNodeWithTag("customer-search-input").performTextInput("retry")
         rule.waitUntil(2_000) { exists("customer-retry") }
         rule.onNodeWithTag("customer-retry").assertHeightIsAtLeast(48.dp)
-        rule.onNodeWithText(CustomerSearchError.Unavailable.toUiMessage()).assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Assertive))
+        rule.onNodeWithText(rule.activity.getString(CustomerSearchError.Unavailable.toUiMessage())).assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Assertive))
         val count = requests.size
         rule.onNodeWithTag("customer-retry").performClick()
         rule.waitUntil(2_000) { exists("customer-CUST-RETRY") }
@@ -236,7 +237,7 @@ class CustomerSearchRootTest {
             .performKeyInput { pressKey(Key.Enter) }
         val selected = SemanticsMatcher.expectValue(
             SemanticsProperties.StateDescription,
-            "Registered customer Keyboard Customer selected",
+            rule.activity.getString(R.string.customer_registered_selected, "Keyboard Customer"),
         )
         rule.onNode(selected).assert(selected)
 
@@ -262,7 +263,7 @@ class CustomerSearchRootTest {
             try { rule.onNodeWithTag("customer-CUST-1").assertIsDisplayed(); true } catch (_: AssertionError) { false }
         }
         rule.onNodeWithTag("customer-CUST-1").assertHasClickAction().performClick()
-        rule.onNodeWithText("Customer").assertIsDisplayed()
+        rule.onNodeWithText(rule.activity.getString(R.string.customer_label)).assertIsDisplayed()
         rule.onNodeWithTag("customer-dismiss").performClick()
         rule.onNodeWithTag("customer-search-sheet").assertDoesNotExist()
         rule.onNodeWithText("Ayu Bakery").assertIsDisplayed()

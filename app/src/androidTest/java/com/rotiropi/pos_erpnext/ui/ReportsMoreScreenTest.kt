@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.ui.navigation.PosLayoutMode
 import com.rotiropi.pos_erpnext.ui.reports.ReportBreakdown
 import com.rotiropi.pos_erpnext.ui.reports.ReportChartBar
@@ -46,6 +48,7 @@ import com.rotiropi.pos_erpnext.ui.reports.ReportsUiState
 import com.rotiropi.pos_erpnext.ui.reports.chartBarSlot
 import com.rotiropi.pos_erpnext.ui.settings.MoreScreen
 import com.rotiropi.pos_erpnext.ui.settings.MoreUiState
+import com.rotiropi.pos_erpnext.ui.settings.PosLanguage
 import com.rotiropi.pos_erpnext.ui.theme.PosAccent
 import com.rotiropi.pos_erpnext.ui.theme.PosTheme
 import com.rotiropi.pos_erpnext.ui.settings.PosThemeMode
@@ -62,6 +65,8 @@ class ReportsMoreScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
 
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+
     @Test
     fun release_reports_is_honest_and_has_no_populated_controls() {
         composeRule.setContent {
@@ -70,10 +75,10 @@ class ReportsMoreScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Reports unavailable").assertIsDisplayed()
-        composeRule.onNodeWithText("Demo data").assertDoesNotExist()
-        composeRule.onNodeWithText("Today").assertDoesNotExist()
-        composeRule.onNodeWithText("Retry").assertDoesNotExist()
+        composeRule.onNodeWithText(context.getString(R.string.reports_unavailable)).assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.badge_demo_data)).assertDoesNotExist()
+        composeRule.onNodeWithText(context.getString(R.string.reports_period_today)).assertDoesNotExist()
+        composeRule.onNodeWithText(context.getString(R.string.action_retry)).assertDoesNotExist()
         composeRule.onNodeWithTag("reports-chart").assertDoesNotExist()
     }
 
@@ -90,7 +95,7 @@ class ReportsMoreScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Demo data").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.badge_demo_data)).assertIsDisplayed()
         composeRule.onNodeWithTag("reports-period-week")
             .assertIsSelected()
             .assertHasClickAction()
@@ -107,7 +112,7 @@ class ReportsMoreScreenTest {
         composeRule.onNodeWithText("18 sold").assertIsDisplayed()
         composeRule.onNodeWithText("Peak sales on Friday.").assertIsDisplayed()
         composeRule.onNodeWithContentDescription(
-            "Sales trend chart. Peak sales on Friday."
+            context.getString(R.string.reports_chart_description, "Peak sales on Friday."),
         ).assertIsDisplayed()
     }
 
@@ -191,13 +196,19 @@ class ReportsMoreScreenTest {
             }
         }
 
-        listOf("Outlet", "User and session", "Appearance", "Printer", "Synchronization")
+        listOf(
+            R.string.more_group_outlet,
+            R.string.more_group_user_session,
+            R.string.more_group_appearance,
+            R.string.more_group_printer,
+            R.string.more_group_synchronization,
+        ).map(context::getString)
             .forEach {
                 composeRule.onNodeWithText(it)
                     .performScrollTo()
                     .assertIsDisplayed()
             }
-        composeRule.onAllNodesWithText("Unavailable").assertCountEquals(2)
+        composeRule.onAllNodesWithText(context.getString(R.string.state_unavailable)).assertCountEquals(2)
         composeRule.onNodeWithTag("more-theme-system").assertIsSelected()
         composeRule.onNodeWithTag("more-accent-blue").assertIsSelected()
         composeRule.onNodeWithTag("more-theme-dark")
@@ -210,7 +221,43 @@ class ReportsMoreScreenTest {
             .performClick()
         composeRule.onNodeWithTag("more-theme-dark").assertIsSelected()
         composeRule.onNodeWithTag("more-accent-teal").assertIsSelected()
-        composeRule.onNodeWithText("Demo data").assertDoesNotExist()
+        composeRule.onNodeWithText(context.getString(R.string.badge_demo_data)).assertDoesNotExist()
+    }
+
+    @Test
+    fun language_chips_show_each_language_in_its_own_words_and_emit_selections() {
+        val language = mutableStateOf(PosLanguage.INDONESIAN)
+        composeRule.setContent {
+            PosTheme {
+                MoreScreen(
+                    state = MoreUiState(
+                        outletLabel = null,
+                        userSessionLabel = null,
+                        themeMode = PosThemeMode.SYSTEM,
+                        accent = PosAccent.BLUE,
+                        demoData = false,
+                        language = language.value,
+                    ),
+                    layoutMode = PosLayoutMode.COMPACT,
+                    onLanguageSelected = { language.value = it },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(context.getString(R.string.more_language))
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule.onNodeWithTag("more-language-id").performScrollTo().assertIsSelected()
+        composeRule.onNodeWithTag("more-language-en")
+            .performScrollTo()
+            .assertHasClickAction()
+            .assertHeightIsAtLeast(48.dp)
+            .performClick()
+        composeRule.runOnIdle { assertEquals(PosLanguage.ENGLISH, language.value) }
+        composeRule.onNodeWithTag("more-language-en").assertIsSelected()
+        // Each label stays in its own language so a cashier can find theirs in any interface.
+        composeRule.onNodeWithText(PosLanguage.INDONESIAN.label).assertIsDisplayed()
+        composeRule.onNodeWithText(PosLanguage.ENGLISH.label).assertIsDisplayed()
     }
 
     @Test
@@ -261,7 +308,7 @@ class ReportsMoreScreenTest {
             }
         }
 
-        composeRule.onAllNodesWithText("Not supported").assertCountEquals(2)
+        composeRule.onAllNodesWithText(context.getString(R.string.state_not_supported)).assertCountEquals(2)
         composeRule.onNodeWithTag("more-printer")
             .assertIsNotEnabled()
             .assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))

@@ -41,6 +41,19 @@
         <activity
             android:name=".auth.AuthCompletionActivity"
             android:exported="false" />
+
+        <!--
+            Stores the per-app locale on API 32 and below, where the platform has no
+            locale store of its own. API 33+ ignores this and uses the platform's.
+        -->
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
+        </service>
     </application>
 
 </manifest>

@@ -1,5 +1,7 @@
 package com.rotiropi.pos_erpnext.ui.customer
 
+import androidx.annotation.StringRes
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.data.CustomerSearchFailure
 import com.rotiropi.pos_erpnext.data.CustomerSearchPage as RepositoryPage
 import com.rotiropi.pos_erpnext.data.CustomerSearchResult
@@ -318,11 +320,18 @@ class CustomerSearchViewModel(
     }
 }
 
-/** Returns a user-facing error message for display in the customer search UI. */
-fun CustomerSearchError.toUiMessage(): String = when (this) {
-    CustomerSearchError.AuthenticationRequired -> "Session expired. Please sign in again."
-    CustomerSearchError.AuthorizationDenied -> "You do not have permission to search customers."
-    CustomerSearchError.Unavailable -> "Customer search is unavailable. Check your connection."
-    is CustomerSearchError.Stable -> "Search failed. Please try again."
-    CustomerSearchError.Protocol -> "Search failed. Please try again."
+/**
+ * Returns the user-facing message resource for display in the customer search UI.
+ *
+ * A resource id rather than a `String` because a ViewModel has no `Context` and a string
+ * chosen here would be frozen in whatever language was current when the state was built.
+ * No error field is passed as a format argument, so a server code cannot reach the UI.
+ */
+@StringRes
+fun CustomerSearchError.toUiMessage(): Int = when (this) {
+    CustomerSearchError.AuthenticationRequired -> R.string.customer_error_authentication
+    CustomerSearchError.AuthorizationDenied -> R.string.customer_error_authorization
+    CustomerSearchError.Unavailable -> R.string.customer_error_unavailable
+    is CustomerSearchError.Stable -> R.string.customer_error_failed
+    CustomerSearchError.Protocol -> R.string.customer_error_failed
 }

@@ -11,6 +11,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.ui.theme.WarmCommerceTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -22,6 +24,8 @@ import org.junit.runner.RunWith
 class SignInScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
+
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Test
     fun continue_action_is_browser_owned_and_never_captures_credentials() {
@@ -38,7 +42,7 @@ class SignInScreenTest {
         assertEquals(1, clicked)
         // The screen never renders an editable credential or server capture field.
         composeRule.onAllNodes(hasSetTextAction()).assertCountEquals(0)
-        composeRule.onNodeWithText("Continue with ERPNext").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.sign_in_button)).assertIsDisplayed()
     }
 
     @Test
@@ -84,21 +88,26 @@ class SignInScreenTest {
 
     @Test
     fun failure_presents_a_cashier_friendly_message() {
+        val message = context.getString(R.string.sign_in_error_generic)
         composeRule.setContent {
             WarmCommerceTheme {
-                SignInScreen(errorMessage = "Sign-in could not be completed. Please try again.")
+                SignInScreen(errorMessage = message)
             }
         }
 
         composeRule.onNodeWithTag("sign-in-error").assertIsDisplayed()
-        composeRule.onNodeWithText("Sign-in could not be completed. Please try again.").assertIsDisplayed()
+        composeRule.onNodeWithText(message).assertIsDisplayed()
         composeRule.onNodeWithTag("sign-in-button").assertIsDisplayed()
     }
 
     @Test
     fun error_mapper_never_exposes_raw_oauth_reasons() {
-        val friendly = signInErrorMessage(
-            com.rotiropi.pos_erpnext.auth.OAuthCompletionResult.Reason.AUTHORIZATION_CANCELLED,
+        // The mapper returns a resource id, so the guarantee has to be checked on the
+        // resolved string.
+        val friendly = InstrumentationRegistry.getInstrumentation().targetContext.getString(
+            signInErrorMessage(
+                com.rotiropi.pos_erpnext.auth.OAuthCompletionResult.Reason.AUTHORIZATION_CANCELLED,
+            ),
         )
         assertTrue(friendly.isNotBlank())
         assertTrue(!friendly.contains("AUTHORIZATION_CANCELLED"))

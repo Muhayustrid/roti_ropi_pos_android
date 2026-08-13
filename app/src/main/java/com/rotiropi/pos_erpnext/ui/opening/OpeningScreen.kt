@@ -32,12 +32,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.recovery.RecoveryScreenState
+import com.rotiropi.pos_erpnext.ui.resolve
 import com.rotiropi.pos_erpnext.ui.recovery.RecoveryScreen
 import com.rotiropi.pos_erpnext.ui.theme.WarmCommerceDimensions
 
@@ -76,13 +79,13 @@ fun OpeningScreen(
                 verticalArrangement = Arrangement.spacedBy(WarmCommerceDimensions.stackGap),
             ) {
                 Text(
-                    text = "Opening Balance",
+                    text = stringResource(R.string.opening_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
-                    text = "Enter the starting amounts to begin today's shift.",
+                    text = stringResource(R.string.opening_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -108,7 +111,7 @@ fun OpeningScreen(
 
                 if (state.unavailable) {
                     Text(
-                        state.error ?: "Opening configuration is unavailable.",
+                        state.error?.resolve() ?: stringResource(R.string.opening_unavailable),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier
@@ -123,13 +126,14 @@ fun OpeningScreen(
                     verticalArrangement = Arrangement.spacedBy(WarmCommerceDimensions.gutter),
                 ) {
                     items(state.rows, key = { it.modeOfPayment }) { row ->
+                        val setByServer = stringResource(R.string.opening_set_by_server)
                         OpeningAmountField(
                             value = row.input,
                             label = row.modeOfPayment,
                             enabled = row.editable && fieldsEnabled,
                             isError = row.error != null,
-                            supportingText = row.error ?: if (!row.editable) "Set by server" else null,
-                            editableStateDescription = if (!row.editable) "Set by server" else null,
+                            supportingText = row.error?.resolve() ?: if (!row.editable) setByServer else null,
+                            editableStateDescription = if (!row.editable) setByServer else null,
                             onValueChange = { onAmountChanged(row.modeOfPayment, it) },
                         )
                     }
@@ -137,7 +141,7 @@ fun OpeningScreen(
 
                 state.error?.let {
                     Text(
-                        it,
+                        it.resolve(),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
@@ -154,7 +158,11 @@ fun OpeningScreen(
                         .testTag("opening-submit"),
                 ) {
                     Text(
-                        if (state.submitting) "Opening…" else if (state.recoveryPending) "Recovery pending" else "Start Shift",
+                        when {
+                            state.submitting -> stringResource(R.string.opening_submitting)
+                            state.recoveryPending -> stringResource(R.string.opening_recovery_pending)
+                            else -> stringResource(R.string.opening_start_shift)
+                        },
                     )
                 }
             }
@@ -193,12 +201,12 @@ private fun OpeningReconcilingCard(modifier: Modifier = Modifier) {
             )
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "Checking Shift Status",
+                    text = stringResource(R.string.opening_checking_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "We're checking the current session before continuing.",
+                    text = stringResource(R.string.opening_checking_detail),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -224,15 +232,15 @@ private fun OpeningSessionDetails(state: OpeningUiState, modifier: Modifier = Mo
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                text = "Session Details",
+                text = stringResource(R.string.opening_session_details),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            OpeningDetailRow("Cashier", state.cashier)
-            OpeningDetailRow("POS Profile", state.profileName)
-            OpeningDetailRow("Company", state.company)
-            OpeningDetailRow("Warehouse", state.warehouse)
-            OpeningDetailRow("Currency", state.currency)
+            OpeningDetailRow(stringResource(R.string.opening_field_cashier), state.cashier)
+            OpeningDetailRow(stringResource(R.string.opening_field_pos_profile), state.profileName)
+            OpeningDetailRow(stringResource(R.string.opening_field_company), state.company)
+            OpeningDetailRow(stringResource(R.string.opening_field_warehouse), state.warehouse)
+            OpeningDetailRow(stringResource(R.string.opening_field_currency), state.currency)
         }
     }
 }
@@ -311,12 +319,12 @@ internal fun OpeningConfirmSheet(
                     verticalArrangement = Arrangement.spacedBy(WarmCommerceDimensions.stackGap),
                 ) {
                     Text(
-                        text = "Confirm Opening Balance",
+                        text = stringResource(R.string.opening_confirm_title),
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = "Review the starting funds before starting this shift.",
+                        text = stringResource(R.string.opening_confirm_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -327,15 +335,15 @@ internal fun OpeningConfirmSheet(
                         color = MaterialTheme.colorScheme.secondaryContainer,
                     ) {
                         Text(
-                            text = "These opening amounts cannot be changed after the shift starts.",
+                            text = stringResource(R.string.opening_confirm_warning),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.padding(WarmCommerceDimensions.containerPadding),
                         )
                     }
 
-                    OpeningDetailRow("POS Profile", state.profileName)
-                    OpeningDetailRow("Cashier", state.cashier)
+                    OpeningDetailRow(stringResource(R.string.opening_field_pos_profile), state.profileName)
+                    OpeningDetailRow(stringResource(R.string.opening_field_cashier), state.cashier)
 
                     Surface(
                         modifier = Modifier.fillMaxWidth().testTag("opening-confirm-rows"),
@@ -380,7 +388,7 @@ internal fun OpeningConfirmSheet(
                             strokeWidth = 2.dp,
                         )
                         Text(
-                            text = "Starting Shift…",
+                            text = stringResource(R.string.opening_confirm_starting),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.testTag("opening-submitting"),
@@ -397,7 +405,7 @@ internal fun OpeningConfirmSheet(
                         .heightIn(min = WarmCommerceDimensions.touchTarget)
                         .testTag("opening-confirm"),
                 ) {
-                    Text("Confirm & Start Shift")
+                    Text(stringResource(R.string.opening_confirm_start))
                 }
                 Spacer(Modifier.height(WarmCommerceDimensions.gutter))
                 OutlinedButton(
@@ -408,7 +416,7 @@ internal fun OpeningConfirmSheet(
                         .heightIn(min = WarmCommerceDimensions.touchTarget)
                         .testTag("opening-edit-amounts"),
                 ) {
-                    Text("Edit Amounts")
+                    Text(stringResource(R.string.opening_confirm_edit))
                 }
             }
         }

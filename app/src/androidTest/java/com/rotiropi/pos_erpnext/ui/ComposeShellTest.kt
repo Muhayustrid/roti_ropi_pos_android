@@ -24,6 +24,7 @@ import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.rotiropi.pos_erpnext.MainActivity
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.MobilePosApplication
 import com.rotiropi.pos_erpnext.auth.OAuthTokens
 import com.rotiropi.pos_erpnext.auth.TokenStore
@@ -42,6 +43,12 @@ class ComposeShellTest {
 
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
+
+    /**
+     * Resolved through the activity so the expected text follows the applied interface
+     * language instead of pinning one translation into the assertion.
+     */
+    private fun text(id: Int): String = composeRule.activity.getString(id)
 
     @Before
     fun authenticateShellFixture() {
@@ -89,7 +96,7 @@ class ComposeShellTest {
     @Test
     fun launch_displays_compose_cashier_destination() {
         composeRule.onNodeWithTag("destination-content-cashier").assertIsDisplayed()
-        composeRule.onNodeWithText("Cashier unavailable").assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.cashier_unavailable)).assertIsDisplayed()
         composeRule.onNodeWithTag("root-cashier")
             .assertIsSelected()
             .assertHasClickAction()
@@ -142,21 +149,21 @@ class ComposeShellTest {
     @Test
     fun cashier_release_destination_is_honest_and_has_no_input() {
         composeRule.onNodeWithTag("root-cashier").performClick()
-        composeRule.onNodeWithText("Cashier unavailable").assertIsDisplayed()
-        composeRule.onNodeWithText("Demo data").assertDoesNotExist()
+        composeRule.onNodeWithText(text(R.string.cashier_unavailable)).assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.badge_demo_data)).assertDoesNotExist()
         composeRule.onAllNodes(hasSetTextAction()).assertCountEquals(0)
     }
 
     @Test
     fun reports_and_more_release_destinations_are_honest_feature_surfaces() {
         composeRule.onNodeWithTag("root-more").performClick()
-        composeRule.onNodeWithText("Appearance").performScrollTo().assertIsDisplayed()
-        composeRule.onAllNodesWithText("Unavailable").assertCountEquals(2)
-        composeRule.onAllNodesWithText("Not supported").assertCountEquals(2)
+        composeRule.onNodeWithText(text(R.string.more_group_appearance)).performScrollTo().assertIsDisplayed()
+        composeRule.onAllNodesWithText(text(R.string.state_unavailable)).assertCountEquals(2)
+        composeRule.onAllNodesWithText(text(R.string.state_not_supported)).assertCountEquals(2)
 
         composeRule.onNodeWithTag("more-reports").performScrollTo().performClick()
-        composeRule.onNodeWithText("Reports unavailable").assertIsDisplayed()
-        composeRule.onNodeWithText("Demo data").assertDoesNotExist()
+        composeRule.onNodeWithText(text(R.string.reports_unavailable)).assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.badge_demo_data)).assertDoesNotExist()
     }
 
     @Test
@@ -179,7 +186,7 @@ class ComposeShellTest {
 
         composeRule.onNodeWithTag("more-demo-data").performClick().assertIsSelected()
 
-        composeRule.onNodeWithText("Demo data").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.badge_demo_data)).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Outlet Menteng").performScrollTo().assertIsDisplayed()
 
         composeRule.onNodeWithTag("more-reports").performScrollTo().performClick()
@@ -188,7 +195,7 @@ class ComposeShellTest {
         composeRule.onNodeWithTag("root-more").performClick()
         composeRule.onNodeWithTag("more-demo-data").performScrollTo().performClick()
         composeRule.onNodeWithTag("more-reports").performScrollTo().performClick()
-        composeRule.onNodeWithText("Reports unavailable").assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.reports_unavailable)).assertIsDisplayed()
     }
 
     @Test

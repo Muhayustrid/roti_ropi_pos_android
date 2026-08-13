@@ -19,10 +19,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.rotiropi.pos_erpnext.R
+import com.rotiropi.pos_erpnext.ui.resolve
 import com.rotiropi.pos_erpnext.ui.payment.CheckoutPanel
 import com.rotiropi.pos_erpnext.ui.payment.CheckoutUiState
 import com.rotiropi.pos_erpnext.ui.theme.PosDimensions
@@ -49,7 +52,7 @@ fun CartContent(
     ) {
         item {
             Text(
-                text = "Cart",
+                text = stringResource(R.string.cart_title),
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.semantics { heading() },
             )
@@ -57,7 +60,7 @@ fun CartContent(
         if (cart.visibleLines.isEmpty()) {
             item {
                 Text(
-                    text = "Cart is empty",
+                    text = stringResource(R.string.cart_empty),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -78,8 +81,8 @@ fun CartContent(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text(cart.itemCountLabel, style = MaterialTheme.typography.labelLarge)
-                Text(cart.payableLabel, style = MaterialTheme.typography.titleMedium)
+                Text(cart.itemCountLabel.resolve(), style = MaterialTheme.typography.labelLarge)
+                Text(cart.payableLabel.resolve(), style = MaterialTheme.typography.titleMedium)
             }
         }
         item {
@@ -111,12 +114,12 @@ private fun CartLineCard(
         ) {
             Text(line.itemName, style = MaterialTheme.typography.titleMedium)
             Text(
-                text = "${line.itemCode} · ${line.priceLabel}",
+                text = stringResource(R.string.cart_line_summary, line.itemCode, line.priceLabel.resolve()),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
             )
-            line.batchNo?.let { Text("Batch $it", style = MaterialTheme.typography.bodySmall) }
-            line.serialNo?.let { Text("Serial $it", style = MaterialTheme.typography.bodySmall) }
+            line.batchNo?.let { Text(stringResource(R.string.cart_batch, it), style = MaterialTheme.typography.bodySmall) }
+            line.serialNo?.let { Text(stringResource(R.string.cart_serial, it), style = MaterialTheme.typography.bodySmall) }
             line.warningLabel?.let {
                 Text(
                     text = it,
@@ -144,7 +147,7 @@ private fun CartLineCard(
                         onValueChange = { onEditQuantity(line, it) },
                         isError = quantityInvalid,
                         supportingText = if (quantityInvalid) {
-                            { Text("Quantity is not valid") }
+                            { Text(stringResource(R.string.cart_quantity_invalid)) }
                         } else {
                             null
                         },
@@ -179,7 +182,7 @@ private fun CartLineCard(
                         .heightIn(min = PosDimensions.touchTarget)
                         .testTag("cart-remove-${line.serialNo ?: line.itemCode}"),
                 ) {
-                    Text("Remove")
+                    Text(stringResource(R.string.cart_remove))
                 }
             }
         }

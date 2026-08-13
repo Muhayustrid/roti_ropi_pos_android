@@ -17,12 +17,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.auth.AuthenticationOwner
 import com.rotiropi.pos_erpnext.auth.AuthenticationState
 import com.rotiropi.pos_erpnext.session.LogoutResult
@@ -53,6 +55,7 @@ import com.rotiropi.pos_erpnext.ui.reports.ReportsScreen
 import com.rotiropi.pos_erpnext.ui.reports.ReportsUiState
 import com.rotiropi.pos_erpnext.ui.settings.MoreScreen
 import com.rotiropi.pos_erpnext.ui.settings.MoreUiState
+import com.rotiropi.pos_erpnext.ui.settings.PosLanguage
 import com.rotiropi.pos_erpnext.ui.settings.PosThemeMode
 import com.rotiropi.pos_erpnext.ui.theme.PosAccent
 import com.rotiropi.pos_erpnext.ui.theme.PosDimensions
@@ -62,8 +65,10 @@ import com.rotiropi.pos_erpnext.ui.theme.WarmCommerceTheme
 fun PosShell(
     themeMode: PosThemeMode = PosThemeMode.SYSTEM,
     accent: PosAccent = PosAccent.BLUE,
+    language: PosLanguage = PosLanguage.DEFAULT,
     onThemeModeSelected: (PosThemeMode) -> Unit = {},
     onAccentSelected: (PosAccent) -> Unit = {},
+    onLanguageSelected: (PosLanguage) -> Unit = {},
     modifier: Modifier = Modifier,
     authenticationOwner: AuthenticationOwner? = null,
     serverOrigin: String? = null,
@@ -135,7 +140,8 @@ fun PosShell(
             SignInScreen(
                 onSignInClick = authenticationOwner::beginAuthorization,
                 modifier = modifier,
-                errorMessage = (authState as? AuthenticationState.Error)?.reason?.let(::signInErrorMessage),
+                errorMessage = (authState as? AuthenticationState.Error)?.reason
+                    ?.let { stringResource(signInErrorMessage(it)) },
                 signingIn = authState == AuthenticationState.Authorizing,
                 serverOrigin = serverOrigin,
             )
@@ -171,8 +177,10 @@ fun PosShell(
     AuthenticatedPosShell(
         themeMode = themeMode,
         accent = accent,
+        language = language,
         onThemeModeSelected = onThemeModeSelected,
         onAccentSelected = onAccentSelected,
+        onLanguageSelected = onLanguageSelected,
         onLogout = onLogout ?: authenticationOwner?.let { owner ->
             { owner.logout(); LogoutResult.LoggedOut }
         } ?: { LogoutResult.LoggedOut },
@@ -242,8 +250,10 @@ fun PosShell(
 private fun AuthenticatedPosShell(
     themeMode: PosThemeMode,
     accent: PosAccent,
+    language: PosLanguage,
     onThemeModeSelected: (PosThemeMode) -> Unit,
     onAccentSelected: (PosAccent) -> Unit,
+    onLanguageSelected: (PosLanguage) -> Unit,
     onLogout: () -> LogoutResult,
     logoutResult: LogoutResult?,
     recoveryState: com.rotiropi.pos_erpnext.recovery.RecoveryScreenState,
@@ -436,8 +446,13 @@ private fun AuthenticatedPosShell(
                                     themeMode = themeMode,
                                     accent = accent,
                                     demoData = demoActive,
+                                    language = language,
                                     logoutMessage = (logoutResult as? LogoutResult.Blocked)?.let {
-                                        "Sign out blocked: ${it.cashier} has ${it.state.name.lowercase()} recovery."
+                                        stringResource(
+                                            R.string.more_sign_out_blocked,
+                                            it.cashier,
+                                            it.state.name.lowercase(),
+                                        )
                                     },
                                     recovery = recoveryState,
                                     closingAvailable = closingAvailable,
@@ -448,6 +463,7 @@ private fun AuthenticatedPosShell(
                                 logoutVisible = logoutVisible,
                                 onThemeModeSelected = onThemeModeSelected,
                                 onAccentSelected = onAccentSelected,
+                                onLanguageSelected = onLanguageSelected,
                                 onDemoDataToggled = { demoData = it },
                                 onLogout = { onLogout() },
                                 onOpenClosing = {

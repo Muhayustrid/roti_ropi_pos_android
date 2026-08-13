@@ -1,5 +1,6 @@
 package com.rotiropi.pos_erpnext.ui.profile
 
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.data.BootstrapFailure
 import com.rotiropi.pos_erpnext.data.BootstrapRefreshTrigger
 import com.rotiropi.pos_erpnext.data.MobilePosRepository
@@ -8,6 +9,8 @@ import com.rotiropi.pos_erpnext.data.RepositoryResult
 import com.rotiropi.pos_erpnext.recovery.RecoveryScreenState
 import com.rotiropi.pos_erpnext.recovery.RecoveryUiState
 import com.rotiropi.pos_erpnext.session.LogoutResult
+import com.rotiropi.pos_erpnext.ui.UiText
+import com.rotiropi.pos_erpnext.ui.uiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,10 +26,10 @@ data class ProfileSelectionUiState(
     val selectedProfileName: String?,
     val selectionRequired: Boolean,
     val refreshing: Boolean,
-    val error: String?,
+    val error: UiText?,
     val retryRequired: Boolean,
     val anyActionEnabled: Boolean,
-    val logoutBlockedMessage: String? = null,
+    val logoutBlockedMessage: UiText? = null,
     val recovery: RecoveryScreenState = RecoveryScreenState.Hidden,
 )
 
@@ -53,11 +56,11 @@ class ProfileSelectionViewModel(
 ) {
     private val lock = Any()
     private var refreshing = false
-    private var actionError: String? = null
+    private var actionError: UiText? = null
     private var retryRequired = false
     private var actionInFlight = false
     private var actionEpoch = 0L
-    private var logoutBlockedMessage: String? = null
+    private var logoutBlockedMessage: UiText? = null
     private var recovery: RecoveryScreenState = RecoveryScreenState.Hidden
     private val _state = MutableStateFlow(renderLocked())
     val state: StateFlow<ProfileSelectionUiState> = _state.asStateFlow()
@@ -84,7 +87,7 @@ class ProfileSelectionViewModel(
         if (!repository.selectProfile(profileName)) {
             synchronized(lock) {
                 if (action.epoch != actionEpoch) return@synchronized
-                actionError = "Profile $profileName is not available."
+                actionError = uiText(R.string.profile_error_not_available, profileName)
                 refreshing = false
                 retryRequired = false
                 actionInFlight = false
@@ -110,7 +113,7 @@ class ProfileSelectionViewModel(
     fun setRecoveryState(logoutResult: LogoutResult?, recoveryUi: RecoveryScreenState) {
         synchronized(lock) {
             val blockedMessage = (logoutResult as? LogoutResult.Blocked)?.let {
-                "Sign out blocked: ${it.cashier} has ${it.state.name.lowercase()} recovery."
+                uiText(R.string.more_sign_out_blocked, it.cashier, it.state.name.lowercase())
             }
             if (logoutBlockedMessage == blockedMessage && recovery == recoveryUi) return
             logoutBlockedMessage = blockedMessage
@@ -185,9 +188,9 @@ class ProfileSelectionViewModel(
         val trigger: BootstrapRefreshTrigger
     )
 
-    private fun BootstrapFailure.message(): String = when (this) {
-        is BootstrapFailure.AuthRequired -> "Sign-in is required. Please authenticate and retry."
-        is BootstrapFailure.Unavailable -> "The profile could not be refreshed. Please retry."
-        is BootstrapFailure.Protocol -> "The server returned an unexpected response. Please retry."
+    private fun BootstrapFailure.message(): UiText = when (this) {
+        is BootstrapFailure.AuthRequired -> uiText(R.string.profile_error_authentication)
+        is BootstrapFailure.Unavailable -> uiText(R.string.profile_error_refresh)
+        is BootstrapFailure.Protocol -> uiText(R.string.profile_error_protocol)
     }
 }

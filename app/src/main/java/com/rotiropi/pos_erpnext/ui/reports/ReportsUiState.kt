@@ -1,9 +1,12 @@
 package com.rotiropi.pos_erpnext.ui.reports
 
-enum class ReportPeriod(val label: String) {
-    TODAY("Today"),
-    WEEK("Week"),
-    MONTH("Month"),
+import androidx.annotation.StringRes
+import com.rotiropi.pos_erpnext.R
+
+enum class ReportPeriod(@param:StringRes val labelRes: Int) {
+    TODAY(R.string.reports_period_today),
+    WEEK(R.string.reports_period_week),
+    MONTH(R.string.reports_period_month),
 }
 
 data class ReportMetric(

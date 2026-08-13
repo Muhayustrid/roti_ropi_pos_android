@@ -5,6 +5,8 @@ import com.rotiropi.pos_erpnext.data.OpeningPaymentMode
 import com.rotiropi.pos_erpnext.data.PosProfile
 import com.rotiropi.pos_erpnext.data.api.OpenSessionRequestDto
 import com.rotiropi.pos_erpnext.recovery.RecoveryExecution
+import com.rotiropi.pos_erpnext.R
+import com.rotiropi.pos_erpnext.ui.uiText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -167,7 +169,7 @@ class OpeningViewModelTest {
         assertTrue(viewModel.state.value.recoveryPending)
         assertFalse(viewModel.state.value.canSubmit)
         assertEquals(
-            "Opening recovery could not verify the current session. Please retry.",
+            uiText(R.string.opening_error_recovery_unverified),
             viewModel.state.value.error,
         )
     }

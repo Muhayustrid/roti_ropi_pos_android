@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.key.Key
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.ui.theme.PosTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -43,6 +45,8 @@ import kotlinx.coroutines.Dispatchers
 @RunWith(AndroidJUnit4::class)
 class CustomerSearchSheetTest {
     @get:Rule val rule = createComposeRule()
+
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Test fun profileDefaultMarkedRowUsesWalkInSelectionAndPreservesName() {
         val viewModel = selectionViewModel()
@@ -141,7 +145,7 @@ class CustomerSearchSheetTest {
         }
         val registeredSelection = SemanticsMatcher.expectValue(
             SemanticsProperties.StateDescription,
-            "Registered customer Ayu Bakery selected",
+            context.getString(R.string.customer_registered_selected, "Ayu Bakery"),
         )
         rule.onNode(registeredSelection).assert(registeredSelection)
 
@@ -168,7 +172,7 @@ class CustomerSearchSheetTest {
         rule.onNodeWithTag("customer-loading").assertIsDisplayed()
         rule.onNodeWithTag("customer-retry").assertIsDisplayed().assertHeightIsAtLeast(48.dp).assertHasClickAction().performClick()
         rule.runOnIdle { assertEquals(1, retryCount) }
-        rule.onNodeWithText("Customer").assertIsDisplayed()
+        rule.onNodeWithText(context.getString(R.string.customer_label)).assertIsDisplayed()
     }
 
     @Test fun emptySearchStateIsVisible() {
@@ -251,7 +255,10 @@ class CustomerSearchSheetTest {
         rule.onNodeWithTag("customer-results").performScrollToNode(hasTestTag("customer-CUST-30"))
         rule.onNodeWithTag("customer-CUST-30").assertIsDisplayed().assertHasClickAction().performClick()
         rule.runOnIdle { assertEquals("CUST-30", selected?.id) }
-        val registeredSelection = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Registered customer Customer 30 selected")
+        val registeredSelection = SemanticsMatcher.expectValue(
+            SemanticsProperties.StateDescription,
+            context.getString(R.string.customer_registered_selected, "Customer 30"),
+        )
         rule.onNode(registeredSelection).assert(registeredSelection)
         rule.onNodeWithTag("customer-results").performScrollToNode(hasTestTag("customer-load-more"))
         rule.onNodeWithTag("customer-load-more").assertIsDisplayed().assertHeightIsAtLeast(48.dp)

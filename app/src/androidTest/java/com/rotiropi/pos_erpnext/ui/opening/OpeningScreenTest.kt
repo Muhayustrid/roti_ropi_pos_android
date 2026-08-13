@@ -19,6 +19,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.rotiropi.pos_erpnext.R
+import com.rotiropi.pos_erpnext.ui.uiText
 import com.rotiropi.pos_erpnext.ui.theme.PosTheme
 import com.rotiropi.pos_erpnext.ui.theme.WarmCommerceTheme
 import org.junit.Assert.assertEquals
@@ -30,6 +33,8 @@ import org.junit.runner.RunWith
 class OpeningScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
+
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Test
     fun configured_rows_render_in_server_order_and_submit_is_accessible() {
@@ -124,7 +129,7 @@ class OpeningScreenTest {
         composeRule.setContent {
             PosTheme {
                 OpeningScreen(
-                    state = OpeningUiState(unavailable = true, error = "Opening configuration is unavailable."),
+                    state = OpeningUiState(unavailable = true, error = uiText(R.string.opening_unavailable)),
                     onAmountChanged = { _, _ -> },
                     onSubmit = {},
                 )
@@ -208,7 +213,14 @@ class OpeningScreenTest {
                 OpeningScreen(
                     state = OpeningUiState(
                         profileName = "PROFILE-EXAMPLE",
-                        rows = listOf(OpeningRowUiState("Mode B", "1.001", true, "Use at most 2 decimal places.")),
+                        rows = listOf(
+                            OpeningRowUiState(
+                                "Mode B",
+                                "1.001",
+                                true,
+                                uiText(R.string.opening_amount_error_decimal_places, 2),
+                            ),
+                        ),
                         canSubmit = false,
                     ),
                     onAmountChanged = { _, _ -> },
@@ -217,7 +229,8 @@ class OpeningScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Use at most 2 decimal places.").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.opening_amount_error_decimal_places, 2))
+            .assertIsDisplayed()
         composeRule.onNodeWithTag("opening-submit").assertIsNotEnabled()
     }
 

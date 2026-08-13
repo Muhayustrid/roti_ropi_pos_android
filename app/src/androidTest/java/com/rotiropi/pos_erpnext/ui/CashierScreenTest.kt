@@ -36,6 +36,10 @@ import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.rotiropi.pos_erpnext.R
+import com.rotiropi.pos_erpnext.ui.UiText
+import com.rotiropi.pos_erpnext.ui.uiText
 import com.rotiropi.pos_erpnext.ui.cashier.CartContent
 import com.rotiropi.pos_erpnext.ui.cashier.CartLine
 import com.rotiropi.pos_erpnext.ui.cashier.CartSnapshot
@@ -61,6 +65,8 @@ class CashierScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
 
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+
     @Test
     fun release_cashier_is_honest_and_has_no_demo_or_input() {
         composeRule.setContent {
@@ -69,8 +75,8 @@ class CashierScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Cashier unavailable").assertIsDisplayed()
-        composeRule.onNodeWithText("Demo data").assertDoesNotExist()
+        composeRule.onNodeWithText(context.getString(R.string.cashier_unavailable)).assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.badge_demo_data)).assertDoesNotExist()
         composeRule.onAllNodes(hasSetTextAction()).assertCountEquals(0)
     }
 
@@ -84,13 +90,21 @@ class CashierScreenTest {
 
         composeRule.onNodeWithTag("cashier-search").assertIsDisplayed()
         composeRule.onNodeWithTag("cashier-barcode").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Cashier category Pastry").assertIsSelected()
+        composeRule.onNodeWithContentDescription(
+            context.getString(R.string.cashier_category_description, "Pastry"),
+        ).assertIsSelected()
         composeRule.onNode(
-            hasContentDescription("Add Croissant Pack to cart") and hasClickAction(),
+            hasContentDescription(
+                context.getString(R.string.cashier_add_to_cart_description, "Croissant Pack"),
+            ) and hasClickAction(),
         ).assertHasClickAction().assertHeightIsAtLeast(48.dp)
-        composeRule.onNodeWithText("IDR 25,000 · Outlet Retail server snapshot").assertIsDisplayed()
-        composeRule.onNodeWithText("18 Pack · Outlet 01 - RR server stock snapshot").assertIsDisplayed()
-        composeRule.onNodeWithText("Demo data").assertIsDisplayed()
+        composeRule.onNodeWithText(
+            context.getString(R.string.cashier_price_snapshot, "IDR", "25,000", "Outlet Retail"),
+        ).assertIsDisplayed()
+        composeRule.onNodeWithText(
+            context.getString(R.string.cashier_stock_snapshot, "18", "Pack", "Outlet 01 - RR"),
+        ).assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.badge_demo_data)).assertIsDisplayed()
     }
 
     @Test
@@ -215,19 +229,21 @@ class CashierScreenTest {
             PosTheme { CheckoutPanel(state.value) }
         }
 
-        composeRule.onNodeWithText("Authoritative payable and payment modes unavailable").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.checkout_unavailable)).assertIsDisplayed()
         composeRule.onNodeWithTag("checkout-confirm").assertIsNotEnabled()
 
         composeRule.runOnIdle { state.value = CheckoutUiState.OfflineNotSubmitted }
-        composeRule.onNodeWithText("Offline — sale not submitted").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.checkout_offline)).assertIsDisplayed()
         composeRule.onNodeWithTag("checkout-confirm").assertIsNotEnabled()
 
-        composeRule.runOnIdle { state.value = CheckoutUiState.PriceChanged("Server price changed", emptyMap()) }
+        composeRule.runOnIdle {
+            state.value = CheckoutUiState.PriceChanged(UiText.Raw("Server price changed"), emptyMap())
+        }
         composeRule.onNodeWithText("Server price changed").assertIsDisplayed()
-        composeRule.onNodeWithText("Retry").assertHasClickAction()
+        composeRule.onNodeWithText(context.getString(R.string.action_retry)).assertHasClickAction()
 
         composeRule.runOnIdle { state.value = CheckoutUiState.Submitting }
-        composeRule.onNodeWithText("Submitting sale").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.checkout_submitting)).assertIsDisplayed()
         composeRule.onNodeWithTag("checkout-confirm").assertIsNotEnabled()
 
         listOf("Overpayment", "Change due", "Discount", "Camera").forEach { unsupported ->
@@ -238,7 +254,7 @@ class CashierScreenTest {
     @Test
     fun checkout_errors_are_announced() {
         composeRule.setContent {
-            PosTheme { CheckoutPanel(CheckoutUiState.Error("Sale was not submitted")) }
+            PosTheme { CheckoutPanel(CheckoutUiState.Error(UiText.Raw("Sale was not submitted"))) }
         }
 
         composeRule.onNodeWithText("Sale was not submitted")
@@ -257,11 +273,11 @@ class CashierScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Receipt").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.receipt_title)).assertIsDisplayed()
         composeRule.onNodeWithText("SINV-0001").assertIsDisplayed()
-        composeRule.onNodeWithText("Server change").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.receipt_row_change)).assertIsDisplayed()
         composeRule.onNodeWithText("IDR 0").assertIsDisplayed()
-        composeRule.onNodeWithText("Demo data").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.badge_demo_data)).assertIsDisplayed()
         composeRule.onNodeWithTag("receipt-close")
             .assertHasClickAction()
             .assertHeightIsAtLeast(48.dp)
@@ -293,8 +309,8 @@ class CashierScreenTest {
             query = "",
             barcode = barcode,
             categories = listOf(
-                CashierCategory("all", "All"),
-                CashierCategory("pastry", "Pastry"),
+                CashierCategory("all", uiText(R.string.cashier_category_all)),
+                CashierCategory("pastry", UiText.Raw("Pastry")),
             ),
             selectedCategoryId = "pastry",
             products = listOf(productFixture()),
@@ -310,7 +326,7 @@ class CashierScreenTest {
         categoryId = "pastry",
         price = "25,000",
         currency = "IDR",
-        priceList = "Outlet Retail",
+        priceList = UiText.Raw("Outlet Retail"),
         availableQuantity = "18",
         uom = "Pack",
         warehouse = "Outlet 01 - RR",
@@ -323,12 +339,12 @@ class CashierScreenTest {
                 itemCode = "CROISSANT-PACK",
                 itemName = "Croissant Pack",
                 quantity = "2",
-                priceLabel = "Demo line IDR 50,000",
+                priceLabel = UiText.Raw("Demo line IDR 50,000"),
                 uom = "Pack",
             )
         ),
-        itemCountLabel = "2 items",
-        payableLabel = "Demo total IDR 50,000",
+        itemCountLabel = UiText.Raw("2 items"),
+        payableLabel = UiText.Raw("Demo total IDR 50,000"),
     )
 
     private fun receiptFixture() = ReceiptContent(
@@ -337,7 +353,7 @@ class CashierScreenTest {
         total = "IDR 55,000",
         paid = "IDR 55,000",
         changeAmount = "IDR 0",
-        status = "Paid",
+        status = R.string.sale_status_paid,
         demoData = true,
     )
 }

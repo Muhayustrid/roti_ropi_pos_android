@@ -71,7 +71,7 @@ class Task4RootController(
         val warning = staleOpeningWarning(appState.repositoryState)
         binding.task4Warning.text = warning.orEmpty()
         binding.task4Warning.visibility = if (warning == null) View.GONE else View.VISIBLE
-        binding.task4Error.text = appState.error.orEmpty()
+        binding.task4Error.text = appState.error?.resolve(binding.root.context).orEmpty()
         binding.task4Error.visibility = if (appState.error == null) View.GONE else View.VISIBLE
         binding.task4Retry.visibility = if (appState.retryRequired) View.VISIBLE else View.GONE
     }

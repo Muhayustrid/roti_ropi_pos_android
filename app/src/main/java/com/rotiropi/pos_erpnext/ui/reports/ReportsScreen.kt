@@ -24,11 +24,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.ui.navigation.PosLayoutMode
 import com.rotiropi.pos_erpnext.ui.theme.PosDimensions
 
@@ -65,24 +67,25 @@ fun ReportsScreen(
 
 @Composable
 private fun ReportsUnavailable(modifier: Modifier = Modifier) {
+    val unavailable = stringResource(R.string.state_unavailable)
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(PosDimensions.screenPadding)
-            .semantics { stateDescription = "Unavailable" },
+            .semantics { stateDescription = unavailable },
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            text = "Reports",
+            text = stringResource(R.string.reports_title),
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.semantics { heading() },
         )
         Text(
-            text = "Reports unavailable",
+            text = stringResource(R.string.reports_unavailable),
             style = MaterialTheme.typography.titleMedium,
         )
         Text(
-            text = "Complete report data is not available from the current server contract.",
+            text = stringResource(R.string.reports_unavailable_detail),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium,
         )
@@ -97,13 +100,14 @@ private fun ReportsPopulated(
     onPeriodSelected: (ReportPeriod) -> Unit,
 ) {
     val rootTag = if (layoutMode == PosLayoutMode.EXPANDED) "reports-expanded" else "reports-compact"
+    val contentDescriptionState = stringResource(R.string.reports_state_content)
     Column(
         modifier = modifier
             .fillMaxSize()
             .testTag(rootTag)
             .padding(PosDimensions.screenPadding)
             .verticalScroll(rememberScrollState())
-            .semantics { stateDescription = "Reports content" },
+            .semantics { stateDescription = contentDescriptionState },
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         ReportsHeader(demoData = content.demoData)
@@ -126,9 +130,9 @@ private fun ReportsPopulated(
                         .testTag("reports-expanded-primary-pane"),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    SectionTitle("Sales Trend")
+                    SectionTitle(stringResource(R.string.reports_section_trend))
                     ReportsChartSection(content)
-                    SectionTitle("Category Breakdown")
+                    SectionTitle(stringResource(R.string.reports_section_breakdown))
                     BreakdownList(content.breakdown)
                 }
                 Column(
@@ -137,16 +141,16 @@ private fun ReportsPopulated(
                         .testTag("reports-expanded-top-products-pane"),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    SectionTitle("Top Products")
+                    SectionTitle(stringResource(R.string.reports_section_top_products))
                     TopProductsList(content.topProducts)
                 }
             }
         } else {
-            SectionTitle("Sales Trend")
+            SectionTitle(stringResource(R.string.reports_section_trend))
             ReportsChartSection(content)
-            SectionTitle("Category Breakdown")
+            SectionTitle(stringResource(R.string.reports_section_breakdown))
             BreakdownList(content.breakdown)
-            SectionTitle("Top Products")
+            SectionTitle(stringResource(R.string.reports_section_top_products))
             TopProductsList(content.topProducts)
         }
     }
@@ -160,7 +164,7 @@ private fun ReportsHeader(demoData: Boolean) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "Reports",
+            text = stringResource(R.string.reports_title),
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.semantics { heading() },
         )
@@ -170,7 +174,7 @@ private fun ReportsHeader(demoData: Boolean) {
                 shape = MaterialTheme.shapes.medium,
             ) {
                 Text(
-                    text = "Demo data",
+                    text = stringResource(R.string.badge_demo_data),
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                     style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -193,7 +197,7 @@ private fun PeriodChips(
             FilterChip(
                 selected = period == selectedPeriod,
                 onClick = { onPeriodSelected(period) },
-                label = { Text(period.label) },
+                label = { Text(stringResource(period.labelRes)) },
                 modifier = Modifier
                     .heightIn(min = PosDimensions.touchTarget)
                     .testTag("reports-period-${period.name.lowercase()}"),
@@ -241,6 +245,7 @@ private fun MetricCard(metric: ReportMetric, modifier: Modifier = Modifier) {
 private fun ReportsChartSection(content: ReportsContent) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         val primaryColor = MaterialTheme.colorScheme.primary
+        val chartDescription = stringResource(R.string.reports_chart_description, content.chartSummary)
         Row(modifier = Modifier.fillMaxWidth()) {
             content.chartBars.forEach { bar ->
                 Column(
@@ -257,7 +262,7 @@ private fun ReportsChartSection(content: ReportsContent) {
                 .height(180.dp)
                 .testTag("reports-chart")
                 .semantics {
-                    contentDescription = "Sales trend chart. ${content.chartSummary}"
+                    contentDescription = chartDescription
                 },
         ) {
             val barCount = content.chartBars.size

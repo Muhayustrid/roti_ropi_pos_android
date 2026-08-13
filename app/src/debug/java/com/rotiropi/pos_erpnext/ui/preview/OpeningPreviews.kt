@@ -3,6 +3,7 @@ package com.rotiropi.pos_erpnext.ui.preview
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.rotiropi.pos_erpnext.recovery.RecoveryScreenState
+import com.rotiropi.pos_erpnext.ui.UiText
 import com.rotiropi.pos_erpnext.ui.opening.OpeningConfirmSheet
 import com.rotiropi.pos_erpnext.ui.opening.OpeningRowUiState
 import com.rotiropi.pos_erpnext.ui.opening.OpeningScreen
@@ -52,7 +53,7 @@ fun OpeningValidationPreview() {
         OpeningScreen(
             state = openingState.copy(
                 rows = listOf(
-                    OpeningRowUiState("Cash", "1.001", true, "Use at most 2 decimal places."),
+                    OpeningRowUiState("Cash", "1.001", true, UiText.Raw("Use at most 2 decimal places.")),
                     openingRows[1],
                     openingRows[2],
                 ),
@@ -94,7 +95,7 @@ fun OpeningReconcilingPreview() {
 fun OpeningUnavailablePreview() {
     WarmCommerceTheme {
         OpeningScreen(
-            state = OpeningUiState(unavailable = true, error = "Opening configuration is unavailable."),
+            state = OpeningUiState(unavailable = true, error = UiText.Raw("Opening configuration is unavailable.")),
             onAmountChanged = { _, _ -> },
             onSubmit = {},
         )

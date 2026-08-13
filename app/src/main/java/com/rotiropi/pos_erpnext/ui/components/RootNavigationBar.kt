@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.rotiropi.pos_erpnext.ui.navigation.PosDestination
 import com.rotiropi.pos_erpnext.ui.theme.PosDimensions
@@ -52,7 +53,7 @@ private fun RowScope.RootNavigationItem(
                 contentDescription = null,
             )
         },
-        label = { Text(destination.label) },
+        label = { Text(stringResource(destination.labelRes)) },
         modifier = Modifier
             .heightIn(min = PosDimensions.touchTarget)
             .testTag("root-${destination.route}"),

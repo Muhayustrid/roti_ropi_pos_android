@@ -19,13 +19,30 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.data.ClosingReceipt
 import com.rotiropi.pos_erpnext.ui.theme.PosDimensions
+
+/**
+ * `ClosingUiState` carries a stable failure code, not a sentence: some codes are ours and
+ * some arrive verbatim from the server. Known codes resolve to a translated string here at
+ * the UI edge; an unrecognized server code is shown as-is rather than hidden.
+ */
+@Composable
+private fun closingErrorMessage(code: String): String = when (code) {
+    "payment_mode_unknown" -> stringResource(R.string.closing_error_payment_mode_unknown)
+    "counted_amount_required" -> stringResource(R.string.closing_error_counted_amount_required)
+    "rejected" -> stringResource(R.string.closing_error_rejected)
+    "submission_unavailable" -> stringResource(R.string.closing_error_submission_unavailable)
+    "AUTH_REQUIRED" -> stringResource(R.string.closing_error_auth_required)
+    else -> code.replace('_', ' ')
+}
 
 @Composable
 fun ClosingScreen(
@@ -52,7 +69,7 @@ fun ClosingScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                "Closing",
+                stringResource(R.string.closing_title),
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.semantics { heading() },
             )
@@ -63,13 +80,13 @@ fun ClosingScreen(
                         .heightIn(min = PosDimensions.touchTarget)
                         .testTag("closing-back"),
                 ) {
-                    Text("Back")
+                    Text(stringResource(R.string.action_back))
                 }
             }
         }
         when (state) {
-            ClosingUiState.Unavailable -> Text("Closing unavailable")
-            is ClosingUiState.Loading -> Loading("Loading authoritative preview")
+            ClosingUiState.Unavailable -> Text(stringResource(R.string.closing_unavailable))
+            is ClosingUiState.Loading -> Loading(stringResource(R.string.closing_loading_preview))
             is ClosingUiState.Editing -> Editing(
                 state,
                 onCountedAmountChanged,
@@ -83,24 +100,24 @@ fun ClosingScreen(
                         .heightIn(min = PosDimensions.touchTarget)
                         .testTag("closing-reauthenticate"),
                 ) {
-                    Text("Sign in again")
+                    Text(stringResource(R.string.action_sign_in_again))
                 }
             } else {
-                Loading("Recovering Closing")
+                Loading(stringResource(R.string.closing_recovering))
             }
             is ClosingUiState.Queued -> Queued(state, onCheckStatus, onReauthenticate)
             is ClosingUiState.Receipt -> Terminal(
-                title = "Closing submitted",
+                title = stringResource(R.string.closing_submitted),
                 receipt = state.receipt,
                 onDone = onDone,
             )
             is ClosingUiState.Failed -> Terminal(
-                title = "Closing ${state.receipt.status.name.lowercase()}",
+                title = stringResource(R.string.closing_receipt_title, state.receipt.status.name.lowercase()),
                 receipt = state.receipt,
                 onDone = onDone,
             )
             is ClosingUiState.StalePreview -> {
-                Text("Closing preview changed. Load current totals before submitting again.")
+                Text(stringResource(R.string.closing_preview_stale))
                 Button(
                     onClick = { onRetryPreview(state.posProfile) },
                     modifier = Modifier
@@ -108,7 +125,7 @@ fun ClosingScreen(
                         .heightIn(min = PosDimensions.touchTarget)
                         .testTag("closing-reload-preview"),
                 ) {
-                    Text("Reload preview")
+                    Text(stringResource(R.string.closing_reload_preview))
                 }
             }
         }
@@ -127,12 +144,12 @@ private fun Editing(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Authoritative preview", style = MaterialTheme.typography.titleMedium)
-            AmountRow("Invoices", preview.invoiceCount.toString())
-            AmountRow("Grand total", preview.grandTotal)
-            AmountRow("Net total", preview.netTotal)
-            AmountRow("Taxes and charges", preview.totalTaxesAndCharges)
-            AmountRow("Total quantity", preview.totalQuantity)
+            Text(stringResource(R.string.closing_preview_title), style = MaterialTheme.typography.titleMedium)
+            AmountRow(stringResource(R.string.closing_row_invoices), preview.invoiceCount.toString())
+            AmountRow(stringResource(R.string.closing_row_grand_total), preview.grandTotal)
+            AmountRow(stringResource(R.string.closing_row_net_total), preview.netTotal)
+            AmountRow(stringResource(R.string.closing_row_taxes), preview.totalTaxesAndCharges)
+            AmountRow(stringResource(R.string.closing_row_quantity), preview.totalQuantity)
         }
     }
     preview.expectedPayments.forEach { payment ->
@@ -142,15 +159,23 @@ private fun Editing(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(payment.modeOfPayment, style = MaterialTheme.typography.titleMedium)
-                AmountRow("Opening", payment.openingAmount)
-                AmountRow("Expected", payment.expectedAmount)
+                AmountRow(stringResource(R.string.closing_row_opening), payment.openingAmount)
+                AmountRow(stringResource(R.string.closing_row_expected), payment.expectedAmount)
                 OutlinedTextField(
                     value = state.countedAmounts[payment.modeOfPayment].orEmpty(),
                     onValueChange = { onCountedAmountChanged(payment.modeOfPayment, it) },
                     enabled = !state.submitting,
                     singleLine = true,
-                    label = { Text("Counted amount") },
-                    supportingText = { Text("${preview.countedAmountPolicy.currency}; max ${preview.countedAmountPolicy.maxScale} decimals") },
+                    label = { Text(stringResource(R.string.closing_counted_label)) },
+                    supportingText = {
+                        Text(
+                            stringResource(
+                                R.string.closing_counted_policy,
+                                preview.countedAmountPolicy.currency,
+                                preview.countedAmountPolicy.maxScale,
+                            )
+                        )
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("closing-counted-${payment.modeOfPayment.lowercase().replace(' ', '-') }"),
@@ -160,7 +185,7 @@ private fun Editing(
     }
     state.error?.let {
         Text(
-            it.replace('_', ' '),
+            closingErrorMessage(it),
             color = MaterialTheme.colorScheme.error,
             modifier = Modifier
                 .testTag("closing-error")
@@ -177,7 +202,7 @@ private fun Editing(
             .heightIn(min = PosDimensions.touchTarget)
             .testTag("closing-submit"),
     ) {
-        Text(if (state.submitting) "Submitting" else "Submit Closing")
+        Text(if (state.submitting) stringResource(R.string.closing_submitting) else stringResource(R.string.closing_submit))
     }
 }
 
@@ -188,13 +213,17 @@ private fun Queued(
     onReauthenticate: () -> Unit,
 ) {
     Text(
-        if (state.polling) "Closing queued. Checking authoritative status." else "Closing queued.",
+        if (state.polling) {
+            stringResource(R.string.closing_queued_polling)
+        } else {
+            stringResource(R.string.closing_queued)
+        },
         modifier = Modifier
             .testTag("closing-queued")
             .semantics { liveRegion = LiveRegionMode.Polite },
     )
-    Text("Reference: ${state.receipt.name}")
-    state.error?.let { Text(it.replace('_', ' '), color = MaterialTheme.colorScheme.error) }
+    Text(stringResource(R.string.closing_reference, state.receipt.name))
+    state.error?.let { Text(closingErrorMessage(it), color = MaterialTheme.colorScheme.error) }
     if (state.error == "AUTH_REQUIRED") {
         Button(
             onClick = onReauthenticate,
@@ -203,7 +232,7 @@ private fun Queued(
                 .heightIn(min = PosDimensions.touchTarget)
                 .testTag("closing-reauthenticate"),
         ) {
-            Text("Sign in again")
+            Text(stringResource(R.string.action_sign_in_again))
         }
     } else if (state.checkStatusAvailable) {
         Button(
@@ -213,7 +242,7 @@ private fun Queued(
                 .heightIn(min = PosDimensions.touchTarget)
                 .testTag("closing-check-status"),
         ) {
-            Text("Check status")
+            Text(stringResource(R.string.closing_check_status))
         }
     }
 }
@@ -225,10 +254,10 @@ private fun Terminal(title: String, receipt: ClosingReceipt, onDone: () -> Unit)
         style = MaterialTheme.typography.titleLarge,
         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
     )
-    Text("Reference: ${receipt.name}")
-    AmountRow("Expected", receipt.reconciliation.expectedTotal)
-    AmountRow("Counted", receipt.reconciliation.countedTotal)
-    AmountRow("Difference", receipt.reconciliation.differenceTotal)
+    Text(stringResource(R.string.closing_reference, receipt.name))
+    AmountRow(stringResource(R.string.closing_row_expected), receipt.reconciliation.expectedTotal)
+    AmountRow(stringResource(R.string.closing_row_counted), receipt.reconciliation.countedTotal)
+    AmountRow(stringResource(R.string.closing_row_difference), receipt.reconciliation.differenceTotal)
     receipt.failureCode?.let { Text("$it: ${receipt.failureMessage.orEmpty()}") }
     Button(
         onClick = onDone,
@@ -237,7 +266,7 @@ private fun Terminal(title: String, receipt: ClosingReceipt, onDone: () -> Unit)
             .heightIn(min = PosDimensions.touchTarget)
             .testTag("closing-done"),
     ) {
-        Text("Done")
+        Text(stringResource(R.string.action_done))
     }
 }
 

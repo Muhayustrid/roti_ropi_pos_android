@@ -8,6 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.rotiropi.pos_erpnext.R
+import com.rotiropi.pos_erpnext.ui.UiText
 import com.rotiropi.pos_erpnext.ui.cashier.CartLine
 import com.rotiropi.pos_erpnext.ui.cashier.CartSnapshot
 import com.rotiropi.pos_erpnext.ui.cashier.CashierCategory
@@ -28,7 +30,7 @@ private val cashierProduct = CashierProduct(
     categoryId = "pastry",
     price = "25,000",
     currency = "IDR",
-    priceList = "Outlet Retail",
+    priceList = UiText.Raw("Outlet Retail"),
     availableQuantity = "18",
     uom = "Pack",
     warehouse = "Outlet 01 - RR",
@@ -38,9 +40,9 @@ private val cashierDemoContent = CashierContent(
     query = "",
     barcode = "",
     categories = listOf(
-        CashierCategory("all", "All"),
-        CashierCategory("pastry", "Pastry"),
-        CashierCategory("drinks", "Drinks"),
+        CashierCategory("all", UiText.Raw("All")),
+        CashierCategory("pastry", UiText.Raw("Pastry")),
+        CashierCategory("drinks", UiText.Raw("Drinks")),
     ),
     selectedCategoryId = "all",
     products = listOf(
@@ -75,7 +77,7 @@ private val cashierDemoContent = CashierContent(
                 itemCode = "CROISSANT-PACK",
                 itemName = "Croissant Pack",
                 quantity = "2",
-                priceLabel = "Demo line IDR 50,000",
+                priceLabel = UiText.Raw("Demo line IDR 50,000"),
                 uom = "Pack",
             ),
             CartLine(
@@ -83,12 +85,12 @@ private val cashierDemoContent = CashierContent(
                 itemCode = "COFFEE-LATTE",
                 itemName = "Coffee Latte",
                 quantity = "1",
-                priceLabel = "Demo line IDR 28,000",
+                priceLabel = UiText.Raw("Demo line IDR 28,000"),
                 uom = "Cup",
             ),
         ),
-        itemCountLabel = "3 items",
-        payableLabel = "Demo total IDR 78,000",
+        itemCountLabel = UiText.Raw("3 items"),
+        payableLabel = UiText.Raw("Demo total IDR 78,000"),
     ),
     checkoutState = CheckoutUiState.Unavailable,
     demoData = true,
@@ -100,7 +102,7 @@ private val cashierReceipt = ReceiptContent(
     total = "IDR 78,000",
     paid = "IDR 78,000",
     changeAmount = "IDR 0",
-    status = "Paid",
+    status = R.string.sale_status_paid,
     demoData = true,
 )
 
@@ -152,9 +154,9 @@ fun CheckoutStatesPreview() {
         ) {
             CheckoutPanel(CheckoutUiState.Unavailable)
             CheckoutPanel(CheckoutUiState.OfflineNotSubmitted)
-            CheckoutPanel(CheckoutUiState.PriceChanged("Server price changed. Review cart snapshots.", emptyMap()))
+            CheckoutPanel(CheckoutUiState.PriceChanged(UiText.Raw("Server price changed. Review cart snapshots."), emptyMap()))
             CheckoutPanel(CheckoutUiState.Submitting)
-            CheckoutPanel(CheckoutUiState.Error("Sale was not submitted."))
+            CheckoutPanel(CheckoutUiState.Error(UiText.Raw("Sale was not submitted.")))
         }
     }
 }

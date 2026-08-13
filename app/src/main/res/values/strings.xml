@@ -1,12 +1,352 @@
 <resources>
+    <!--
+        Indonesian is the default and the fallback. Any locale without a better match
+        resolves here, so the app opens in Indonesian even on an English device.
+        English lives in `values-en/strings.xml`.
+
+        Keys are named by surface and role. Server-owned text (currency, amounts, item
+        and payment-mode names, warehouse and price-list names, server validation
+        messages), testTag values, and route or enum identifiers are deliberately absent:
+        a resource would be wrong for those, not merely unnecessary.
+    -->
     <string name="app_name">POS-ERPNext</string>
-    <string name="profile_selection_title">Select POS profile</string>
-    <string name="profile_selection_loading">Loading profiles</string>
-    <string name="profile_selection_retry">Retry</string>
-    <string name="profile_selection_logout">Sign out</string>
-    <string name="profile_selection_error">Profile selection error</string>
-    <string name="profile_selection_previous">Previous</string>
-    <string name="profile_selection_next">Next</string>
-    <string name="profile_selection_page">Page %1$d of %2$d</string>
-    <string name="task4_change_profile">Change profile</string>
+
+    <!-- Shared actions and state labels -->
+    <string name="action_retry">Coba lagi</string>
+    <string name="action_done">Selesai</string>
+    <string name="action_back">Kembali</string>
+    <string name="action_load_more">Muat lebih banyak</string>
+    <string name="action_sign_in_again">Masuk lagi</string>
+    <string name="badge_demo_data">Data demo</string>
+    <string name="state_unavailable">Tidak tersedia</string>
+    <string name="state_not_supported">Tidak didukung</string>
+    <string name="state_loading">Memuat</string>
+    <string name="state_empty">Kosong</string>
+    <string name="state_offline">Luring</string>
+    <string name="state_error">Kesalahan</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_cashier">Kasir</string>
+    <string name="nav_history">Riwayat</string>
+    <string name="nav_more">Lainnya</string>
+
+    <!-- Profile selection (legacy XML surface) -->
+    <string name="profile_selection_title">Pilih profil POS</string>
+    <string name="profile_selection_loading">Memuat profil</string>
+    <string name="profile_selection_retry">Coba lagi</string>
+    <string name="profile_selection_logout">Keluar</string>
+    <string name="profile_selection_error">Kesalahan pemilihan profil</string>
+    <string name="profile_selection_previous">Sebelumnya</string>
+    <string name="profile_selection_next">Berikutnya</string>
+    <string name="profile_selection_page">Halaman %1$d dari %2$d</string>
+    <string name="profile_error_authentication">Perlu masuk kembali. Silakan autentikasi lalu coba lagi.</string>
+    <string name="profile_error_refresh">Profil tidak dapat dimuat ulang. Silakan coba lagi.</string>
+    <string name="profile_error_protocol">Server mengirim respons yang tidak dikenal. Silakan coba lagi.</string>
+    <string name="profile_error_not_available">Profil %1$s tidak tersedia.</string>
+    <string name="profile_recovery_completed">%1$s %2$s selesai dengan status %3$s.</string>
+    <string name="task4_change_profile">Ganti profil</string>
+    <!-- Sign in -->
+    <string name="sign_in_brand">Roti Ropi</string>
+    <string name="sign_in_tagline">Sistem Kasir</string>
+    <string name="sign_in_server_label">Server ERPNext</string>
+    <string name="sign_in_secure_note">Anda akan masuk dengan aman melalui ERPNext.</string>
+    <string name="sign_in_waiting">Menunggu proses masuk ERPNext…</string>
+    <string name="sign_in_waiting_detail">Selesaikan autentikasi di jendela peramban yang terbuka.</string>
+    <string name="sign_in_button">Lanjutkan dengan ERPNext</string>
+    <string name="sign_in_password_note">Kata sandi Anda hanya dimasukkan di halaman masuk ERPNext yang aman.</string>
+    <string name="sign_in_error_cancelled">Proses masuk dibatalkan. Coba lagi saat Anda siap.</string>
+    <string name="sign_in_error_browser">Halaman masuk yang aman tidak dapat dibuka. Silakan coba lagi.</string>
+    <string name="sign_in_error_not_saved">Proses masuk selesai tetapi tidak dapat disimpan. Silakan coba lagi.</string>
+    <string name="sign_in_error_timeout">Proses masuk terlalu lama. Silakan coba lagi.</string>
+    <string name="sign_in_error_already_used">Proses masuk itu sudah selesai. Silakan coba lagi.</string>
+    <string name="sign_in_error_generic">Proses masuk tidak dapat diselesaikan. Silakan coba lagi.</string>
+    <!-- Opening -->
+    <string name="opening_title">Saldo Awal</string>
+    <string name="opening_subtitle">Masukkan jumlah awal untuk memulai giliran hari ini.</string>
+    <string name="opening_unavailable">Konfigurasi Opening tidak tersedia.</string>
+    <string name="opening_set_by_server">Ditetapkan server</string>
+    <string name="opening_submitting">Memulai…</string>
+    <string name="opening_recovery_pending">Pemulihan tertunda</string>
+    <string name="opening_start_shift">Mulai Giliran</string>
+    <string name="opening_checking_title">Memeriksa Status Giliran</string>
+    <string name="opening_checking_detail">Kami memeriksa sesi saat ini sebelum melanjutkan.</string>
+    <string name="opening_session_details">Detail Sesi</string>
+    <string name="opening_field_cashier">Kasir</string>
+    <string name="opening_field_pos_profile">Profil POS</string>
+    <string name="opening_field_company">Perusahaan</string>
+    <string name="opening_field_warehouse">Gudang</string>
+    <string name="opening_field_currency">Mata Uang</string>
+    <string name="opening_confirm_title">Konfirmasi Saldo Awal</string>
+    <string name="opening_confirm_subtitle">Periksa dana awal sebelum memulai giliran ini.</string>
+    <string name="opening_confirm_warning">Jumlah saldo awal ini tidak dapat diubah setelah giliran dimulai.</string>
+    <string name="opening_confirm_starting">Memulai Giliran…</string>
+    <string name="opening_confirm_start">Konfirmasi &amp; Mulai Giliran</string>
+    <string name="opening_confirm_edit">Ubah Jumlah</string>
+    <string name="opening_error_offline">Opening tidak terkirim karena perangkat sedang luring.</string>
+    <string name="opening_error_other_recovery">Tindakan pemulihan lain harus diselesaikan lebih dulu.</string>
+    <string name="opening_error_rejected">Opening ditolak. Rekonsiliasi sesi saat ini sebelum mencoba lagi.</string>
+    <string name="opening_error_recovery_unverified">Pemulihan Opening tidak dapat memverifikasi sesi saat ini. Silakan coba lagi.</string>
+    <string name="opening_error_verification_failed">Verifikasi sesi Opening gagal. Silakan coba lagi setelah tersambung.</string>
+    <string name="opening_error_closing_result">Hasil Closing tidak dapat menyelesaikan Opening</string>
+    <string name="opening_error_profile_unavailable">Opening tidak tersedia untuk Profil POS ini.</string>
+    <string name="opening_amount_error_decimal_places">Gunakan maksimum %1$d angka desimal.</string>
+    <string name="opening_amount_error_minimum">Jumlah minimal %1$s.</string>
+    <string name="amount_error_invalid">Masukkan jumlah yang valid.</string>
+    <string name="amount_error_negative">Masukkan jumlah desimal yang tidak negatif.</string>
+    <string name="amount_error_decimal_places">Jumlah memiliki terlalu banyak angka desimal.</string>
+    <string name="amount_error_below_minimum">Jumlah di bawah batas minimum.</string>
+    <!-- Cashier -->
+    <string name="cashier_title">Kasir</string>
+    <string name="cashier_unavailable">Kasir tidak tersedia</string>
+    <string name="cashier_unavailable_detail">Katalog, jumlah tagihan resmi, dan mode pembayaran belum terintegrasi.</string>
+    <string name="cashier_could_not_load">Kasir gagal dimuat</string>
+    <string name="cashier_subtitle_demo">Komposisi penjualan statis</string>
+    <string name="cashier_subtitle_snapshots">Cuplikan katalog</string>
+    <string name="cashier_state_demo">Tampilan demo kasir</string>
+    <string name="cashier_state_catalog">Katalog kasir</string>
+    <string name="cashier_loading_catalog">Memuat katalog</string>
+    <string name="cashier_loading_more">Memuat produk lain</string>
+    <string name="cashier_no_products">Produk tidak ditemukan</string>
+    <string name="cashier_scanning">Memindai barcode</string>
+    <string name="cashier_updating_quote">Memperbarui kutipan keranjang</string>
+    <string name="cashier_search_label">Cari produk</string>
+    <string name="cashier_barcode_label">Barcode (manual atau pemindai HID)</string>
+    <string name="cashier_category_description">Kategori kasir %1$s</string>
+    <string name="cashier_add_to_cart_description">Tambahkan %1$s ke keranjang</string>
+    <string name="cashier_category_all">Semua</string>
+    <string name="cashier_price_snapshot">%1$s %2$s · Cuplikan server %3$s</string>
+    <string name="cashier_stock_snapshot">%1$s %2$s · Cuplikan stok server %3$s</string>
+    <string name="customer_walk_in">Pelanggan umum</string>
+    <string name="customer_label">Pelanggan</string>
+
+    <!-- Cart -->
+    <string name="cart_title">Keranjang</string>
+    <string name="cart_empty">Keranjang kosong</string>
+    <string name="cart_empty_short">Keranjang kosong</string>
+    <string name="cart_estimated_only">Hanya nilai perkiraan</string>
+    <string name="cart_quote_pending">Menunggu kutipan</string>
+    <string name="cart_quote_estimate">Perkiraan kutipan server %1$s</string>
+    <string name="cart_line_count">%1$d baris</string>
+    <string name="cart_line_summary">%1$s · %2$s</string>
+    <string name="cart_quantity_invalid">Jumlah tidak valid</string>
+    <string name="cart_remove">Hapus</string>
+    <string name="cart_batch">Batch %1$s</string>
+    <string name="cart_serial">Nomor seri %1$s</string>
+    <string name="cart_error_duplicate_serial">Nomor seri ini sudah ada di keranjang.</string>
+    <string name="cart_error_invalid_quantity">Jumlah tidak valid.</string>
+    <string name="cart_error_serial_quantity">Barang berseri harus berjumlah 1.</string>
+    <string name="cart_error_quote_mismatch">Kutipan server tidak sesuai dengan baris keranjang ini.</string>
+    <string name="cart_error_row_limit">Batas keranjang tercapai. Hapus satu baris sebelum menambah lagi.</string>
+    <string name="cart_error_increase_unsafe">Jumlah tidak dapat ditambah dengan aman.</string>
+    <string name="catalog_error_authentication">Sesi berakhir. Silakan masuk lagi.</string>
+    <string name="catalog_error_authorization">Anda tidak memiliki izin untuk menggunakan katalog.</string>
+    <string name="catalog_error_unavailable">Katalog tidak tersedia. Periksa koneksi Anda.</string>
+    <string name="catalog_error_stable">Permintaan katalog tidak dapat diselesaikan.</string>
+    <string name="catalog_error_protocol">Katalog mengirim respons yang tidak dikenal.</string>
+
+    <!-- Checkout -->
+    <string name="checkout_title">Pembayaran</string>
+    <string name="checkout_unavailable">Jumlah tagihan resmi dan mode pembayaran tidak tersedia</string>
+    <string name="checkout_payable">Tagihan: %1$s %2$s</string>
+    <string name="checkout_offline">Luring — penjualan tidak terkirim</string>
+    <string name="checkout_submitting">Mengirim penjualan</string>
+    <string name="checkout_review">Tinjau pembayaran</string>
+    <string name="checkout_confirm">Konfirmasi pembayaran pas</string>
+    <string name="checkout_default_mode">%1$s (bawaan)</string>
+    <string name="checkout_error_total_mismatch">Total pembayaran harus sama dengan jumlah tagihan.</string>
+    <string name="checkout_error_cart_changed">Keranjang berubah. Tinjau pembayaran sebelum mengirim.</string>
+    <string name="checkout_error_price_changed">Harga server berubah. Tinjau lalu coba lagi.</string>
+    <string name="checkout_error_rejected">Pengiriman penjualan ditolak.</string>
+    <string name="checkout_error_recovery">Pengiriman penjualan memerlukan pemulihan.</string>
+    <string name="checkout_awaiting_recovery">Penjualan terkirim; struk akan muncul setelah konfirmasi pemulihan.</string>
+    <string name="checkout_server_price">Harga server</string>
+    <!-- Receipt -->
+    <string name="receipt_title">Struk</string>
+    <string name="receipt_return_against">Pengembalian atas: %1$s</string>
+    <string name="receipt_row_customer">Pelanggan</string>
+    <string name="receipt_row_total">Total</string>
+    <string name="receipt_row_paid">Dibayar</string>
+    <string name="receipt_row_change">Kembalian server</string>
+    <string name="receipt_row_status">Status</string>
+    <string name="receipt_close">Tutup struk</string>
+    <string name="sale_status_paid">Dibayar</string>
+    <string name="sale_status_return">Pengembalian</string>
+    <string name="sale_status_consolidated">Digabungkan</string>
+    <string name="sale_status_cancelled">Dibatalkan</string>
+    <string name="sale_status_unsupported">Tidak didukung</string>
+
+    <!-- Customer search -->
+    <string name="customer_search_label">Cari pelanggan</string>
+    <string name="customer_walk_in_name_label">Nama tampilan pelanggan umum</string>
+    <string name="customer_walk_in_selected">Pelanggan umum dipilih</string>
+    <string name="customer_registered_selected">Pelanggan terdaftar %1$s dipilih</string>
+    <string name="customer_none_selected">Belum ada pelanggan dipilih</string>
+    <string name="customer_select_description">Pilih %1$s</string>
+    <string name="customer_error_authentication">Sesi berakhir. Silakan masuk lagi.</string>
+    <string name="customer_error_authorization">Anda tidak memiliki izin untuk mencari pelanggan.</string>
+    <string name="customer_error_unavailable">Pencarian pelanggan tidak tersedia. Periksa koneksi Anda.</string>
+    <string name="customer_error_failed">Pencarian gagal. Silakan coba lagi.</string>
+    <string name="customer_loading">Memuat pelanggan</string>
+    <string name="customer_empty">Pelanggan tidak ditemukan</string>
+
+    <!-- Products -->
+    <string name="products_title">Produk</string>
+    <string name="products_subtitle">Cuplikan katalog ERPNext</string>
+    <string name="products_state_snapshots">Cuplikan produk</string>
+    <string name="products_search_label">Cari produk</string>
+    <string name="products_filter_description">Filter kategori %1$s</string>
+    <string name="products_loading">Memuat cuplikan produk</string>
+    <string name="products_loading_description">Memuat produk</string>
+    <string name="products_empty">Produk tidak ditemukan</string>
+    <string name="products_empty_detail">Ubah pencarian atau filter kategori.</string>
+    <string name="products_offline">Produk sedang luring</string>
+    <string name="products_offline_detail">Sambungkan kembali lalu coba lagi. Inventaris tersimpan tidak ditampilkan.</string>
+    <string name="products_unavailable">Produk tidak tersedia</string>
+    <string name="products_unavailable_detail">Integrasi katalog belum aktif. Data produk, harga, dan stok tidak disimpan di perangkat.</string>
+    <string name="products_error_detail">Coba muat katalog produk lagi.</string>
+    <string name="products_detail_title">Detail barang</string>
+    <string name="products_detail_empty">Pilih produk untuk melihat identitas dan cuplikan ERPNext-nya.</string>
+    <string name="products_detail_item">Barang</string>
+    <string name="products_detail_group">Grup Barang</string>
+    <string name="products_detail_description">Deskripsi</string>
+    <string name="products_detail_price_list">Daftar Harga</string>
+    <string name="products_detail_warehouse">Gudang</string>
+    <string name="products_price_snapshot">%1$s %2$s · Cuplikan %3$s</string>
+    <string name="products_stock_snapshot">%1$s %2$s · Cuplikan stok %3$s</string>
+    <string name="product_card_description">Produk %1$s</string>
+
+    <!-- Reports -->
+    <string name="reports_title">Laporan</string>
+    <string name="reports_unavailable">Laporan tidak tersedia</string>
+    <string name="reports_unavailable_detail">Data laporan lengkap tidak tersedia dari kontrak server saat ini.</string>
+    <string name="reports_state_content">Isi laporan</string>
+    <string name="reports_section_trend">Tren Penjualan</string>
+    <string name="reports_section_breakdown">Rincian Kategori</string>
+    <string name="reports_section_top_products">Produk Terlaris</string>
+    <string name="reports_chart_description">Grafik tren penjualan. %1$s</string>
+    <string name="reports_period_today">Hari ini</string>
+    <string name="reports_period_week">Minggu</string>
+    <string name="reports_period_month">Bulan</string>
+    <!-- Sale history, detail, and return -->
+    <string name="history_title">Riwayat penjualan</string>
+    <string name="history_unavailable">Riwayat tidak tersedia</string>
+    <string name="history_search_label">Cari penjualan</string>
+    <string name="history_empty">Penjualan tidak ditemukan</string>
+    <string name="sale_detail_title">Detail penjualan</string>
+    <string name="sale_detail_unavailable">Penjualan tidak tersedia</string>
+    <string name="sale_detail_quantity">%1$s %2$s</string>
+    <string name="sale_detail_returnability">Awal %1$s · Dikembalikan %2$s · Tersisa %3$s</string>
+    <string name="sale_detail_batches">Batch: %1$s</string>
+    <string name="sale_detail_serials">Nomor seri: %1$s</string>
+    <string name="sale_detail_not_returnable">Tidak dapat dikembalikan</string>
+    <string name="sale_detail_start_return">Mulai pengembalian</string>
+    <string name="return_title">Kembalikan penjualan</string>
+    <string name="return_unavailable">Pengembalian tidak tersedia</string>
+    <string name="return_submitted">Pengembalian terkirim. Menunggu hasil akhir.</string>
+    <string name="return_source">Sumber: %1$s</string>
+    <string name="return_refund_mode">Mode pengembalian dana</string>
+    <string name="return_quote_title">Kutipan pengembalian server</string>
+    <string name="return_quote_amount">Pengembalian dana: %1$s</string>
+    <string name="return_quote_allocation">%1$s: %2$s</string>
+    <string name="return_row_quantities">Awal %1$s · Dikembalikan %2$s · Tersisa %3$s</string>
+    <string name="return_quantity_label">Jumlah pengembalian</string>
+    <string name="return_reason_label">Alasan pengembalian</string>
+    <string name="return_get_quote">Ambil kutipan server</string>
+    <string name="return_submit">Kirim pengembalian</string>
+    <string name="return_unsupported_serial">Pengembalian barang berseri tidak didukung di aplikasi ini.</string>
+    <string name="return_unsupported_multi_batch">Pengembalian lintas batch tidak didukung di aplikasi ini.</string>
+    <string name="return_error_row_ineligible">Baris ini tidak dapat dikembalikan.</string>
+    <string name="return_error_reason_required">Masukkan alasan pengembalian.</string>
+    <string name="return_error_selection_required">Pilih setidaknya satu baris untuk dikembalikan.</string>
+    <string name="return_error_refund_mode_required">Pilih mode pengembalian dana.</string>
+    <string name="return_error_refund_mode_not_allowed">Mode pengembalian dana itu tidak diizinkan untuk penjualan ini.</string>
+    <string name="return_error_quote_required">Ambil kutipan server sebelum mengirim.</string>
+    <string name="return_error_stale_quote">Kutipan sudah tidak berlaku. Ambil kutipan baru.</string>
+    <string name="return_error_submission_unavailable">Pengembalian tidak dapat dikirim sekarang.</string>
+    <string name="return_error_rejected">Pengembalian ditolak.</string>
+    <string name="return_error_limit_refreshed">Jumlah tersisa berubah. Periksa jumlah lalu ambil kutipan baru.</string>
+    <string name="return_error_limit_exceeded">Jumlah melebihi sisa yang dapat dikembalikan.</string>
+    <string name="return_error_unsupported_policy">Kebijakan kuantitas pengembalian ini tidak didukung.</string>
+    <string name="return_error_malformed_decimal">Masukkan jumlah desimal yang valid.</string>
+    <string name="return_error_excessive_scale">Jumlah memiliki terlalu banyak angka desimal.</string>
+    <string name="return_error_invalid_remaining">Jumlah tersisa dari server tidak valid.</string>
+    <string name="return_error_zero_or_negative">Jumlah harus lebih besar dari nol.</string>
+    <string name="return_error_below_minimum">Jumlah di bawah batas minimum.</string>
+    <string name="return_error_above_maximum">Jumlah di atas batas maksimum.</string>
+
+    <!-- Closing -->
+    <string name="closing_title">Closing</string>
+    <string name="closing_unavailable">Closing tidak tersedia</string>
+    <string name="closing_loading_preview">Memuat pratinjau resmi</string>
+    <string name="closing_recovering">Memulihkan Closing</string>
+    <string name="closing_submitted">Closing terkirim</string>
+    <string name="closing_preview_stale">Pratinjau Closing berubah. Muat total terkini sebelum mengirim lagi.</string>
+    <string name="closing_reload_preview">Muat ulang pratinjau</string>
+    <string name="closing_preview_title">Pratinjau resmi</string>
+    <string name="closing_row_invoices">Faktur</string>
+    <string name="closing_row_grand_total">Total akhir</string>
+    <string name="closing_row_net_total">Total bersih</string>
+    <string name="closing_row_taxes">Pajak dan biaya</string>
+    <string name="closing_row_quantity">Total kuantitas</string>
+    <string name="closing_row_opening">Saldo awal</string>
+    <string name="closing_row_expected">Diharapkan</string>
+    <string name="closing_row_counted">Dihitung</string>
+    <string name="closing_row_difference">Selisih</string>
+    <string name="closing_counted_label">Jumlah dihitung</string>
+    <string name="closing_counted_policy">%1$s; maksimum %2$d desimal</string>
+    <string name="closing_submitting">Mengirim</string>
+    <string name="closing_submit">Kirim Closing</string>
+    <string name="closing_queued">Closing dalam antrean.</string>
+    <string name="closing_queued_polling">Closing dalam antrean. Memeriksa status resmi.</string>
+    <string name="closing_check_status">Periksa status</string>
+    <string name="closing_reference">Referensi: %1$s</string>
+    <string name="closing_receipt_title">Closing %1$s</string>
+    <string name="closing_error_payment_mode_unknown">Mode pembayaran tidak dikenal untuk sesi ini.</string>
+    <string name="closing_error_counted_amount_required">Masukkan jumlah dihitung untuk setiap mode pembayaran.</string>
+    <string name="closing_error_rejected">Closing ditolak.</string>
+    <string name="closing_error_submission_unavailable">Closing tidak dapat dikirim sekarang.</string>
+    <string name="closing_error_auth_required">Perlu masuk kembali sebelum memeriksa status Closing.</string>
+
+    <!-- Recovery -->
+    <string name="recovery_title">Pemulihan</string>
+    <string name="recovery_sign_in_again_detail">Masuk lagi untuk melanjutkan tindakan pemulihan ini.</string>
+    <string name="recovery_retry_unscheduled">Percobaan ulang pemulihan tidak dapat dijadwalkan. Biarkan aplikasi terbuka dan coba lagi nanti.</string>
+    <string name="recovery_recover_closing">Pulihkan Closing</string>
+    <string name="recovery_action_rejected">Tindakan ditolak</string>
+    <string name="recovery_completed">%1$s selesai</string>
+    <string name="recovery_acknowledge">Konfirmasi hasil</string>
+    <string name="recovery_reference">Referensi: %1$s</string>
+    <string name="recovery_status">Status: %1$s</string>
+    <string name="recovery_amount">Jumlah: %1$s</string>
+
+    <!-- App-level state -->
+    <string name="app_error_refresh_failed">Pemuatan ulang gagal</string>
+    <string name="app_error_authentication_required">Perlu autentikasi</string>
+    <string name="app_error_bootstrap_unavailable">Data awal tidak tersedia</string>
+    <!-- More -->
+    <string name="more_title">Lainnya</string>
+    <string name="more_group_catalog">Katalog dan laporan</string>
+    <string name="more_products">Produk</string>
+    <string name="more_reports">Laporan</string>
+    <string name="more_group_outlet">Outlet</string>
+    <string name="more_group_user_session">Pengguna dan sesi</string>
+    <string name="more_group_session">Sesi</string>
+    <string name="more_session_detail">Periksa total resmi dan hitung setiap mode pembayaran sebelum menutup.</string>
+    <string name="more_closing">Closing</string>
+    <string name="more_sign_out">Keluar</string>
+    <string name="more_sign_out_blocked">Keluar diblokir: %1$s memiliki pemulihan %2$s.</string>
+    <string name="more_group_appearance">Tampilan</string>
+    <string name="more_theme_mode">Mode tema</string>
+    <string name="more_theme_system">Sistem</string>
+    <string name="more_theme_light">Terang</string>
+    <string name="more_theme_dark">Gelap</string>
+    <string name="more_accent_color">Warna aksen</string>
+    <string name="more_accent_blue">Biru</string>
+    <string name="more_accent_teal">Teal</string>
+    <string name="more_language">Bahasa</string>
+    <string name="more_group_printer">Pencetak</string>
+    <string name="more_group_synchronization">Sinkronisasi</string>
+    <string name="more_group_debug">Alat debug</string>
+    <string name="more_debug_detail">Tata letak sintetis untuk build debug saja. Bukan data server.</string>
+    <string name="more_demo_layout">Tata letak demo</string>
 </resources>

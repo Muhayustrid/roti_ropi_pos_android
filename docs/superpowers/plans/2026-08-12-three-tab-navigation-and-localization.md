@@ -137,23 +137,67 @@ a Cashier start destination instead of a Home one. Nothing new appeared.
 - Consumes: existing `ThemePreferences` storage; language joins mode and accent.
 
 **Steps:**
-- [ ] Write failing tests first: a `PosLanguage` parse/default unit test, and one
+- [x] Write failing tests first: a `PosLanguage` parse/default unit test, and one
       instrumentation test asserting a screen renders the Indonesian string when
       the app locale is Indonesian.
-- [ ] Add `appcompat` explicitly; switch `MainActivity` to `AppCompatActivity`;
+- [x] Add `appcompat` explicitly; switch `MainActivity` to `AppCompatActivity`;
       register `AppLocalesMetadataHolderService` with `autoStoreLocales`.
-- [ ] Move Indonesian into `values/strings.xml` and English into
+- [x] Move Indonesian into `values/strings.xml` and English into
       `values-en/strings.xml`. Name keys by surface and role
       (`cashier_search_label`, not `text1`).
-- [ ] Replace literals screen by screen, smallest screen first, running
+- [x] Replace literals screen by screen, smallest screen first, running
       `:app:testDebugUnitTest` and the screen's instrumentation class after each.
       Leave server-owned text alone. Strings a ViewModel supplies to a screen
       resolve through a resource lookup at the UI edge, not inside the ViewModel.
-- [ ] Add the language selector to Lainnya beside theme and accent.
+- [x] Add the language selector to Lainnya beside theme and accent.
 
 **Verification:** unit + lint + assemble; instrumentation for each touched screen
 at phone portrait; one run with the device locale set to English confirming the
 app still opens in Indonesian.
+
+**Verified 2026-08-13** on `emulator-5554` (API 36):
+`./gradlew :app:testDebugUnitTest :app:lintDebug :app:lintRelease
+:app:assembleDebug :app:assembleRelease :app:assembleDebugAndroidTest` BUILD
+SUCCESSFUL. `values/strings.xml` and `values-en/strings.xml` each hold 312 keys
+with no key present in only one file.
+
+Instrumentation for package `com.rotiropi.pos_erpnext.ui`, excluding
+`@SpecialHarnessOnly`, is 110 tests — 107 from Task 1 plus `AppLanguageTest` (2)
+and `ReportsMoreScreenTest.language_chips_…` (1):
+
+| Window | Result |
+| --- | --- |
+| Phone portrait 1080x1920 @420 | 0 failed on the final run; 1 failed on two earlier runs |
+| Tablet 1600x2560 @320 | 0 failed |
+| Phone landscape 2400x1080 @420 | 9 failed |
+
+The device locale stayed `en-US` for every run, so the whole suite doubles as the
+"opens in Indonesian on an English device" check: `AppLanguageTest` asserts the
+Sign-In screen renders the `values/` string and that the English one is absent.
+
+Both failure sets are pre-existing, confirmed by stashing this work and rebuilding:
+
+- Portrait: `CustomerSearchRootTest.productionRootFirstOpenRunsOneDebouncedBlankSearchAndReopenIsNoOp`
+  only, and it is the known flake recorded under Task 1, not a regression. It
+  failed twice with this work applied, then passed on the final run; on the
+  stashed baseline it failed 3/3 repeat runs at this same window size. Its
+  `waitUntil(2_000)` races its own 800 ms fixture delay.
+- Landscape: the same 9 names fail on the stashed baseline, in the same tests.
+  This is a strict subset of the documented 17-test landscape baseline.
+
+Three deliberate mechanism choices, recorded because they are not obvious from the
+diff:
+
+- `ReceiptContent.status` became `@StringRes Int`. `SaleStatus` is a closed enum,
+  so no server string can reach the screen through it, and the label now follows
+  the selected language instead of the one in force when the sale was mapped.
+- `ReceiptContent.items` became `ReceiptItemLine(summary, batches, serials)`.
+  Pre-joining the line would have frozen this app's `Batch:` and `Serial:`
+  prefixes into the mapper; keeping the parts separate leaves the server numbers
+  verbatim and resolves only the prefixes at the UI edge.
+- `CashierProduct.priceList` became `UiText`. The catalog endpoint names no price
+  list, so the Cashier supplies its own stand-in label, which must translate;
+  responses that do carry a name still pass through as `UiText.Raw`.
 
 ---
 
@@ -164,7 +208,7 @@ app still opens in Indonesian.
 - Modify: `AGENTS.md`
 
 **Steps:**
-- [ ] Mark the Task 2B five-destination shell as superseded, pointing at the
+- [x] Mark the Task 2B five-destination shell as superseded, pointing at the
       design document. Do not rewrite the 2026-07-30 evidence itself: it records
       what was verified at that time and stays accurate as history.
-- [ ] State the string-resource rule in `AGENTS.md` so later work inherits it.
+- [x] State the string-resource rule in `AGENTS.md` so later work inherits it.

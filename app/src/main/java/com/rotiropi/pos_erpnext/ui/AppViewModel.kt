@@ -1,5 +1,6 @@
 package com.rotiropi.pos_erpnext.ui
 
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.auth.AuthenticationState
 import com.rotiropi.pos_erpnext.data.BootstrapFailure
 import com.rotiropi.pos_erpnext.data.BootstrapRefreshTrigger
@@ -25,7 +26,7 @@ data class AppUiState(
     val route: AppRoute,
     val repositoryState: RepositoryState,
     val retryRequired: Boolean = false,
-    val error: String? = null
+    val error: UiText? = null
 )
 
 class AppViewModel internal constructor(
@@ -220,10 +221,14 @@ class AppViewModel internal constructor(
         )
     }
 
-    private fun BootstrapFailure.errorMessage(): String = when (this) {
-        BootstrapFailure.AuthRequired -> "Authentication required"
-        BootstrapFailure.Unavailable -> "Bootstrap unavailable"
-        is BootstrapFailure.Protocol -> reason
+    /**
+     * `Protocol.reason` is a server-supplied diagnostic and passes through verbatim; the two
+     * local failures resolve from resources.
+     */
+    private fun BootstrapFailure.errorMessage(): UiText = when (this) {
+        BootstrapFailure.AuthRequired -> uiText(R.string.app_error_authentication_required)
+        BootstrapFailure.Unavailable -> uiText(R.string.app_error_bootstrap_unavailable)
+        is BootstrapFailure.Protocol -> UiText.Raw(reason)
     }
 
     private class OwnedDependencies(repository: MobilePosRepository) {

@@ -27,6 +27,8 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.ui.navigation.PosLayoutMode
 import com.rotiropi.pos_erpnext.ui.products.ProductCategory
 import com.rotiropi.pos_erpnext.ui.products.ProductItem
@@ -44,6 +46,8 @@ class ProductsScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
 
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+
     @Test
     fun products_loading_empty_offline_unavailable_and_error_states_are_explicit() {
         val state = mutableStateOf<ProductsUiState>(ProductsUiState.Loading)
@@ -56,16 +60,16 @@ class ProductsScreenTest {
             }
         }
 
-        composeRule.onNodeWithContentDescription("Loading products").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(context.getString(R.string.products_loading_description)).assertIsDisplayed()
         composeRule.runOnIdle { state.value = ProductsUiState.Empty }
-        composeRule.onNodeWithText("No products found").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.products_empty)).assertIsDisplayed()
         composeRule.runOnIdle { state.value = ProductsUiState.Offline }
-        composeRule.onNodeWithText("Products are offline").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.products_offline)).assertIsDisplayed()
         composeRule.runOnIdle { state.value = ProductsUiState.Unavailable }
-        composeRule.onNodeWithText("Products unavailable").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.products_unavailable)).assertIsDisplayed()
         composeRule.runOnIdle { state.value = ProductsUiState.Error("Products could not load") }
         composeRule.onNodeWithText("Products could not load").assertIsDisplayed()
-        composeRule.onNodeWithText("Retry").assertHasClickAction()
+        composeRule.onNodeWithText(context.getString(R.string.action_retry)).assertHasClickAction()
     }
 
     @Test
@@ -105,7 +109,7 @@ class ProductsScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Warehouse")
+        composeRule.onNodeWithText(context.getString(R.string.products_detail_warehouse))
             .performScrollTo()
             .assertIsDisplayed()
     }
@@ -134,7 +138,7 @@ class ProductsScreenTest {
         }
 
         composeRule.onNode(
-            hasContentDescription("Product ${product.itemName}") and hasClickAction(),
+            hasContentDescription(context.getString(R.string.product_card_description, product.itemName)) and hasClickAction(),
         ).assertWidthIsAtLeast(48.dp)
     }
 
@@ -171,9 +175,9 @@ class ProductsScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Item details").assertDoesNotExist()
+        composeRule.onNodeWithText(context.getString(R.string.products_detail_title)).assertDoesNotExist()
         composeRule.onNode(
-            hasContentDescription("Product ${product.itemName}") and hasClickAction(),
+            hasContentDescription(context.getString(R.string.product_card_description, product.itemName)) and hasClickAction(),
         ).assertIsDisplayed()
     }
 
@@ -199,7 +203,7 @@ class ProductsScreenTest {
         }
 
         composeRule.onNode(
-            hasContentDescription("Product ${product.itemName}") and hasClickAction(),
+            hasContentDescription(context.getString(R.string.product_card_description, product.itemName)) and hasClickAction(),
         ).assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
     }
 
@@ -255,13 +259,13 @@ class ProductsScreenTest {
         }
 
         composeRule.onNode(hasSetTextAction()).assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Filter category Pastry").assertIsDisplayed()
-        composeRule.onAllNodesWithText("IDR 25000 · Outlet Retail snapshot")
+        composeRule.onNodeWithContentDescription(context.getString(R.string.products_filter_description, "Pastry")).assertIsDisplayed()
+        composeRule.onAllNodesWithText(context.getString(R.string.products_price_snapshot, "IDR", "25000", "Outlet Retail"))
             .assertCountEquals(2)
-        composeRule.onAllNodesWithText("18 Pack · Outlet 01 - RR stock snapshot")
+        composeRule.onAllNodesWithText(context.getString(R.string.products_stock_snapshot, "18", "Pack", "Outlet 01 - RR"))
             .assertCountEquals(2)
-        composeRule.onNodeWithText("Item details").assertIsDisplayed()
-        composeRule.onNodeWithText("Demo data").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.products_detail_title)).assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.badge_demo_data)).assertIsDisplayed()
     }
 
     private fun productFixture() = ProductItem(

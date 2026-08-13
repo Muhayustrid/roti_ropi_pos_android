@@ -44,6 +44,10 @@ android {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    // Explicit, not transitive through material: the per-app locale APIs
+    // (AppCompatDelegate.setApplicationLocales) are called directly, and minSdk 23
+    // needs AppCompat's compatibility path for them.
+    implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.okhttp)

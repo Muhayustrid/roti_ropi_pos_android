@@ -1,6 +1,7 @@
 package com.rotiropi.pos_erpnext.ui.navigation
 
 import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import com.rotiropi.pos_erpnext.R
 
 /**
@@ -9,12 +10,12 @@ import com.rotiropi.pos_erpnext.R
  */
 enum class PosDestination(
     val route: String,
-    val label: String,
+    @param:StringRes val labelRes: Int,
     @param:DrawableRes val iconRes: Int,
 ) {
-    CASHIER("cashier", "Cashier", R.drawable.ic_cashier),
-    HISTORY("history", "History", R.drawable.ic_history),
-    MORE("more", "More", R.drawable.ic_more),
+    CASHIER("cashier", R.string.nav_cashier, R.drawable.ic_cashier),
+    HISTORY("history", R.string.nav_history, R.drawable.ic_history),
+    MORE("more", R.string.nav_more, R.drawable.ic_more),
 }
 
 enum class PosLayoutMode {

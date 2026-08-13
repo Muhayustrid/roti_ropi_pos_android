@@ -34,7 +34,11 @@ On 2026-08-12 the shell's navigation and interface language were re-decided in
 Wherever the Task 2B–2E rows and sections below say five root destinations, an
 elevated Cashier action, a Dashboard, or English labels, that design document is
 now authoritative. The rows stay as written because they record what was verified
-at the time.
+at the time. The execution record for that change — three destinations, and every
+user-facing string moved into `res/values/strings.xml` with an English translation
+in `res/values-en/strings.xml` — is
+[`docs/superpowers/plans/2026-08-12-three-tab-navigation-and-localization.md`](../superpowers/plans/2026-08-12-three-tab-navigation-and-localization.md).
+The rule that keeps user-facing text out of source is stated in `AGENTS.md`.
 
 | Task | Status | Evidence summary |
 | --- | --- | --- |

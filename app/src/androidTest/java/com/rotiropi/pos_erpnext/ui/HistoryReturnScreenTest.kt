@@ -7,6 +7,8 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.data.api.PageDto
 import com.rotiropi.pos_erpnext.data.api.ReturnabilityDto
 import com.rotiropi.pos_erpnext.data.api.SaleStatus
@@ -25,6 +27,8 @@ import org.junit.runner.RunWith
 class HistoryReturnScreenTest {
     @get:Rule val composeRule = createComposeRule()
 
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+
     @Test fun history_uses_bounded_rows_and_exposes_load_more() {
         composeRule.setContent { PosTheme { HistoryScreen(HistoryUiState.Content(listOf(summary()), "", false, true), {}, {}, {}, {}) } }
         composeRule.onNodeWithTag("history-sale-INV-1").assertHasClickAction()
@@ -34,7 +38,7 @@ class HistoryReturnScreenTest {
 
     @Test fun return_cannot_submit_before_authoritative_quote() {
         composeRule.setContent { PosTheme { ReturnScreen(editing(), {}, { _, _ -> }, {}, {}, {}, {}) } }
-        composeRule.onNodeWithText("Original 2 · Returned 0 · Remaining 2").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.return_row_quantities, "2", "0", "2")).assertIsDisplayed()
         composeRule.onNodeWithTag("return-submit").assertIsNotEnabled()
         composeRule.onNodeWithTag("return-quote").assertHasClickAction()
     }

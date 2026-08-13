@@ -17,9 +17,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.ui.theme.PosDimensions
 
 @Composable
@@ -41,22 +43,22 @@ fun ReceiptScreen(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Receipt",
+                        text = stringResource(R.string.receipt_title),
                         style = MaterialTheme.typography.headlineMedium,
                         modifier = Modifier.semantics { heading() },
                     )
                     Text(content.saleId, style = MaterialTheme.typography.titleMedium)
-                    content.sourceReference?.let { Text("Return against: $it") }
+                    content.sourceReference?.let { Text(stringResource(R.string.receipt_return_against, it)) }
                 }
                 if (content.demoData) DemoBadge()
             }
         }
-        item { ReceiptRow("Customer", content.customerLabel) }
-        item { ReceiptRow("Total", content.total) }
-        item { ReceiptRow("Paid", content.paid) }
-        item { ReceiptRow("Server change", content.changeAmount) }
-        item { ReceiptRow("Status", content.status) }
-        items(content.items.size) { Text(content.items[it]) }
+        item { ReceiptRow(stringResource(R.string.receipt_row_customer), content.customerLabel) }
+        item { ReceiptRow(stringResource(R.string.receipt_row_total), content.total) }
+        item { ReceiptRow(stringResource(R.string.receipt_row_paid), content.paid) }
+        item { ReceiptRow(stringResource(R.string.receipt_row_change), content.changeAmount) }
+        item { ReceiptRow(stringResource(R.string.receipt_row_status), stringResource(content.status)) }
+        items(content.items.size) { Text(content.items[it].render()) }
         items(content.taxes.size) { Text(content.taxes[it]) }
         items(content.payments.size) { Text(content.payments[it]) }
         item {
@@ -67,11 +69,22 @@ fun ReceiptScreen(
                     .heightIn(min = PosDimensions.touchTarget)
                     .testTag("receipt-close"),
             ) {
-                Text("Close receipt")
+                Text(stringResource(R.string.receipt_close))
             }
         }
     }
 }
+
+/**
+ * Only the batch and serial prefixes are this app's words; the summary and the numbers
+ * themselves are server-owned and pass through verbatim.
+ */
+@Composable
+private fun ReceiptItemLine.render(): String = listOfNotNull(
+    summary,
+    batches?.let { stringResource(R.string.sale_detail_batches, it) },
+    serials?.let { stringResource(R.string.sale_detail_serials, it) },
+).joinToString(" · ")
 
 @Composable
 private fun ReceiptRow(label: String, value: String) {
@@ -91,7 +104,7 @@ private fun DemoBadge() {
         shape = MaterialTheme.shapes.medium,
     ) {
         Text(
-            text = "Demo data",
+            text = stringResource(R.string.badge_demo_data),
             color = MaterialTheme.colorScheme.onTertiaryContainer,
             style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),

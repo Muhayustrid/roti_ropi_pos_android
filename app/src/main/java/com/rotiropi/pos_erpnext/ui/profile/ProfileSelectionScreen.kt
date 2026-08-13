@@ -11,6 +11,7 @@ import androidx.core.view.isVisible
 import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.data.PosProfile
 import com.rotiropi.pos_erpnext.recovery.RecoveryScreenState
+import com.rotiropi.pos_erpnext.ui.resolve
 import com.rotiropi.pos_erpnext.databinding.ProfileSelectionScreenBinding
 
 class ProfileSelectionScreen @JvmOverloads constructor(
@@ -86,21 +87,30 @@ class ProfileSelectionScreen @JvmOverloads constructor(
         binding.profileSelectionLoading.isVisible = state.refreshing
         binding.profileSelectionError.isVisible = !state.refreshing && state.error != null
         binding.profileSelectionRetry.isVisible = !state.refreshing && state.retryRequired
-        binding.profileSelectionError.text = state.error.orEmpty()
+        binding.profileSelectionError.text = state.error?.resolve(context).orEmpty()
         val recoveryMessage = when (val item = state.recovery) {
             RecoveryScreenState.Hidden -> null
-            is RecoveryScreenState.AuthenticationRequired -> "Sign in again to continue this recovery action."
-            is RecoveryScreenState.RetrySchedulingFailed -> "Recovery retry could not be scheduled. Keep the app open and try again later."
+            is RecoveryScreenState.AuthenticationRequired ->
+                context.getString(R.string.recovery_sign_in_again_detail)
+            is RecoveryScreenState.RetrySchedulingFailed ->
+                context.getString(R.string.recovery_retry_unscheduled)
             is RecoveryScreenState.ManualRecovery -> item.message
             is RecoveryScreenState.Terminal -> when (val result = item.result) {
                 is com.rotiropi.pos_erpnext.recovery.RecoveryTerminalResult.Completed ->
-                    "${result.operation} ${result.reference} completed with status ${result.status}."
+                    context.getString(
+                        R.string.profile_recovery_completed,
+                        result.operation,
+                        result.reference,
+                        result.status,
+                    )
+                // Code and message are server-owned and pass through verbatim.
                 is com.rotiropi.pos_erpnext.recovery.RecoveryTerminalResult.Rejected ->
                     "${result.code}: ${result.message}"
             }
         }
         binding.profileSelectionRecovery.isVisible = state.logoutBlockedMessage != null || recoveryMessage != null
-        binding.profileSelectionRecovery.text = state.logoutBlockedMessage ?: recoveryMessage.orEmpty()
+        binding.profileSelectionRecovery.text =
+            state.logoutBlockedMessage?.resolve(context) ?: recoveryMessage.orEmpty()
         binding.profileSelectionAcknowledgeRecovery.isVisible = state.recovery is RecoveryScreenState.Terminal
         binding.profileSelectionReauthenticateRecovery.isVisible = state.recovery is RecoveryScreenState.AuthenticationRequired
         val showProfiles = !state.refreshing && state.error == null && !state.retryRequired
