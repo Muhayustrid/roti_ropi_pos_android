@@ -17,10 +17,12 @@ import androidx.test.platform.app.InstrumentationRegistry
  * when driven alone right after a touch. Input mode is device state, so a keyboard-traversal
  * test that does not set it is asserting against whatever the device happened to be doing.
  *
- * A real hardware key event is what the platform itself treats as "the user reached for a
- * keyboard", so sending one switches the mode for every window, including the separate window a
- * `ModalBottomSheet` composes into. `Instrumentation.setInTouchMode` would be more direct but
- * only exists from API 35, and this suite also runs on API 25.
+ * A Compose approach using `LocalInputModeManager.current.requestInputMode(InputMode.Keyboard)`
+ * fixed `MoreScreenTest` but not `CustomerSearchSheetTest`, because `ModalBottomSheet` composes
+ * into a separate window with its own `InputModeManager`; input mode is per-window. A real hardware
+ * key event via `sendKeyDownUpSync` switched the mode for both windows. `Instrumentation.setInTouchMode(Boolean)`
+ * is available on all supported API levels, but its behavior against the second window was not
+ * measured here; measure it before replacing this helper.
  *
  * Call it before the first `requestFocus()`, after `setContent`.
  */
