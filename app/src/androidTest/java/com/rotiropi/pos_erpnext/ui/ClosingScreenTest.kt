@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -53,11 +54,11 @@ class ClosingScreenTest {
             }
         }
 
-        composeRule.onNodeWithTag("more-closing").performClick()
+        composeRule.onNodeWithTag("more-closing").performScrollTo().performClick()
         composeRule.onNodeWithTag("closing-screen").assertIsDisplayed()
         composeRule.runOnIdle { assertEquals(1, loads) }
         composeRule.onNodeWithTag("closing-back").performClick()
-        composeRule.onNodeWithTag("more-closing").assertIsDisplayed()
+        composeRule.onNodeWithTag("more-closing").performScrollTo().assertIsDisplayed()
     }
 
     @Test

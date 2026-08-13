@@ -40,6 +40,14 @@ in `res/values-en/strings.xml` — is
 [`docs/superpowers/plans/2026-08-12-three-tab-navigation-and-localization.md`](../superpowers/plans/2026-08-12-three-tab-navigation-and-localization.md).
 The rule that keeps user-facing text out of source is stated in `AGENTS.md`.
 
+On 2026-08-13 orientation was decided in the same plan's Task 4: phones run
+portrait only and tablets rotate freely, split by the platform's `sw600dp`
+qualifier. Phone landscape is therefore not a window this app runs in, which
+retires the 17-test landscape baseline that earlier records compare against
+rather than fixing it. That task also records why API 25 at 320x640 is now part
+of verification: a small window caught a control below the fold that no
+1080dp-wide run did.
+
 | Task | Status | Evidence summary |
 | --- | --- | --- |
 | 1A | Completed | The dependency/compile-platform correction is present; clean unit, lint, debug, and release verification passes. The correction was committed with Task 1B rather than as an isolated Task 1A diff. |

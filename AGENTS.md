@@ -27,6 +27,12 @@ Read this file before changing the Android repository. These rules apply to the 
   surfaces unless their migration is separately approved. Do not perform a
   broad XML-to-Compose migration as part of a feature redesign.
 - Keep `minSdk 23` support.
+- Phones run portrait only; tablets rotate freely. The split is
+  `R.bool.pos_lock_portrait`, resolved through the platform's `sw600dp`
+  qualifier, so Android's matching decides which window is a tablet rather than
+  a dp comparison in Kotlin. A landscape phone window is ~411dp tall, which is
+  not enough for a POS body. `targetSdk 36` ignores `screenOrientation` at
+  `sw600dp` and above, which matches this intent rather than fighting it.
 - Prefer Android platform and AndroidX APIs. Add only lightweight, maintained dependencies with a clear measurable need.
 - Design for low-end devices: bounded lists, paginated data, limited allocations, no unnecessary polling, efficient image loading, and no large in-memory ERPNext document graphs.
 
@@ -77,6 +83,11 @@ Read this file before changing the Android repository. These rules apply to the 
 - Use test-driven development for transaction, authentication, parsing, and recovery behavior.
 - Run `./gradlew testDebugUnitTest`, `./gradlew lintDebug`, and `./gradlew assembleDebug` for normal verification.
 - Run `./gradlew connectedDebugAndroidTest` when an emulator/device is available.
+- Run the instrumentation suite on a small window as well as a large one. API 25
+  at 320x640 @160 has caught a control sitting below the fold that 1080dp-wide
+  runs did not; a Compose test that inherits the device's window is asserting
+  against that device, so reach a control with `performScrollTo()` rather than
+  relaxing the assertion.
 - Test API 23 and a current target API, XML/ViewBinding lifecycle, OAuth PKCE failures, token redaction/storage, DTO compatibility, full payment, customer selection, idempotent replay, process death, queued closing, and low-memory behavior.
 - Verify the final APK/config contains no client secret, API key, shared credential, token, verifier, or administrator data.
 - Do not claim completion without fresh command output and an inspected intended diff.

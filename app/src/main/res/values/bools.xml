@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Phones run portrait only; tablets rotate freely. The threshold is the platform's
+        own `sw600dp` qualifier, so Android's resource matching decides which window is a
+        tablet instead of a dp comparison written in Kotlin.
+    -->
+    <bool name="pos_lock_portrait">true</bool>
+</resources>

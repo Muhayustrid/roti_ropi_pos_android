@@ -48,6 +48,10 @@ from resources exactly once.
 `CatalogAccessibilityTest`. They are not caused by this work and are not fixed
 here. Compare against that baseline, not against zero, when verifying landscape.
 
+**Superseded by Task 4 on 2026-08-13.** Phones now run portrait only, so phone
+landscape is not a window this app runs in and this baseline no longer applies.
+Task 4 records what those failures actually were.
+
 ---
 
 ### Task 1: Delete Dashboard and reduce to three destinations
@@ -212,3 +216,86 @@ diff:
       design document. Do not rewrite the 2026-07-30 evidence itself: it records
       what was verified at that time and stays accurate as history.
 - [x] State the string-resource rule in `AGENTS.md` so later work inherits it.
+
+---
+
+### Task 4: Lock phones to portrait and settle the landscape failures
+
+The 17-test landscape baseline recorded above was never a layout bug to fix. The
+product does not ship a landscape phone: a cashier on a phone works portrait, and
+landscape belongs to tablets on a counter. Once orientation follows that, the
+window those tests failed in no longer exists on a phone.
+
+**Files:**
+- Create: `app/src/main/res/values/bools.xml` (`pos_lock_portrait` true)
+- Create: `app/src/main/res/values-sw600dp/bools.xml` (`pos_lock_portrait` false)
+- Create: `app/src/main/java/com/rotiropi/pos_erpnext/ui/PosOrientation.kt`
+- Create: `app/src/test/java/com/rotiropi/pos_erpnext/ui/PosOrientationTest.kt`
+- Modify: `app/src/main/java/com/rotiropi/pos_erpnext/MainActivity.kt`
+- Modify: `app/src/androidTest/java/com/rotiropi/pos_erpnext/ui/ClosingScreenTest.kt`
+- Modify: `AGENTS.md`
+
+**Interfaces:**
+- Produces: `posRequestedOrientation(resources): Int`, returning
+  `SCREEN_ORIENTATION_PORTRAIT` below `sw600dp` and `SCREEN_ORIENTATION_UNSPECIFIED`
+  at or above it.
+- Consumes: the platform's own `sw600dp` qualifier, so Android's resource matching
+  draws the phone/tablet line instead of a dp comparison written in Kotlin. This is
+  separate from `PosWindow.isTall`, which answers the finer question of whether a
+  window can hold two full-height columns.
+
+**Steps:**
+- [x] Write `PosOrientationTest` first, covering a phone, a tablet, and a rotated
+      phone that must not become a tablet.
+- [x] Add the bool in both resource folders and `posRequestedOrientation`, then set
+      `requestedOrientation` in `MainActivity.onCreate`.
+- [x] Prove the `sw600dp` qualifier is load-bearing by moving `values-sw600dp/`
+      aside and watching the tablet case fail.
+- [x] Re-run the landscape-failing set and confirm the remaining failures are not
+      caused by window height.
+- [x] Run the suite on a small window as well as a large one, and fix what it
+      finds without weakening an assertion.
+- [x] State the orientation rule and the small-window rule in `AGENTS.md`.
+
+**Verification:** unit + lint + assemble; instrumentation on both API levels.
+
+**Verified 2026-08-13**: `./gradlew :app:testDebugUnitTest :app:lintDebug
+:app:lintRelease :app:assembleDebug :app:assembleRelease` BUILD SUCCESSFUL, 518
+unit tests with 0 failures. Instrumentation for package
+`com.rotiropi.pos_erpnext.ui`, excluding `@SpecialHarnessOnly`, is 110 tests:
+
+| Device | Window | Result |
+| --- | --- | --- |
+| mobile-pos-api25 | 320x640 @160 | OK (110) |
+| mobile-pos-api36 | phone portrait 1080x1920 @420 | OK (110) |
+| mobile-pos-api36 | tablet 1600x2560 @320 | OK (110) |
+
+Phone landscape is no longer a window this app runs in, so it is not a row in that
+table rather than a row with failures in it.
+
+Two findings worth keeping, because neither is visible from the diff:
+
+- The nine landscape failures had two unrelated causes, separated by stashing this
+  work, rebuilding, reinstalling, and re-running. Six were window height: a 411dp
+  window clips a POS body, so nodes report "not displayed" or a height of 0.0.dp
+  for a `LazyColumn` that was never measured. Three were external-keyboard focus
+  and had nothing to do with height — they fail at phone portrait too, and they
+  fail identically on the stashed baseline. Those three pass inside the full-package
+  run and fail when driven alone with `-e class`, on both API levels, which points
+  at IME state carried between tests rather than at application code. They are not
+  fixed here and are not claimed to be.
+- API 25 at 320x640 @160 found a failure that no 1080dp-wide run did:
+  `ClosingScreenTest.More_Closing_child_route_loads_preview_and_back_returns_to_More`.
+  `MoreScreen` stacks its groups in compact, so `more-closing` sat below the fold
+  and `performClick()` reached nothing. It fails identically on the stashed
+  baseline, so it is pre-existing rather than a regression; it had simply never
+  been exercised, because API 25 had only ever run a focused thread test, not the
+  `ui` package. Fixed with `performScrollTo()` before the click, with
+  `assertIsDisplayed()`, the load count, and the return-to-More assertion all
+  unchanged.
+
+`targetSdk 36` ignores `screenOrientation` and `setRequestedOrientation()` at
+`sw600dp` and above. That matches this intent instead of fighting it — tablets are
+meant to rotate — so no
+`PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY` opt-out is used.
+

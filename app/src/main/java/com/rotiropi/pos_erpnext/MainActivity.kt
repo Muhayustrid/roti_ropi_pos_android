@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import com.rotiropi.pos_erpnext.databinding.Task4RootBinding
 import com.rotiropi.pos_erpnext.ui.Task4RootHost
+import com.rotiropi.pos_erpnext.ui.posRequestedOrientation
 import com.rotiropi.pos_erpnext.ui.settings.PosLanguage
 import com.rotiropi.pos_erpnext.ui.settings.ThemePreferences
 import com.rotiropi.pos_erpnext.ui.settings.applyPosLanguage
@@ -22,6 +23,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requestedOrientation = posRequestedOrientation(resources)
         applyStoredLanguage()
         enableEdgeToEdge()
         binding = Task4RootBinding.inflate(layoutInflater)

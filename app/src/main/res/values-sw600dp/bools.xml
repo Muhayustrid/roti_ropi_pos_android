@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- A tablet: wide enough for a landscape POS layout, so rotation stays available. -->
+    <bool name="pos_lock_portrait">false</bool>
+</resources>
