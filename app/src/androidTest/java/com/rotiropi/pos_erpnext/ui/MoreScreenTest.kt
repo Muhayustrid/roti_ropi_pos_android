@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.rotiropi.pos_erpnext.R
+import com.rotiropi.pos_erpnext.test.enterKeyboardInputMode
 import com.rotiropi.pos_erpnext.ui.navigation.PosLayoutMode
 import com.rotiropi.pos_erpnext.ui.settings.MoreScreen
 import com.rotiropi.pos_erpnext.ui.settings.MoreUiState
@@ -229,6 +230,7 @@ class MoreScreenTest {
             }
         }
 
+        enterKeyboardInputMode()
         composeRule.onNodeWithTag("more-theme-system").requestFocus().assertIsFocused()
         composeRule.onNodeWithTag("more-theme-system").performKeyInput { pressKey(Key.Tab) }
         composeRule.onNodeWithTag("more-theme-light").assertIsFocused()

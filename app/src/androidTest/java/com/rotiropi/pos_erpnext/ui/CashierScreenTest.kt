@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.rotiropi.pos_erpnext.R
+import com.rotiropi.pos_erpnext.test.enterKeyboardInputMode
 import com.rotiropi.pos_erpnext.ui.UiText
 import com.rotiropi.pos_erpnext.ui.uiText
 import com.rotiropi.pos_erpnext.ui.cashier.CartContent
@@ -138,6 +139,7 @@ class CashierScreenTest {
             }
         }
 
+        enterKeyboardInputMode()
         composeRule.onNodeWithTag("cashier-search").requestFocus().assertIsFocused()
         composeRule.onNodeWithTag("cashier-search").performKeyInput { pressKey(Key.Tab) }
         composeRule.onNodeWithTag("cashier-barcode").assertIsFocused()

@@ -28,6 +28,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.rotiropi.pos_erpnext.MainActivity
 import com.rotiropi.pos_erpnext.R
 import com.rotiropi.pos_erpnext.MobilePosApplication
+import com.rotiropi.pos_erpnext.test.enterKeyboardInputMode
 import com.rotiropi.pos_erpnext.auth.OAuthTokens
 import com.rotiropi.pos_erpnext.auth.TokenStore
 import com.rotiropi.pos_erpnext.data.BootstrapData
@@ -229,6 +230,7 @@ class CustomerSearchRootTest {
         open()
         rule.waitUntil(2_000) { exists("customer-CUST-KBD") }
 
+        enterKeyboardInputMode()
         rule.onNodeWithTag("customer-search-input").requestFocus().assertIsFocused()
             .performKeyInput { pressKey(Key.Tab) }
         rule.onNodeWithTag("customer-walk-in-name").assertIsFocused()

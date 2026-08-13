@@ -35,6 +35,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.rotiropi.pos_erpnext.R
+import com.rotiropi.pos_erpnext.test.enterKeyboardInputMode
 import com.rotiropi.pos_erpnext.ui.theme.PosTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -134,6 +135,7 @@ class CustomerSearchSheetTest {
             }
         }
 
+        enterKeyboardInputMode()
         val search = rule.onNodeWithTag("customer-search-input").requestFocus().assertIsFocused()
         search.performKeyInput { pressKey(Key.Tab) }
         rule.onNodeWithTag("customer-walk-in-name").assertIsFocused()
