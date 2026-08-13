@@ -95,7 +95,6 @@ class CashierStateTest {
             paid = "IDR 55,000",
             changeAmount = "IDR 0",
             status = R.string.sale_status_paid,
-            demoData = true,
         )
 
         assertEquals("IDR 0", receipt.changeAmount)

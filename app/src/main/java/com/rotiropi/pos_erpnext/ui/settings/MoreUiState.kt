@@ -22,7 +22,6 @@ data class MoreUiState(
     val userSessionLabel: String?,
     val themeMode: PosThemeMode,
     val accent: PosAccent,
-    val demoData: Boolean,
     val language: PosLanguage = PosLanguage.DEFAULT,
     val logoutMessage: String? = null,
     val recovery: RecoveryScreenState = RecoveryScreenState.Hidden,

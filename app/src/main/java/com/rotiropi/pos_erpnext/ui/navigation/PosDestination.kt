@@ -6,7 +6,7 @@ import com.rotiropi.pos_erpnext.R
 
 /**
  * The three top-level destinations, mirroring the approved prototype's `TopLevel`.
- * Products and Reports are child routes reached from More, not roots.
+ * Closing is a child route reached from More, not a root.
  */
 enum class PosDestination(
     val route: String,
@@ -31,7 +31,7 @@ enum class PosLayoutMode {
 fun parentDestinationOf(route: String?): PosDestination = when {
     route == null -> PosDestination.CASHIER
     route.startsWith("sale/") || route.startsWith("return/") -> PosDestination.HISTORY
-    route == "products" || route == "reports" || route == "closing" -> PosDestination.MORE
+    route == "closing" -> PosDestination.MORE
     else -> PosDestination.CASHIER
 }
 

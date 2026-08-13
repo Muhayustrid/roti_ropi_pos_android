@@ -13,10 +13,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -35,16 +33,12 @@ fun MoreScreen(
     state: MoreUiState,
     layoutMode: PosLayoutMode,
     modifier: Modifier = Modifier,
-    demoToggleVisible: Boolean = false,
     logoutVisible: Boolean = false,
     onThemeModeSelected: (PosThemeMode) -> Unit = {},
     onAccentSelected: (PosAccent) -> Unit = {},
     onLanguageSelected: (PosLanguage) -> Unit = {},
-    onDemoDataToggled: (Boolean) -> Unit = {},
     onLogout: () -> Unit = {},
     onOpenClosing: () -> Unit = {},
-    onOpenProducts: () -> Unit = {},
-    onOpenReports: () -> Unit = {},
     onAcknowledgeRecovery: (String) -> Unit = {},
     onReauthenticateRecovery: () -> Unit = {},
     onRecoverManualClosing: (String) -> Unit = {},
@@ -58,7 +52,7 @@ fun MoreScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        MoreHeader(demoData = state.demoData)
+        MoreHeader()
         if (layoutMode == PosLayoutMode.EXPANDED) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -70,7 +64,6 @@ fun MoreScreen(
                 ) {
                     OutletGroup(state.outletLabel)
                     UserSessionGroup(state.userSessionLabel)
-                    CatalogGroup(onOpenProducts, onOpenReports)
                     if (state.closingAvailable) ClosingGroup(onOpenClosing)
                     if (logoutVisible) {
                         LogoutGroup(state.logoutMessage, state.recovery, onLogout, onAcknowledgeRecovery, onReauthenticateRecovery, onRecoverManualClosing)
@@ -90,15 +83,11 @@ fun MoreScreen(
                 ) {
                     PrinterGroup()
                     SynchronizationGroup()
-                    if (demoToggleVisible) {
-                        DebugToolsGroup(state.demoData, onDemoDataToggled)
-                    }
                 }
             }
         } else {
             OutletGroup(state.outletLabel)
             UserSessionGroup(state.userSessionLabel)
-            CatalogGroup(onOpenProducts, onOpenReports)
             if (state.closingAvailable) ClosingGroup(onOpenClosing)
             if (logoutVisible) {
                 LogoutGroup(state.logoutMessage, state.recovery, onLogout, onAcknowledgeRecovery, onReauthenticateRecovery, onRecoverManualClosing)
@@ -113,94 +102,17 @@ fun MoreScreen(
             )
             PrinterGroup()
             SynchronizationGroup()
-            if (demoToggleVisible) {
-                DebugToolsGroup(state.demoData, onDemoDataToggled)
-            }
         }
     }
 }
 
 @Composable
-private fun CatalogGroup(onOpenProducts: () -> Unit, onOpenReports: () -> Unit) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(stringResource(R.string.more_group_catalog), style = MaterialTheme.typography.titleMedium)
-            Button(
-                onClick = onOpenProducts,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = PosDimensions.touchTarget)
-                    .testTag("more-products"),
-            ) {
-                Text(stringResource(R.string.more_products))
-            }
-            Button(
-                onClick = onOpenReports,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = PosDimensions.touchTarget)
-                    .testTag("more-reports"),
-            ) {
-                Text(stringResource(R.string.more_reports))
-            }
-        }
-    }
-}
-
-@Composable
-private fun DebugToolsGroup(demoData: Boolean, onDemoDataToggled: (Boolean) -> Unit) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(stringResource(R.string.more_group_debug), style = MaterialTheme.typography.titleMedium)
-            Text(
-                stringResource(R.string.more_debug_detail),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            FilterChip(
-                selected = demoData,
-                onClick = { onDemoDataToggled(!demoData) },
-                label = { Text(stringResource(R.string.more_demo_layout)) },
-                modifier = Modifier
-                    .heightIn(min = PosDimensions.touchTarget)
-                    .testTag("more-demo-data"),
-            )
-        }
-    }
-}
-
-@Composable
-private fun MoreHeader(demoData: Boolean) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(R.string.more_title),
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.semantics { heading() },
-        )
-        if (demoData) {
-            Surface(
-                color = MaterialTheme.colorScheme.tertiaryContainer,
-                shape = MaterialTheme.shapes.medium,
-            ) {
-                Text(
-                    text = stringResource(R.string.badge_demo_data),
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                )
-            }
-        }
-    }
+private fun MoreHeader() {
+    Text(
+        text = stringResource(R.string.more_title),
+        style = MaterialTheme.typography.headlineMedium,
+        modifier = Modifier.semantics { heading() },
+    )
 }
 
 @Composable

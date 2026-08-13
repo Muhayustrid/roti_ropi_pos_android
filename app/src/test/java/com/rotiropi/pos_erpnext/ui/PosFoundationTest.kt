@@ -24,8 +24,6 @@ class PosFoundationTest {
 
     @Test
     fun child_routes_keep_their_parent_tab_selected() {
-        assertEquals(PosDestination.MORE, parentDestinationOf("products"))
-        assertEquals(PosDestination.MORE, parentDestinationOf("reports"))
         assertEquals(PosDestination.MORE, parentDestinationOf("closing"))
         assertEquals(PosDestination.HISTORY, parentDestinationOf("sale/SINV-0001"))
         assertEquals(PosDestination.HISTORY, parentDestinationOf("return/SINV-0001"))

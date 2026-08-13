@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -273,15 +272,14 @@ private fun CashierBrowser(
     gridBottomPadding: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
     val focusManager = LocalFocusManager.current
-    val demoState = stringResource(R.string.cashier_state_demo)
     val catalogState = stringResource(R.string.cashier_state_catalog)
     Column(
         modifier = modifier.semantics {
-            stateDescription = if (content.demoData) demoState else catalogState
+            stateDescription = catalogState
         },
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        CashierHeader(content.demoData, customerState, onOpenCustomerSheet)
+        CashierHeader(customerState, onOpenCustomerSheet)
         if (content.catalogLoading && content.products.isEmpty()) {
             Text(
                 text = stringResource(R.string.cashier_loading_catalog),
@@ -393,7 +391,6 @@ private fun CashierBrowser(
 
 @Composable
 private fun CashierHeader(
-    demoData: Boolean,
     customerState: CustomerSearchUiState?,
     onOpenCustomerSheet: () -> Unit,
 ) {
@@ -409,18 +406,12 @@ private fun CashierHeader(
                 modifier = Modifier.semantics { heading() },
             )
             Text(
-                text = if (demoData) {
-                    stringResource(R.string.cashier_subtitle_demo)
-                } else {
-                    stringResource(R.string.cashier_subtitle_snapshots)
-                },
+                text = stringResource(R.string.cashier_subtitle_snapshots),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyLarge,
             )
         }
-        if (demoData) {
-            DemoBadge()
-        } else if (customerState != null) {
+        if (customerState != null) {
             val customerLabel = customerLabel(customerState)
             Button(
                 onClick = onOpenCustomerSheet,
@@ -556,20 +547,5 @@ private fun CashierStatePanel(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun DemoBadge() {
-    Surface(
-        color = MaterialTheme.colorScheme.tertiaryContainer,
-        shape = RoundedCornerShape(12.dp),
-    ) {
-        Text(
-            text = stringResource(R.string.badge_demo_data),
-            color = MaterialTheme.colorScheme.onTertiaryContainer,
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-        )
     }
 }

@@ -12,7 +12,6 @@
     <string name="action_back">Back</string>
     <string name="action_load_more">Load more</string>
     <string name="action_sign_in_again">Sign in again</string>
-    <string name="badge_demo_data">Demo data</string>
     <string name="state_unavailable">Unavailable</string>
     <string name="state_not_supported">Not supported</string>
     <string name="state_loading">Loading</string>
@@ -96,9 +95,7 @@
     <string name="cashier_unavailable">Cashier unavailable</string>
     <string name="cashier_unavailable_detail">Catalog, authoritative payable, and payment modes are not integrated.</string>
     <string name="cashier_could_not_load">Cashier could not load</string>
-    <string name="cashier_subtitle_demo">Static sale composition</string>
     <string name="cashier_subtitle_snapshots">Catalog snapshots</string>
-    <string name="cashier_state_demo">Cashier demo visuals</string>
     <string name="cashier_state_catalog">Cashier catalog</string>
     <string name="cashier_loading_catalog">Loading catalog</string>
     <string name="cashier_loading_more">Loading more products</string>
@@ -183,44 +180,7 @@
     <string name="customer_error_failed">Search failed. Please try again.</string>
     <string name="customer_loading">Loading customers</string>
     <string name="customer_empty">No customers found</string>
-    <!-- Products -->
-    <string name="products_title">Products</string>
-    <string name="products_subtitle">ERPNext catalog snapshots</string>
-    <string name="products_state_snapshots">Product snapshots</string>
-    <string name="products_search_label">Search products</string>
-    <string name="products_filter_description">Category filter %1$s</string>
-    <string name="products_loading">Loading product snapshots</string>
-    <string name="products_loading_description">Loading products</string>
-    <string name="products_empty">No products found</string>
-    <string name="products_empty_detail">Change the search or category filter.</string>
-    <string name="products_offline">Products are offline</string>
-    <string name="products_offline_detail">Reconnect, then retry. Cached inventory is not shown.</string>
-    <string name="products_unavailable">Products unavailable</string>
-    <string name="products_unavailable_detail">Catalog integration is not active. Product, price, and stock data are not cached locally.</string>
-    <string name="products_error_detail">Try loading the product catalog again.</string>
-    <string name="products_detail_title">Item details</string>
-    <string name="products_detail_empty">Select a product to inspect its ERPNext identity and snapshots.</string>
-    <string name="products_detail_item">Item</string>
-    <string name="products_detail_group">Item Group</string>
-    <string name="products_detail_description">Description</string>
-    <string name="products_detail_price_list">Price List</string>
-    <string name="products_detail_warehouse">Warehouse</string>
-    <string name="products_price_snapshot">%1$s %2$s · %3$s snapshot</string>
-    <string name="products_stock_snapshot">%1$s %2$s · %3$s stock snapshot</string>
-    <string name="product_card_description">Product %1$s</string>
 
-    <!-- Reports -->
-    <string name="reports_title">Reports</string>
-    <string name="reports_unavailable">Reports unavailable</string>
-    <string name="reports_unavailable_detail">Complete report data is not available from the current server contract.</string>
-    <string name="reports_state_content">Reports content</string>
-    <string name="reports_section_trend">Sales Trend</string>
-    <string name="reports_section_breakdown">Category Breakdown</string>
-    <string name="reports_section_top_products">Top Products</string>
-    <string name="reports_chart_description">Sales trend chart. %1$s</string>
-    <string name="reports_period_today">Today</string>
-    <string name="reports_period_week">Week</string>
-    <string name="reports_period_month">Month</string>
     <!-- Sale history, detail, and return -->
     <string name="history_title">Sale history</string>
     <string name="history_unavailable">History unavailable</string>
@@ -318,9 +278,6 @@
     <string name="app_error_bootstrap_unavailable">Bootstrap unavailable</string>
     <!-- More -->
     <string name="more_title">More</string>
-    <string name="more_group_catalog">Catalog and reports</string>
-    <string name="more_products">Products</string>
-    <string name="more_reports">Reports</string>
     <string name="more_group_outlet">Outlet</string>
     <string name="more_group_user_session">User and session</string>
     <string name="more_group_session">Session</string>
@@ -339,7 +296,4 @@
     <string name="more_language">Language</string>
     <string name="more_group_printer">Printer</string>
     <string name="more_group_synchronization">Synchronization</string>
-    <string name="more_group_debug">Debug tools</string>
-    <string name="more_debug_detail">Synthetic layouts for debug builds only. Not server data.</string>
-    <string name="more_demo_layout">Demo layout</string>
 </resources>

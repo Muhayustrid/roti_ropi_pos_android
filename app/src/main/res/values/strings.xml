@@ -17,7 +17,6 @@
     <string name="action_back">Kembali</string>
     <string name="action_load_more">Muat lebih banyak</string>
     <string name="action_sign_in_again">Masuk lagi</string>
-    <string name="badge_demo_data">Data demo</string>
     <string name="state_unavailable">Tidak tersedia</string>
     <string name="state_not_supported">Tidak didukung</string>
     <string name="state_loading">Memuat</string>
@@ -100,9 +99,7 @@
     <string name="cashier_unavailable">Kasir tidak tersedia</string>
     <string name="cashier_unavailable_detail">Katalog, jumlah tagihan resmi, dan mode pembayaran belum terintegrasi.</string>
     <string name="cashier_could_not_load">Kasir gagal dimuat</string>
-    <string name="cashier_subtitle_demo">Komposisi penjualan statis</string>
     <string name="cashier_subtitle_snapshots">Cuplikan katalog</string>
-    <string name="cashier_state_demo">Tampilan demo kasir</string>
     <string name="cashier_state_catalog">Katalog kasir</string>
     <string name="cashier_loading_catalog">Memuat katalog</string>
     <string name="cashier_loading_more">Memuat produk lain</string>
@@ -189,44 +186,6 @@
     <string name="customer_loading">Memuat pelanggan</string>
     <string name="customer_empty">Pelanggan tidak ditemukan</string>
 
-    <!-- Products -->
-    <string name="products_title">Produk</string>
-    <string name="products_subtitle">Cuplikan katalog ERPNext</string>
-    <string name="products_state_snapshots">Cuplikan produk</string>
-    <string name="products_search_label">Cari produk</string>
-    <string name="products_filter_description">Filter kategori %1$s</string>
-    <string name="products_loading">Memuat cuplikan produk</string>
-    <string name="products_loading_description">Memuat produk</string>
-    <string name="products_empty">Produk tidak ditemukan</string>
-    <string name="products_empty_detail">Ubah pencarian atau filter kategori.</string>
-    <string name="products_offline">Produk sedang luring</string>
-    <string name="products_offline_detail">Sambungkan kembali lalu coba lagi. Inventaris tersimpan tidak ditampilkan.</string>
-    <string name="products_unavailable">Produk tidak tersedia</string>
-    <string name="products_unavailable_detail">Integrasi katalog belum aktif. Data produk, harga, dan stok tidak disimpan di perangkat.</string>
-    <string name="products_error_detail">Coba muat katalog produk lagi.</string>
-    <string name="products_detail_title">Detail barang</string>
-    <string name="products_detail_empty">Pilih produk untuk melihat identitas dan cuplikan ERPNext-nya.</string>
-    <string name="products_detail_item">Barang</string>
-    <string name="products_detail_group">Grup Barang</string>
-    <string name="products_detail_description">Deskripsi</string>
-    <string name="products_detail_price_list">Daftar Harga</string>
-    <string name="products_detail_warehouse">Gudang</string>
-    <string name="products_price_snapshot">%1$s %2$s · Cuplikan %3$s</string>
-    <string name="products_stock_snapshot">%1$s %2$s · Cuplikan stok %3$s</string>
-    <string name="product_card_description">Produk %1$s</string>
-
-    <!-- Reports -->
-    <string name="reports_title">Laporan</string>
-    <string name="reports_unavailable">Laporan tidak tersedia</string>
-    <string name="reports_unavailable_detail">Data laporan lengkap tidak tersedia dari kontrak server saat ini.</string>
-    <string name="reports_state_content">Isi laporan</string>
-    <string name="reports_section_trend">Tren Penjualan</string>
-    <string name="reports_section_breakdown">Rincian Kategori</string>
-    <string name="reports_section_top_products">Produk Terlaris</string>
-    <string name="reports_chart_description">Grafik tren penjualan. %1$s</string>
-    <string name="reports_period_today">Hari ini</string>
-    <string name="reports_period_week">Minggu</string>
-    <string name="reports_period_month">Bulan</string>
     <!-- Sale history, detail, and return -->
     <string name="history_title">Riwayat penjualan</string>
     <string name="history_unavailable">Riwayat tidak tersedia</string>
@@ -325,9 +284,6 @@
     <string name="app_error_bootstrap_unavailable">Data awal tidak tersedia</string>
     <!-- More -->
     <string name="more_title">Lainnya</string>
-    <string name="more_group_catalog">Katalog dan laporan</string>
-    <string name="more_products">Produk</string>
-    <string name="more_reports">Laporan</string>
     <string name="more_group_outlet">Outlet</string>
     <string name="more_group_user_session">Pengguna dan sesi</string>
     <string name="more_group_session">Sesi</string>
@@ -346,7 +302,4 @@
     <string name="more_language">Bahasa</string>
     <string name="more_group_printer">Pencetak</string>
     <string name="more_group_synchronization">Sinkronisasi</string>
-    <string name="more_group_debug">Alat debug</string>
-    <string name="more_debug_detail">Tata letak sintetis untuk build debug saja. Bukan data server.</string>
-    <string name="more_demo_layout">Tata letak demo</string>
 </resources>

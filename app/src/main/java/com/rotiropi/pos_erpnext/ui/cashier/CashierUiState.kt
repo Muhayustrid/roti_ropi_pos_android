@@ -24,7 +24,6 @@ data class CashierContent(
     val products: List<CashierProduct>,
     val cart: CartSnapshot,
     val checkoutState: CheckoutUiState,
-    val demoData: Boolean,
     val catalogLoading: Boolean = false,
     val catalogHasMore: Boolean = false,
     val catalogError: UiText? = null,

@@ -299,3 +299,115 @@ Two findings worth keeping, because neither is visible from the diff:
 meant to rotate — so no
 `PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY` opt-out is used.
 
+---
+
+### Task 5: Delete the demo toggle, Products, and Reports
+
+The demo toggle was the only thing that ever populated Products and Reports. Neither
+screen has a data source: `PosShell` handed each one `Unavailable` unless the debug
+toggle swapped in `PosDemoStates`, so on every release path they rendered nothing but
+an honest "unavailable" panel. That is the same reasoning that deleted Dashboard in
+Task 1, and it applies to these two for the same reason.
+
+Deleting the demo fixtures alone would have left two screens that can never show
+anything, so the toggle and the screens go together rather than in two steps.
+
+**Files:**
+- Delete: `ui/products/ProductsScreen.kt` (held `ProductsUiState`, `ProductsContent`,
+  `ProductCategory`, `ProductItem`, `productGridColumns`, and the snapshot labels)
+- Delete: `ui/reports/ReportsScreen.kt`, `ui/reports/ReportsUiState.kt`
+- Delete: `debug/.../preview/ProductsPreviews.kt`, `ReportsPreviews.kt`
+- Delete: `debug/.../demo/PosDemoStates.kt` and
+  `release/.../demo/PosDemoStates.kt` (the `release/` source set is now empty and
+  gone with it)
+- Delete: `androidTest/.../ProductsScreenTest.kt`, `test/.../ProductsStateTest.kt`
+- Modify: `ui/navigation/PosShell.kt` (drop the `products` and `reports` routes, the
+  `demoData` state, `demoActive`, and every `if (demoActive)` swap)
+- Modify: `ui/navigation/PosDestination.kt` (`parentDestinationOf` keeps only
+  `closing` under More)
+- Modify: `ui/settings/MoreScreen.kt` (drop `CatalogGroup` and `DebugToolsGroup`;
+  `MoreHeader` no longer takes a badge, so it is a heading rather than a `Row`)
+- Modify: `ui/settings/MoreUiState.kt`, `ui/cashier/CashierUiState.kt`,
+  `ui/receipt/ReceiptContent.kt` (drop `demoData`)
+- Modify: `ui/cashier/CashierScreen.kt`, `ui/receipt/ReceiptScreen.kt` (drop both
+  `DemoBadge` composables and the demo subtitle branch)
+- Modify: `ui/cashier/CashierViewModel.kt` (drop `demoData = false`)
+- Rename+prune: `androidTest/.../ReportsMoreScreenTest.kt` → `MoreScreenTest.kt`,
+  keeping the seven More cases and dropping the five Reports ones; same for
+  `test/.../ReportsMoreStateTest.kt` → `MoreStateTest.kt`, which keeps the two
+  `ThemePreferences` cases
+- Modify: `test/.../ReleaseFixtureExclusionTest.kt` (asserts no `demoData` or
+  `PosDemoStates` reference survives in shipped sources, instead of asserting a
+  release stub exists)
+- Modify: `androidTest/.../ComposeShellTest.kt`, `CashierScreenTest.kt`,
+  `cashier/CatalogAccessibilityTest.kt`, `test/.../CashierStateTest.kt`,
+  `test/.../PosFoundationTest.kt`
+- Modify: `res/values/strings.xml`, `res/values-en/strings.xml` (46 keys each)
+
+**Steps:**
+- [x] Confirm from the code that Products and Reports have no data source before
+      deleting them, rather than assuming it from their appearance.
+- [x] Delete the screens, the fixtures, and both source-set copies of
+      `PosDemoStates`.
+- [x] Strip `demoData` from every state class and both `DemoBadge` composables.
+- [x] Rewrite the two mixed test classes as More-only, keeping every surviving
+      assertion as it was rather than relaxing any.
+- [x] Retarget `ReleaseFixtureExclusionTest` at the stronger invariant: no demo
+      reference at all in shipped sources.
+- [x] Remove the 46 string keys from both files and confirm the two files still
+      hold an identical key set.
+- [x] Re-run the full `com.rotiropi.pos_erpnext.ui` package, excluding
+      `@SpecialHarnessOnly`.
+
+**Verification:** unit + lint + assemble; instrumentation at a small window and a
+tablet.
+
+**Verified 2026-08-13** on `mobile-pos-api36`:
+`./gradlew :app:testDebugUnitTest :app:lintDebug :app:lintRelease
+:app:assembleDebug :app:assembleRelease` BUILD SUCCESSFUL, 511 unit tests with 0
+failures. `values/strings.xml` and `values-en/strings.xml` each hold 268 keys with no
+key present in only one file.
+
+Instrumentation for package `com.rotiropi.pos_erpnext.ui`, excluding
+`@SpecialHarnessOnly`, is 95 tests:
+
+| Window | Result |
+| --- | --- |
+| 320x640 @160 | OK (95) |
+| phone portrait 1080x1920 @420 | OK (95) |
+| tablet 1600x2560 @320 | OK (95) |
+
+The device locale stayed `en-US`, and `requestedOrientation=SCREEN_ORIENTATION_PORTRAIT`
+at the phone window, so the Task 2 and Task 4 contracts are still exercised by this run.
+
+Both counts fell, and every test that left is accounted for by a deleted surface, not
+by a weakened assertion:
+
+- Instrumentation 110 → 95. `ProductsScreenTest` took 7 with it; `ReportsMoreScreenTest`
+  had 13 and `MoreScreenTest` keeps 7, dropping the 5 Reports cases plus
+  `more_shows_honest_groups_…`'s Reports half; `ComposeShellTest` went 11 → 9, losing
+  `more_reaches_products_and_reports_as_child_routes` and
+  `debug_demo_toggle_populates_destinations_and_stays_off_by_default`, and its
+  `reports_and_more_release_destinations_…` became `more_release_destination_…`.
+- Unit 518 → 511. `ProductsStateTest` took 3; `ReportsMoreStateTest` had 6 and
+  `MoreStateTest` keeps the 2 `ThemePreferences` cases, dropping the 4 chart and report
+  ones; `PosFoundationTest` lost 2 assertions rather than a test.
+
+Three notes worth keeping:
+
+- The three external-keyboard tests recorded under Task 4 as un-root-caused
+  (`ReportsMoreScreenTest.appearance_controls_follow_external_keyboard_order`,
+  `report_periods_follow_external_keyboard_order`, and
+  `CustomerSearchSheetTest.externalKeyboardTraversesResultLoadMoreRetryAndDoneAndActivatesSelection`)
+  are down to two: the `report_periods_` one is gone with Reports. The remaining two
+  still pass inside the full-package run, so the debt is unchanged in kind and is not
+  claimed fixed here.
+- `app/src/release/` no longer exists. It held nothing but the demo stub, and the
+  `debug`/`release` split it demonstrated is now enforced by
+  `ReleaseFixtureExclusionTest` asserting no `demoData` or `PosDemoStates` reference
+  survives in shipped sources — a stronger invariant than "the stub says
+  `supported = false`", since it fails even if someone reintroduces a fixture without a
+  stub to disable it.
+- `MoreHeader` became a plain heading instead of a `Row`. The `Row` existed only to put
+  the demo badge opposite the title.
+

@@ -11,10 +11,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -36,21 +34,14 @@ fun ReceiptScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.receipt_title),
-                        style = MaterialTheme.typography.headlineMedium,
-                        modifier = Modifier.semantics { heading() },
-                    )
-                    Text(content.saleId, style = MaterialTheme.typography.titleMedium)
-                    content.sourceReference?.let { Text(stringResource(R.string.receipt_return_against, it)) }
-                }
-                if (content.demoData) DemoBadge()
+            Column {
+                Text(
+                    text = stringResource(R.string.receipt_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.semantics { heading() },
+                )
+                Text(content.saleId, style = MaterialTheme.typography.titleMedium)
+                content.sourceReference?.let { Text(stringResource(R.string.receipt_return_against, it)) }
             }
         }
         item { ReceiptRow(stringResource(R.string.receipt_row_customer), content.customerLabel) }
@@ -94,20 +85,5 @@ private fun ReceiptRow(label: String, value: String) {
     ) {
         Text(label, style = MaterialTheme.typography.labelLarge)
         Text(value, style = MaterialTheme.typography.bodyLarge)
-    }
-}
-
-@Composable
-private fun DemoBadge() {
-    Surface(
-        color = MaterialTheme.colorScheme.tertiaryContainer,
-        shape = MaterialTheme.shapes.medium,
-    ) {
-        Text(
-            text = stringResource(R.string.badge_demo_data),
-            color = MaterialTheme.colorScheme.onTertiaryContainer,
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-        )
     }
 }

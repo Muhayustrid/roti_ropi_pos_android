@@ -11,9 +11,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -37,11 +34,8 @@ import com.rotiropi.pos_erpnext.ui.cashier.CashierUiState
 import com.rotiropi.pos_erpnext.ui.customer.CustomerSearchUiState
 import com.rotiropi.pos_erpnext.ui.customer.CustomerRecord
 import com.rotiropi.pos_erpnext.ui.components.RootNavigationBar
-import com.rotiropi.pos_erpnext.ui.demo.PosDemoStates
 import com.rotiropi.pos_erpnext.ui.opening.OpeningScreen
 import com.rotiropi.pos_erpnext.ui.opening.OpeningUiState
-import com.rotiropi.pos_erpnext.ui.products.ProductsScreen
-import com.rotiropi.pos_erpnext.ui.products.ProductsUiState
 import com.rotiropi.pos_erpnext.ui.history.HistoryScreen
 import com.rotiropi.pos_erpnext.ui.history.HistoryUiState
 import com.rotiropi.pos_erpnext.ui.history.SaleDetailScreen
@@ -51,8 +45,6 @@ import com.rotiropi.pos_erpnext.ui.returning.ReturnUiState
 import com.rotiropi.pos_erpnext.ui.closing.ClosingScreen
 import com.rotiropi.pos_erpnext.ui.closing.ClosingUiState
 import com.rotiropi.pos_erpnext.data.api.SaleDetailDto
-import com.rotiropi.pos_erpnext.ui.reports.ReportsScreen
-import com.rotiropi.pos_erpnext.ui.reports.ReportsUiState
 import com.rotiropi.pos_erpnext.ui.settings.MoreScreen
 import com.rotiropi.pos_erpnext.ui.settings.MoreUiState
 import com.rotiropi.pos_erpnext.ui.settings.PosLanguage
@@ -320,8 +312,6 @@ private fun AuthenticatedPosShell(
     val route = backStackEntry?.destination?.route
     val selectedDestination = PosDestination.entries.firstOrNull { it.route == route }
         ?: parentDestinationOf(route)
-    var demoData by rememberSaveable { mutableStateOf(false) }
-    val demoActive = PosDemoStates.supported && demoData
     val closingTerminal = closingState is ClosingUiState.Receipt ||
         closingState is ClosingUiState.Failed
 
@@ -380,16 +370,9 @@ private fun AuthenticatedPosShell(
                                 }
                             ),
                     ) {
-                        composable("products") {
-                            ProductsScreen(
-                                state = if (demoActive) PosDemoStates.products else ProductsUiState.Unavailable,
-                                layoutMode = layoutMode,
-                                modifier = Modifier.testTag("destination-content-products"),
-                            )
-                        }
                         composable(PosDestination.CASHIER.route) {
                             CashierScreen(
-                                state = if (demoActive) PosDemoStates.cashier else cashierState,
+                                state = cashierState,
                                 layoutMode = layoutMode,
                                 modifier = Modifier.testTag("destination-content-cashier"),
                                 cartVisible = cashierCartVisible,
@@ -410,7 +393,7 @@ private fun AuthenticatedPosShell(
                                 onUpdatePaymentAmount = onUpdatePaymentAmount,
                                 onSubmitPayment = onSubmitPayment,
                                 onCloseReceipt = onCloseReceipt,
-                                customerState = if (demoActive) null else customerState,
+                                customerState = customerState,
                                 customerSheetVisible = customerSheetVisible,
                                 onOpenCustomerSheet = onOpenCustomerSheet,
                                 onDismissCustomerSheet = onDismissCustomerSheet,
@@ -420,13 +403,6 @@ private fun AuthenticatedPosShell(
                                 onSelectRegistered = onSelectRegistered,
                                 onCustomerRetry = onCustomerRetry,
                                 onCustomerLoadMore = onCustomerLoadMore,
-                            )
-                        }
-                        composable("reports") {
-                            ReportsScreen(
-                                state = if (demoActive) PosDemoStates.reports else ReportsUiState.Unavailable,
-                                layoutMode = layoutMode,
-                                modifier = Modifier.testTag("destination-content-reports"),
                             )
                         }
                         composable(PosDestination.HISTORY.route) {
@@ -441,11 +417,10 @@ private fun AuthenticatedPosShell(
                         composable(PosDestination.MORE.route) {
                             MoreScreen(
                                 state = MoreUiState(
-                                    outletLabel = if (demoActive) PosDemoStates.outletLabel else null,
-                                    userSessionLabel = if (demoActive) PosDemoStates.userSessionLabel else null,
+                                    outletLabel = null,
+                                    userSessionLabel = null,
                                     themeMode = themeMode,
                                     accent = accent,
-                                    demoData = demoActive,
                                     language = language,
                                     logoutMessage = (logoutResult as? LogoutResult.Blocked)?.let {
                                         stringResource(
@@ -459,19 +434,15 @@ private fun AuthenticatedPosShell(
                                 ),
                                 layoutMode = layoutMode,
                                 modifier = Modifier.testTag("destination-content-more"),
-                                demoToggleVisible = PosDemoStates.supported,
                                 logoutVisible = logoutVisible,
                                 onThemeModeSelected = onThemeModeSelected,
                                 onAccentSelected = onAccentSelected,
                                 onLanguageSelected = onLanguageSelected,
-                                onDemoDataToggled = { demoData = it },
                                 onLogout = { onLogout() },
                                 onOpenClosing = {
                                     onOpenClosing()
                                     navController.navigate("closing")
                                 },
-                                onOpenProducts = { navController.navigate("products") },
-                                onOpenReports = { navController.navigate("reports") },
                                 onAcknowledgeRecovery = onAcknowledgeRecovery,
                                 onReauthenticateRecovery = onReauthenticateRecovery,
                                 onRecoverManualClosing = onRecoverManualClosing,

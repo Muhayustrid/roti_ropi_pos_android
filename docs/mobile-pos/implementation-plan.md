@@ -48,6 +48,14 @@ rather than fixing it. That task also records why API 25 at 320x640 is now part
 of verification: a small window caught a control below the fold that no
 1080dp-wide run did.
 
+Also on 2026-08-13, the same plan's Task 5 deleted the debug demo-data toggle and,
+with it, the Products and Reports screens. Neither had a data source — `PosShell`
+rendered each one `Unavailable` unless the toggle swapped in a synthetic fixture — so
+they are removed for the same reason Dashboard was. Rows and sections below that
+describe a Products screen, a Reports screen, a `Demo data` badge, or an
+`app/src/release/` demo stub record what existed at the time and are superseded by
+that task.
+
 | Task | Status | Evidence summary |
 | --- | --- | --- |
 | 1A | Completed | The dependency/compile-platform correction is present; clean unit, lint, debug, and release verification passes. The correction was committed with Task 1B rather than as an isolated Task 1A diff. |

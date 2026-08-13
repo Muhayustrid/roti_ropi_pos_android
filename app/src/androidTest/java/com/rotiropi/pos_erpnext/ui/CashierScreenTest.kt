@@ -68,7 +68,7 @@ class CashierScreenTest {
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Test
-    fun release_cashier_is_honest_and_has_no_demo_or_input() {
+    fun release_cashier_is_honest_and_has_no_input() {
         composeRule.setContent {
             PosTheme {
                 CashierScreen(CashierUiState.Unavailable, PosLayoutMode.COMPACT)
@@ -76,7 +76,6 @@ class CashierScreenTest {
         }
 
         composeRule.onNodeWithText(context.getString(R.string.cashier_unavailable)).assertIsDisplayed()
-        composeRule.onNodeWithText(context.getString(R.string.badge_demo_data)).assertDoesNotExist()
         composeRule.onAllNodes(hasSetTextAction()).assertCountEquals(0)
     }
 
@@ -104,7 +103,6 @@ class CashierScreenTest {
         composeRule.onNodeWithText(
             context.getString(R.string.cashier_stock_snapshot, "18", "Pack", "Outlet 01 - RR"),
         ).assertIsDisplayed()
-        composeRule.onNodeWithText(context.getString(R.string.badge_demo_data)).assertIsDisplayed()
     }
 
     @Test
@@ -277,7 +275,6 @@ class CashierScreenTest {
         composeRule.onNodeWithText("SINV-0001").assertIsDisplayed()
         composeRule.onNodeWithText(context.getString(R.string.receipt_row_change)).assertIsDisplayed()
         composeRule.onNodeWithText("IDR 0").assertIsDisplayed()
-        composeRule.onNodeWithText(context.getString(R.string.badge_demo_data)).assertIsDisplayed()
         composeRule.onNodeWithTag("receipt-close")
             .assertHasClickAction()
             .assertHeightIsAtLeast(48.dp)
@@ -316,7 +313,6 @@ class CashierScreenTest {
             products = listOf(productFixture()),
             cart = cartFixture(),
             checkoutState = CheckoutUiState.Unavailable,
-            demoData = true,
         )
     )
 
@@ -354,6 +350,5 @@ class CashierScreenTest {
         paid = "IDR 55,000",
         changeAmount = "IDR 0",
         status = R.string.sale_status_paid,
-        demoData = true,
     )
 }

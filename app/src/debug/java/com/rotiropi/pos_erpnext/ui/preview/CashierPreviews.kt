@@ -93,7 +93,6 @@ private val cashierDemoContent = CashierContent(
         payableLabel = UiText.Raw("Demo total IDR 78,000"),
     ),
     checkoutState = CheckoutUiState.Unavailable,
-    demoData = true,
 )
 
 private val cashierReceipt = ReceiptContent(
@@ -103,7 +102,6 @@ private val cashierReceipt = ReceiptContent(
     paid = "IDR 78,000",
     changeAmount = "IDR 0",
     status = R.string.sale_status_paid,
-    demoData = true,
 )
 
 @Preview(name = "Cashier compact cart", widthDp = 360, heightDp = 800, showBackground = true)

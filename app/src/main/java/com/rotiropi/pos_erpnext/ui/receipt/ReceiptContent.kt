@@ -26,7 +26,6 @@ data class ReceiptContent(
      * interface language instead of the language in force when the sale was mapped.
      */
     @StringRes val status: Int,
-    val demoData: Boolean = false,
     val items: List<ReceiptItemLine> = emptyList(),
     val taxes: List<String> = emptyList(),
     val payments: List<String> = emptyList(),

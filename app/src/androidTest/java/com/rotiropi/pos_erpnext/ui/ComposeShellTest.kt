@@ -7,7 +7,6 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
-import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
@@ -150,52 +149,15 @@ class ComposeShellTest {
     fun cashier_release_destination_is_honest_and_has_no_input() {
         composeRule.onNodeWithTag("root-cashier").performClick()
         composeRule.onNodeWithText(text(R.string.cashier_unavailable)).assertIsDisplayed()
-        composeRule.onNodeWithText(text(R.string.badge_demo_data)).assertDoesNotExist()
         composeRule.onAllNodes(hasSetTextAction()).assertCountEquals(0)
     }
 
     @Test
-    fun reports_and_more_release_destinations_are_honest_feature_surfaces() {
+    fun more_release_destination_is_an_honest_feature_surface() {
         composeRule.onNodeWithTag("root-more").performClick()
         composeRule.onNodeWithText(text(R.string.more_group_appearance)).performScrollTo().assertIsDisplayed()
         composeRule.onAllNodesWithText(text(R.string.state_unavailable)).assertCountEquals(2)
         composeRule.onAllNodesWithText(text(R.string.state_not_supported)).assertCountEquals(2)
-
-        composeRule.onNodeWithTag("more-reports").performScrollTo().performClick()
-        composeRule.onNodeWithText(text(R.string.reports_unavailable)).assertIsDisplayed()
-        composeRule.onNodeWithText(text(R.string.badge_demo_data)).assertDoesNotExist()
-    }
-
-    @Test
-    fun more_reaches_products_and_reports_as_child_routes() {
-        composeRule.onNodeWithTag("root-more").performClick()
-        composeRule.onNodeWithTag("more-products").performScrollTo().performClick()
-        composeRule.onNodeWithTag("destination-content-products").assertIsDisplayed()
-        composeRule.onNodeWithTag("root-more").assertIsSelected()
-
-        composeRule.onNodeWithTag("root-more").performClick()
-        composeRule.onNodeWithTag("more-reports").performScrollTo().performClick()
-        composeRule.onNodeWithTag("destination-content-reports").assertIsDisplayed()
-        composeRule.onNodeWithTag("root-more").assertIsSelected()
-    }
-
-    @Test
-    fun debug_demo_toggle_populates_destinations_and_stays_off_by_default() {
-        composeRule.onNodeWithTag("root-more").performClick()
-        composeRule.onNodeWithTag("more-demo-data").performScrollTo().assertIsNotSelected()
-
-        composeRule.onNodeWithTag("more-demo-data").performClick().assertIsSelected()
-
-        composeRule.onNodeWithText(text(R.string.badge_demo_data)).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Outlet Menteng").performScrollTo().assertIsDisplayed()
-
-        composeRule.onNodeWithTag("more-reports").performScrollTo().performClick()
-        composeRule.onNodeWithTag("reports-chart").performScrollTo().assertIsDisplayed()
-
-        composeRule.onNodeWithTag("root-more").performClick()
-        composeRule.onNodeWithTag("more-demo-data").performScrollTo().performClick()
-        composeRule.onNodeWithTag("more-reports").performScrollTo().performClick()
-        composeRule.onNodeWithText(text(R.string.reports_unavailable)).assertIsDisplayed()
     }
 
     @Test

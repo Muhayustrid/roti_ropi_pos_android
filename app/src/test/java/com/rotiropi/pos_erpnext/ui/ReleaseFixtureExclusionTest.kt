@@ -26,32 +26,34 @@ class ReleaseFixtureExclusionTest {
         })
     }
 
+    /**
+     * The demo layout toggle and its fixtures were deleted: Products and Reports had no data
+     * source, so the only thing that ever populated them was synthetic. This keeps a demo
+     * fixture from reappearing in code that ships, whether or not a `release/` source set
+     * exists to stub it out.
+     */
     @Test
-    fun populated_demo_fixtures_never_reach_main_or_release_sources() {
+    fun no_demo_fixture_survives_in_shipped_sources() {
         val projectRoot = findProjectRoot()
-        val shippedSources = listOf("app/src/main", "app/src/release").map(projectRoot::resolve)
+        val shippedSources = listOf("app/src/main", "app/src/release")
+            .map(projectRoot::resolve)
+            .filter(Files::exists)
 
+        assertTrue("app/src/main must exist", shippedSources.isNotEmpty())
         shippedSources.forEach { root ->
             Files.walk(root).use { paths ->
                 paths.filter { Files.isRegularFile(it) && it.fileName.toString().endsWith(".kt") }
                     .forEach { path ->
                         val source = Files.readAllLines(path).joinToString("\n")
-                        assertTrue(
-                            "$path must not declare a populated demo fixture",
-                            !source.contains("demoData = true"),
-                        )
+                        listOf("demoData", "PosDemoStates").forEach { marker ->
+                            assertTrue(
+                                "$path must not reference $marker",
+                                !source.contains(marker),
+                            )
+                        }
                     }
             }
         }
-
-        val releaseDemo = projectRoot.resolve(
-            "app/src/release/java/com/rotiropi/pos_erpnext/ui/demo/PosDemoStates.kt"
-        )
-        assertTrue("Release must supply its own demo stub", Files.exists(releaseDemo))
-        assertTrue(
-            "Release demo stub must stay unsupported",
-            Files.readAllLines(releaseDemo).joinToString("\n").contains("supported = false"),
-        )
     }
 
     private fun findProjectRoot(): Path {

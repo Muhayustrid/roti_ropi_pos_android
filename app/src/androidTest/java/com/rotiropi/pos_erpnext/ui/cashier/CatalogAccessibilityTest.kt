@@ -77,7 +77,6 @@ class CatalogAccessibilityTest {
                 context.getString(R.string.cashier_add_to_cart_description, "Croissant Pack"),
             ),
         ).assertHeightIsAtLeast(48.dp)
-        composeRule.onNodeWithText(context.getString(R.string.badge_demo_data)).assertDoesNotExist()
         composeRule.onNodeWithText("Camera", substring = true).assertDoesNotExist()
     }
 
@@ -236,7 +235,6 @@ class CatalogAccessibilityTest {
                                 uiText(R.string.cart_estimated_only),
                             ),
                             checkoutState = CheckoutUiState.Unavailable,
-                            demoData = false,
                             quoteError = uiText(R.string.cart_error_row_limit),
                         ),
                     ),
@@ -281,7 +279,6 @@ class CatalogAccessibilityTest {
                 uiText(R.string.cart_empty_short),
             ),
             checkoutState = CheckoutUiState.Unavailable,
-            demoData = false,
             catalogLoading = catalogLoading,
             catalogError = catalogError,
             catalogHasMore = catalogHasMore,

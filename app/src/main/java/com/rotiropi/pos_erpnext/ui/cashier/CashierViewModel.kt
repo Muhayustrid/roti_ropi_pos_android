@@ -839,7 +839,6 @@ class CashierViewModel(
                 products = products.map { it.toUi(current.warehouse) },
                 cart = cart.snapshot(),
                 checkoutState = checkoutState,
-                demoData = false,
                 catalogLoading = catalogLoading,
                 catalogHasMore = catalogHasMore,
                 catalogError = catalogError,

@@ -14,7 +14,6 @@ private fun moreDemoState(themeMode: PosThemeMode, accent: PosAccent) = MoreUiSt
     userSessionLabel = "Ayu · Open session",
     themeMode = themeMode,
     accent = accent,
-    demoData = true,
 )
 
 @Preview(name = "More compact dark Blue", widthDp = 360, heightDp = 800, showBackground = true)
