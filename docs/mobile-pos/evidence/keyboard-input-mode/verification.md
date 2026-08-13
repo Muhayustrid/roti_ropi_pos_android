@@ -35,15 +35,34 @@ This is the honest scope of the pass: `assembleDebug` and `lintRelease` reported
 
 ## Instrumentation gate
 
-The full `com.rotiropi.pos_erpnext.ui` package passed with `OK (95)` at each tested window:
+The full `com.rotiropi.pos_erpnext.ui` package, excluding `@SpecialHarnessOnly`, passed with `OK (95)` at each tested API 36 window:
 
-| Window | Result |
+| API 36 window | Result |
 | --- | --- |
 | 320x640 @160 | OK (95), 0 failures, 0 errors |
 | 1080x1920 @420 | OK (95) |
 | 1600x2560 @320 | OK (95) |
 
-Window overrides were reset and verified afterwards at 1080x1920 @420. Phone landscape 2400x1080 @420 was deliberately not tested: the product decision is landscape on tablet and portrait on phone.
+These three window results came from the instrumentation run's report. The host gate and the armed-isolated reproducer below were executed by the controller. Window overrides were reset and verified afterwards at 1080x1920 @420. Phone landscape 2400x1080 @420 was deliberately not tested: the product decision is landscape on tablet and portrait on phone.
+
+### API 23 run
+
+The API 23 device was `mobile-pos-api23` (API 23, Android 6.0). With the guard present:
+
+| Scenario on API 23 | Result |
+| --- | --- |
+| Full `ui` package, excluding @SpecialHarnessOnly | OK (95 tests), 72.173s |
+| ComposeShellTest, armed isolated | OK (1 test) |
+| CashierScreenTest, armed isolated | OK (1 test) |
+| MoreScreenTest, armed isolated | OK (1 test) |
+| CustomerSearchSheetTest, armed isolated | FAILURE at CustomerSearchSheetTest.kt:143 |
+| CustomerSearchRootTest, armed isolated | FAILURE at CustomerSearchRootTest.kt:238 |
+
+The two failures are deterministic (repeated back to back, both times armed with `mInTouchMode=true`). Failing node semantics: `Tag: 'customer-CUST-1'`, `Focused = 'false'`, with `RequestFocus` still listed in `Actions` — the exact signature of the original defect.
+
+Then the baseline control, with the guard removed from both tests, was rebuilt, reinstalled, and re-run armed on API 23. Both fail identically at the same lines. So on API 23 the guard neither fixes nor breaks these two; the armed-isolated failure is pre-existing and independent of this branch. Both failing tests drive `CustomerSearchSheet`, whose content is inside a `ModalBottomSheet` — a separate window — so the likeliest reading is that on API 23 a hardware key event does not clear touch mode for that second window the way it does on API 36. This was not investigated further.
+
+`MoreScreenTest` also focuses non-editable `FilterChip`s and does pass armed on API 23, so this is specific to the sheet's separate window rather than to non-editable nodes generally.
 
 ## On-device reproducer and negative control
 
